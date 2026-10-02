@@ -2,9 +2,13 @@
 'use strict';
 
 // ── 화면 전환 공통
-const OVERLAYS = ['ovMain','ovMap','ovChoose','ovPause'];
+const OVERLAYS = ['ovMain','ovRank','ovMap','ovChoose','ovPause'];
 function show(id){ OVERLAYS.forEach(o => $(o).classList.toggle('on', o === id)); }
-function setMode(m, overlay){ mode = m; show(overlay); refreshHud(); }
+function setMode(m, overlay){
+  mode = m; show(overlay); refreshHud();
+  // 메인·결과 화면에서는 메뉴가 열리지 않으니 버튼도 감춘다(자리는 남겨 헤더가 흔들리지 않게)
+  $('btnMenu').style.visibility = m === 'main' || m === 'result' ? 'hidden' : '';
+}
 
 // 선택 화면(보상·휴식·상점·덜어내기)을 하나의 틀로 그린다
 function showChoice(o){
@@ -48,18 +52,61 @@ function showMain(){
     c.append(sm);
   }
   $('mNew').textContent = '새 원정'; $('mNew').dataset.arm = '';
-  $('mRecord').textContent = META.best > 0 ? `최고 기록 ${progLabel(META.best)} 돌파, 원정 ${META.runs}회` : '';
+  $('mRecord').textContent = META.best > 0 ? `최고 ${progLabel(META.best)} 돌파 · 원정 ${META.runs}회`
+    : META.runs ? `원정 ${META.runs}회 · 아직 돌파한 칸이 없다` : '첫 원정을 떠나 보자';
+  ensureProfile(); $('mName').textContent = PROFILE.name;
+  drawLogo($('logoCv'));
   setHeader('', '');
   setMode('main', 'ovMain');
   (saved ? c : $('mNew')).focus();
+  refreshBoard();
 }
 $('mContinue').onclick = () => { const r = loadRun(); if (!r) return showMain(); RUN = r; resumeRun(); };
-// 저장된 원정이 있으면 두 번 눌러야 덮어쓴다
+// 저장된 원정이 있으면 두 번 눌러야 덮어쓴다. 덮어쓴 원정도 끝난 원정으로 기록한다
 $('mNew').onclick = e => {
-  const b = e.currentTarget;
-  if (loadRun() && !b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 저장된 원정이 사라진다'; return; }
-  RUN = freshRun(); META.runs++; saveMeta(); saveRun(); showMap();
+  const b = e.currentTarget, saved = loadRun();
+  if (saved && !b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 저장된 원정이 사라진다'; return; }
+  if (saved) recordRun(saved);
+  startNewRun();
 };
+// 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); }); } catch(e){}
+function startNewRun(){ RUN = freshRun(); META.runs++; saveMeta(); saveRun(); showMap(); }
+
+// ── 랭킹: 밀린 기록을 먼저 올리고 받아 온다. 서버가 없거나 실패하면 조용히 비워 둔다(게임은 오프라인으로도 돈다)
+let BOARD = null;
+async function refreshBoard(){
+  await flushRecords();
+  BOARD = await loadBoard() || BOARD;
+  if (PROFILE) $('mName').textContent = PROFILE.name;   // 등록 중 이름이 겹쳐 다시 뽑혔을 수 있다
+  renderBoard();
+}
+function boardRow(rank, name, best, me){
+  const li = document.createElement('li');
+  if (me) li.className = 'me';
+  const r = document.createElement('span'); r.className = 'rk'; r.textContent = rank;
+  const n = document.createElement('span'); n.className = 'nm'; n.textContent = name;
+  const b = document.createElement('span'); b.className = 'bs'; b.textContent = progLabel(best);
+  li.append(r, n, b);
+  return li;
+}
+function renderBoard(){
+  const mini = $('mBoard'), list = $('rankList');
+  mini.textContent = ''; list.textContent = '';
+  $('mRank').hidden = !BOARD;
+  if (!BOARD){ $('rankSub').textContent = '기록 서버에 연결하지 못했다'; return; }
+  const me = BOARD.me, top = BOARD.top || [];
+  const isMe = t => me && t.name === me.name;
+  top.slice(0, 3).forEach((t, i) => mini.append(boardRow(i + 1, t.name, t.best, isMe(t))));
+  // 내가 3위 밖이면 맨 아래에 내 줄을 붙인다
+  if (me && me.rank > 3) mini.append(boardRow(me.rank, me.name, me.best, true));
+  top.forEach((t, i) => list.append(boardRow(i + 1, t.name, t.best, isMe(t))));
+  if (me && me.rank > top.length) list.append(boardRow(me.rank, me.name, me.best, true));
+  $('rankSub').textContent = !top.length ? '아직 기록이 없다. 첫 번째가 되어 보자'
+    : me && me.rank ? `${BOARD.total}명 중 ${me.rank}위` : `기록 ${BOARD.total}명 · 원정을 끝내면 이름이 오른다`;
+}
+$('mRank').onclick = () => { show('ovRank'); $('rankBack').focus(); refreshBoard(); };
+$('rankBack').onclick = () => { show('ovMain'); $('mRank').focus(); };
 function resumeRun(){
   if (RUN.pendingReward) return showReward(RUN.pendingReward);
   if (RUN.pending) return enterNode(nodeAt(RUN.pending.r, RUN.pending.l));
@@ -142,12 +189,12 @@ function battleEnd(win){
   showReward(RUN.pendingReward);
 }
 function runOver(){
-  const n = G.node; clearRun();
+  const n = G.node; clearRun(); recordRun(RUN);
   showChoice({
     mode:'result', title:'원정 실패',
     sub:`${RUN.s + 1}-${n.r + 1}, ${G.cfg.name}에게 쓰러졌다. 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개를 모았다.`,
     cards:[], buttons:[
-      { label:'새 원정', primary:true, onClick:() => { RUN = freshRun(); META.runs++; saveMeta(); saveRun(); showMap(); } },
+      { label:'새 원정', primary:true, onClick:startNewRun },
       { label:'메인 화면', onClick:showMain },
     ],
   });

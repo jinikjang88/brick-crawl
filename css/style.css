@@ -19,29 +19,39 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 .hStage{font-size:14px;color:var(--ink2);font-weight:600;min-height:21px}
 .hName{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
 .hRight{display:flex;align-items:center;gap:8px}
-.hCoin{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink2)}
-.iconBtn{width:44px;height:44px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);font-weight:800;border-radius:3px;cursor:pointer}
+.hCoin{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.hCoin:not(:empty){border:2px solid var(--line);background:var(--panel);padding:2px 8px;white-space:pre}
+.iconBtn{width:44px;height:44px;border:2px solid var(--ink);border-bottom-width:4px;background:var(--panel);color:var(--ink);font-weight:900;border-radius:0;cursor:pointer}
+.iconBtn:active{border-bottom-width:2px;transform:translateY(2px)}
 .orbBar{font-size:14px;color:var(--ink2);min-height:21px}
 .orbBar b{color:var(--ink)}
 .abil{display:flex;flex-wrap:wrap;gap:4px;min-height:24px;font-size:13px}
-.abil span{border:2px solid var(--ink3);background:var(--panel);padding:0 7px;border-radius:2px;font-weight:600;line-height:20px}
+.abil span{border:2px solid var(--ink3);background:var(--panel);padding:0 7px;border-radius:0;font-weight:700;line-height:20px}
 .abil .none{border:0;background:none;color:var(--ink3);font-weight:500}
 
 .stageWrap{display:flex;justify-content:center}
 .stage{position:relative;aspect-ratio:9/17;width:clamp(240px,calc((100vh - 160px) * .5294),100%);width:clamp(240px,calc((100svh - 160px) * .5294),100%)}
-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;border:2px solid var(--ink);border-radius:2px;touch-action:none;cursor:pointer}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;border:2px solid var(--ink);border-bottom-width:4px;border-radius:0;touch-action:none;cursor:pointer}
 
-.ov{position:absolute;inset:2px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:18px;text-align:center;background:var(--bg);background:color-mix(in srgb,var(--bg) 95%,transparent);overflow:auto;z-index:5}
+.ov{position:absolute;inset:2px 2px 4px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:18px;text-align:center;background:var(--bg);background:color-mix(in srgb,var(--bg) 97%,transparent);overflow:auto;z-index:5}
 .ov.on{display:flex}
 #ovPause{z-index:8}
 .logo{font-size:40px;font-weight:900;letter-spacing:-.04em;line-height:1}
+/* 메인: 도트 로고 + 작은 한글 이름. 로고는 31×22 도트를 정수배로 키워 흐려지지 않게 */
+.ovMain{gap:8px}
+.logoCv{width:186px;height:132px;image-rendering:pixelated;image-rendering:crisp-edges}
+.ovMain .logo{font-size:15px;font-weight:800;letter-spacing:.4em;color:var(--ink2);margin:-4px 0 4px;padding-left:.4em}
+.who{display:flex;align-items:stretch;border:2px solid var(--ink);background:var(--panel);font-size:15px;max-width:100%}
+.whoLbl{background:var(--ink);color:var(--bg);font-size:12px;font-weight:800;padding:0 7px;display:flex;align-items:center}
+.who b{padding:3px 10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .big{font-size:30px;font-weight:900;letter-spacing:-.03em;line-height:1.15}
 .big.lose{color:var(--accent)}
 .sub{font-size:15px;color:var(--ink2);margin:0}
-.btn{min-height:48px;padding:0 20px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);font-weight:700;font-size:16px;border-radius:3px;cursor:pointer}
+.btn{min-height:48px;padding:0 20px;border:2px solid var(--ink);border-bottom-width:4px;background:var(--panel);color:var(--ink);font-weight:800;font-size:16px;border-radius:0;cursor:pointer}
 .btn.primary{background:var(--ink);color:var(--bg)}
-.btn:active{transform:translateY(1px)}
-.btn:disabled{opacity:.4;cursor:default}
+.btn.primary::before{content:'▶ ';font-size:.8em}
+.btn:active{border-bottom-width:2px;transform:translateY(2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none;border-bottom-width:4px}
 .btn small{display:block;font-size:12px;font-weight:500;opacity:.8;line-height:1.2}
 .linkbtn{background:none;border:0;color:var(--ink2);text-decoration:underline;min-height:44px;cursor:pointer;font-size:15px}
 .mainBtns{display:flex;flex-direction:column;gap:8px;width:100%;max-width:260px}
@@ -49,8 +59,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rend
 .btnRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 
 .cards{display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px}
-.rCard{display:block;width:100%;text-align:left;padding:9px 14px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);border-radius:3px;cursor:pointer;min-height:56px}
-.rCard:active{transform:translateY(1px)}
+.rCard{display:block;width:100%;text-align:left;padding:9px 14px;border:2px solid var(--ink);border-bottom-width:4px;background:var(--panel);color:var(--ink);border-radius:0;cursor:pointer;min-height:56px}
+.rCard:active{border-bottom-width:2px;transform:translateY(2px)}
 .rCard:disabled{opacity:.4;cursor:default}
 .rCard b{display:flex;justify-content:space-between;gap:8px;font-size:18px;font-weight:800;line-height:1.3}
 .rCard b em{font-style:normal;font-size:14px;font-weight:700;color:var(--ink2);white-space:nowrap}
@@ -63,7 +73,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rend
 .mapHead .s{font-size:14px;color:var(--ink2)}
 .mapBox{position:relative;flex:1;width:100%;min-height:280px}
 .mapBox svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.node{position:absolute;transform:translate(-50%,-50%);min-width:58px;min-height:44px;padding:0 8px;border:2px solid var(--ink3);background:var(--panel);color:var(--ink3);font-weight:800;font-size:15px;border-radius:3px}
+.node{position:absolute;transform:translate(-50%,-50%);min-width:58px;min-height:44px;padding:0 8px;border:2px solid var(--ink3);border-bottom-width:4px;background:var(--panel);color:var(--ink3);font-weight:800;font-size:15px;border-radius:0}
 .node.reach{border-color:var(--ink);color:var(--ink);cursor:pointer;animation:nudge 1s steps(2) infinite}
 .node.done{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .node.boss{border-color:var(--accent);color:var(--accent);min-width:76px}
@@ -73,7 +83,21 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rend
 .banner{position:absolute;left:0;right:0;top:34%;text-align:center;pointer-events:none;z-index:4;opacity:0;transition:opacity .25s}
 .banner.on{opacity:1}
 .banner .b1{font-size:15px;font-weight:700;color:var(--ink2)}
-.banner .b2{font-size:32px;font-weight:900;letter-spacing:-.03em;color:var(--ink);background:var(--field);display:inline-block;padding:0 12px}
+.banner .b2{font-size:32px;font-weight:900;letter-spacing:-.03em;color:var(--ink);background:var(--field);display:inline-block;padding:0 12px;border:2px solid var(--ink)}
+.banner.hot .b2{border-color:var(--accent)}
 .banner.hot .b2{color:var(--accent)}
 
-@media (prefers-reduced-motion: reduce){ .banner{transition:none} .node.reach{animation:none} }
+/* 랭킹: 순위 · 이름 · 도달 칸. 내 줄은 반전. 1위도 붉게 칠하지 않는다(붉은색 = 위험) */
+.board{list-style:none;margin:0;padding:0;width:100%;max-width:300px;display:flex;flex-direction:column;gap:3px;font-size:14px}
+.board:empty{display:none}
+.board li{display:flex;align-items:center;gap:8px;border:2px solid var(--line);background:var(--panel);padding:3px 8px;min-height:30px;text-align:left}
+.board .rk{min-width:2.2em;font-weight:900;font-variant-numeric:tabular-nums}
+.board .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board .bs{font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.board li.me{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.board li.me .bs{color:var(--bg)}
+.board.mini{max-width:260px;font-size:13px}
+.board.mini li{min-height:26px;padding:1px 8px}
+#ovRank{justify-content:flex-start;padding-top:24px}
+
+@media (prefers-reduced-motion: reduce){ .banner{transition:none} .node.reach{animation:none} .btn:active,.rCard:active,.iconBtn:active{transform:none} }

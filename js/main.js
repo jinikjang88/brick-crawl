@@ -16,7 +16,7 @@ $('pMain').onclick = () => { $('ovPause').classList.remove('on'); showMain(); };
 $('pGiveup').onclick = e => {
   const b = e.currentTarget;
   if (!b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 원정이 끝난다'; return; }
-  $('ovPause').classList.remove('on'); clearRun(); showMain();
+  $('ovPause').classList.remove('on'); clearRun(); recordRun(RUN); showMain();
 };
 document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') openMenu(); });
 

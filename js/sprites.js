@@ -143,3 +143,29 @@ function drawSprite(map, x, y, sc, main, alt, eye){
     ctx.fillRect(x + c * sc, y + r * sc, sc, sc);
   }
 }
+
+// ── 메인 로고: 5줄 도트 글자 + 한 칸이 깨진 벽돌 줄과 구슬. 붉은색은 "위험" 전용이라 로고는 무채색만 쓴다
+const LOGO_FONT = {
+  B:["####.","#...#","####.","#...#","####."], R:["####.","#...#","####.","#..#.","#...#"],
+  I:["###",".#.",".#.",".#.","###"],           C:[".####","#....","#....","#....",".####"],
+  K:["#...#","#..#.","###..","#..#.","#...#"], A:[".###.","#...#","#####","#...#","#...#"],
+  W:["#...#","#...#","#.#.#","##.##","#...#"], L:["#....","#....","#....","#....","#####"],
+};
+const LOGO_W = 31, LOGO_H = 22;
+function drawLogo(cvs){
+  cvs.width = LOGO_W; cvs.height = LOGO_H;
+  const g = cvs.getContext('2d'); g.clearRect(0, 0, LOGO_W, LOGO_H);
+  const word = (w, y) => {
+    const width = [...w].reduce((s, ch) => s + LOGO_FONT[ch][0].length + 1, -1);
+    let x = Math.floor((LOGO_W - width) / 2);
+    for (const ch of w){
+      LOGO_FONT[ch].forEach((row, j) => [...row].forEach((v, i) => { if (v === '#') g.fillRect(x + i, y + j, 1, 1); }));
+      x += LOGO_FONT[ch][0].length + 1;
+    }
+  };
+  g.fillStyle = C.ink; word('BRICK', 1); word('CRAWL', 8);
+  // 벽돌 6장 중 하나가 빠져 있고, 그 자리 위로 구슬이 튀어 오른다 = 벽돌깨기
+  g.fillStyle = C.ink3;
+  for (let k = 0; k < 6; k++) if (k !== 3) g.fillRect(1 + k * 5, 19, 4, 2);
+  g.fillStyle = C.ink; g.fillRect(17, 16, 1, 1);
+}

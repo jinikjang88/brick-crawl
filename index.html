@@ -25,13 +25,24 @@
     <canvas id="cv" aria-label="위는 전투 화면, 아래는 벽돌판"></canvas>
     <div class="banner" id="banner"><div class="b1" id="bn1"></div><div class="b2" id="bn2"></div></div>
 
-    <div class="ov on" id="ovMain">
+    <div class="ov on ovMain" id="ovMain">
+      <canvas class="logoCv" id="logoCv" role="img" aria-label="BRICK CRAWL"></canvas>
       <div class="logo">브릭 크롤</div>
+      <div class="who"><span class="whoLbl">플레이어</span><b id="mName"></b></div>
       <p class="sub" id="mRecord"></p>
       <div class="mainBtns">
         <button class="btn primary" id="mContinue" hidden></button>
         <button class="btn" id="mNew">새 원정</button>
       </div>
+      <div class="board mini" id="mBoard" aria-live="polite"></div>
+      <button class="linkbtn" id="mRank">랭킹 전체 보기</button>
+    </div>
+
+    <div class="ov" id="ovRank">
+      <div class="big">랭킹</div>
+      <p class="sub" id="rankSub"></p>
+      <ol class="board" id="rankList"></ol>
+      <button class="btn" id="rankBack">돌아가기</button>
     </div>
 
     <div class="ov ovMap" id="ovMap">
@@ -60,6 +71,8 @@
 <script src="js/data.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/save.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/net.js"></script>
 <script src="js/map.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/render.js"></script>

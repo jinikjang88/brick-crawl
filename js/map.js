@@ -4,7 +4,8 @@
 // ── 원정 상태
 let RUN = null, G = null, mode = 'main', prevMode = null;
 function freshRun(){
-  return { v:2, s:0, hp:24, maxHp:24, coins:0, deck:['basic','basic','bomb'], relics:{},
+  // rid: 기록 서버에서 같은 원정을 두 번 세지 않게 하는 원정 식별자
+  return { v:2, rid:uuid(), s:0, hp:24, maxHp:24, coins:0, deck:['basic','basic','bomb'], relics:{},
            map:genMap(), pos:null, pending:null, path:[], pendingReward:null, shop:null };
 }
 
