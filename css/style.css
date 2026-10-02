@@ -54,6 +54,11 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 .btn:disabled{opacity:.4;cursor:default;transform:none;border-bottom-width:4px}
 .btn small{display:block;font-size:12px;font-weight:500;opacity:.8;line-height:1.2}
 .linkbtn{background:none;border:0;color:var(--ink2);text-decoration:underline;min-height:44px;cursor:pointer;font-size:15px}
+/* 소리 켬/끔: 켜짐은 실선 블록, 꺼짐은 점선·흐린 글자로 한눈에 구분 */
+.sndRow{display:flex;gap:6px;justify-content:center}
+.sndBtn{min-height:44px;min-width:92px;padding:0 10px;border:2px solid var(--ink);border-bottom-width:4px;border-radius:0;background:var(--panel);color:var(--ink);font-size:13px;font-weight:800;cursor:pointer}
+.sndBtn:active{border-bottom-width:2px;transform:translateY(2px)}
+.sndBtn.off{border-style:dashed;border-color:var(--ink3);color:var(--ink3)}
 .mainBtns{display:flex;flex-direction:column;gap:8px;width:100%;max-width:260px}
 .mainBtns .btn{min-height:56px}
 .btnRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}

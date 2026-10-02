@@ -45,7 +45,7 @@ function showRest(){
   setHeader(`세션 ${RUN.s + 1}`, '휴식');
   showChoice({ mode:'rest', title:'모닥불', sub:`체력 ${RUN.hp}/${RUN.maxHp}. 하나만 할 수 있다.`, cards:[
     { name:'쉬기', desc:`체력 ${amt} 회복`, disabled:RUN.hp >= RUN.maxHp,
-      onPick:() => { RUN.hp = Math.min(RUN.maxHp, RUN.hp + amt); finishNonBattle(); } },
+      onPick:() => { RUN.hp = Math.min(RUN.maxHp, RUN.hp + amt); sfx('heal'); finishNonBattle(); } },
     { name:'덜어내기', desc:'구슬 1개를 덱에서 뺀다. 좋은 구슬이 더 자주 나온다', disabled:RUN.deck.length <= 2,
       onPick:() => showRemove(finishNonBattle, () => showRest()) },
   ], buttons:[{ label:'그냥 지나간다', onClick:finishNonBattle }] });
@@ -72,7 +72,7 @@ function showShop(){
   setHeader(`세션 ${RUN.s + 1}`, '상점');
   const cards = RUN.shop.map((it, i) => {
     const poor = RUN.coins < it.price, tag = it.sold ? '판매됨' : `${it.price}코인`;
-    const buy = after => { RUN.coins -= it.price; it.sold = true; after(); saveRun(); showShop(); };
+    const buy = after => { RUN.coins -= it.price; it.sold = true; sfx('coin'); after(); saveRun(); showShop(); };
     if (it.k === 'orb') return { name:ORBS[it.id].name, tag, desc:ORBS[it.id].desc, rare:ORBS[it.id].rar === 2,
       disabled:it.sold || poor, onPick:() => buy(() => RUN.deck.push(it.id)) };
     if (it.k === 'relic') return { name:RELICS[it.id].name, tag, desc:RELICS[it.id].desc,
@@ -81,7 +81,7 @@ function showShop(){
       disabled:it.sold || poor || RUN.hp >= RUN.maxHp, onPick:() => buy(() => RUN.hp = Math.min(RUN.maxHp, RUN.hp + 8)) };
     return { name:'구슬 덜어내기', tag, desc:'구슬 1개를 덱에서 뺀다',
       disabled:it.sold || poor || RUN.deck.length <= 2,
-      onPick:() => showRemove(() => { RUN.coins -= it.price; it.sold = true; saveRun(); showShop(); }, showShop) };
+      onPick:() => showRemove(() => { RUN.coins -= it.price; it.sold = true; sfx('coin'); saveRun(); showShop(); }, showShop) };
   });
   showChoice({ mode:'shop', title:'상점', sub:`코인 ${RUN.coins}`, cards, buttons:[{ label:'나가기', primary:true, onClick:finishNonBattle }] });
 }

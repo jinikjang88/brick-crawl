@@ -61,8 +61,8 @@ function hurtPlayer(v, icon, fromMonster){
   if (ab) pop(PX, 42, '-' + ab, C.ink2, 'shield');
   if (ab && fromMonster && rel('counter') && !G.m.dead)
     G.projs.push({ x0:PX + 10, y0:66, x1:MX, y1:62, t:0, dur:0.3, kind:'dmg', v:ab });
-  if (hit){ p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); }
-  else burst(PX, 66, C.ink3, 6);
+  if (hit){ p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
+  else { burst(PX, 66, C.ink3, 6); sfx('block'); }
 }
 
 function pop(x, y, txt, col, icon){ G.pops.push({ x, y, txt, col, icon, t:0.9 }); }
@@ -94,7 +94,7 @@ function onBreak(b){
 function ballBreak(b, br){
   if (b.kind === 'guard'){ G.p.def += 1; pop(PX + 12, 88, '+1', C.ink2, 'shield'); }
   if (b.kind === 'bomb' && !b.bombed){
-    b.bombed = true; G.shake = Math.max(G.shake, 3);
+    b.bombed = true; G.shake = Math.max(G.shake, 3); sfx('boom');
     burst(OX + br.c * CW + CW / 2, br.y + BRH / 2, C.ink, 16);
     for (const o of G.bricks){
       if (o.dead || o === br || Math.abs(o.r - br.r) > 1 || Math.abs(o.c - br.c) > 1) continue;
@@ -111,9 +111,13 @@ function arrive(pr){
     const jx = MX + (Math.random() * 16 - 8);
     if (ab) pop(jx, 44, '-' + ab, C.ink2, 'shield');
     if (hit) pop(jx, ab ? 32 : 44, '-' + hit, C.ink);
+    sfx(hit ? 'mhit' : 'block', { big:hit >= 3 });
     if (pr.venom){ g.m.poison++; pop(MX + 20, 30, '+1', C.accent, 'skull'); }
     if (g.m.hp === 0) killMonster();
-  } else if (pr.kind === 'atk'){ const v = 1 + rel('harvest'); g.p.atk += v; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); }
+    return;
+  }
+  sfx('pickup', { kind:pr.kind });
+  if (pr.kind === 'atk'){ const v = 1 + rel('harvest'); g.p.atk += v; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); }
   else if (pr.kind === 'def'){ const v = 2 + rel('harvest'); g.p.def += v; pop(PX + 12, 88, '+' + v, C.ink, 'shield'); }
   else if (pr.kind === 'heal'){
     const before = g.p.hp; g.p.hp = Math.min(g.p.max, g.p.hp + 4);
@@ -122,7 +126,7 @@ function arrive(pr){
 }
 function killMonster(){
   // 결정타가 들어가면 남은 구슬을 즉시 치워 여운을 몬스터 쓰러짐에 집중시킨다
-  G.m.dead = true; G.balls = []; G.queue = []; G.shake = 6;
+  G.m.dead = true; G.balls = []; G.queue = []; G.shake = 6; sfx('kill');
   burst(MX, 62, C.ink, 26);
 }
 
@@ -137,6 +141,10 @@ function hitBricks(b){
     const drilled = b.drill > 0;
     if (drilled){ b.drill--; br.hp = 0; } else br.hp--;
     br.flash = 0.07; b.impact = .12;
+    // 같은 구슬이 연달아 맞힐수록 소리가 올라간다(콤보를 귀로 느끼게)
+    b.combo = (b.combo || 0) + 1;
+    if (br.type === 'stone' && br.hp > 0) sfx('stone');
+    else sfx('brick', { orb:b.kind, combo:b.combo - 1, broke:br.hp <= 0 });
     if (br.hp <= 0){ br.dead = true; onBreak(br); ballBreak(b, br); }
     if (drilled) return;
     const ox = Math.min(b.x - l, r - b.x), oy = Math.min(b.y - t, bo - b.y);
@@ -160,6 +168,7 @@ function moveBall(b, dt){
       // 천장 타격: 성벽을 뚫고 올라온 구슬만 몬스터를 친다
       if (!G.m.dead && b.hits < hitCap()){
         b.hits++;
+        sfx('ceil', { orb:b.kind, n:b.hits - 1 });
         const v = G.p.atk * (b.kind === 'heavy' ? 2 : 1);
         G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.kind === 'venom' });
         G.cf.push({ x:b.x, t:0.25 });
@@ -184,6 +193,7 @@ function fire(){
   g.phase = 'fire'; g.fireT = 1; g.fireEl = 0; g.nextLx = null;
   g.queue = g.orb === 'split' ? [g.aim - 0.16, g.aim, g.aim + 0.16].map(a => clamp(a, AIM_MIN, AIM_MAX)) : [g.aim];
   renderOrbBar();   // "발사 대기" → "발사!"
+  sfx('fire', { orb:g.orb });
 }
 
 // ── 턴 진행
@@ -270,14 +280,14 @@ function enemyUpdate(dt){
   if (g.eStep === 1 && g.timer >= 0.2){
     g.eStep = 2;
     if (g.cur.t === 'atk') hurtPlayer(atkVal(g.cur), undefined, true);
-    else if (g.cur.t === 'poison'){ p.poison += g.cur.v; burst(PX, 66, C.accent, 8); pop(PX, 30, '+' + g.cur.v, C.accent, 'skull'); }
+    else if (g.cur.t === 'poison'){ p.poison += g.cur.v; burst(PX, 66, C.accent, 8); pop(PX, 30, '+' + g.cur.v, C.accent, 'skull'); sfx('pickup', { kind:'poison' }); }
   }
   if (g.eStep === 2 && g.timer >= 0.6){
     g.eStep = 3;
     // 성벽은 몇 턴마다 한 번 내려온다: 구슬이 튕기는 구조라 매 턴 내려오면 길을 낼 틈이 없다
     if (g.turn % WALL.every === 0 || g.cur.t === 'summon' || g.cur.t === 'spore'){
       for (const b of g.bricks) b.r++;
-      spawnRow(0, false);
+      spawnRow(0, false); sfx('wall');
     }
     if (g.cur.t === 'summon') replaceInRow0(3, () => ({ type:'stone', hp:3 + m.phase }));
     if (g.cur.t === 'spore') replaceInRow0(2, () => ({ type:'poison', hp:1 }));
@@ -285,7 +295,7 @@ function enemyUpdate(dt){
     const hits = g.bricks.filter(b => b.r >= MAXROW);
     if (hits.length){
       for (const b of hits){ b.dead = true; burst(OX + b.c * CW + CW / 2, rowY(b.r) + 6, C.accent, 6); }
-      hurtPlayer(hits.length * (rel('brace') ? 1 : 2), 'brick'); g.shake = 6;
+      sfx('crumble'); hurtPlayer(hits.length * (rel('brace') ? 1 : 2), 'brick'); g.shake = 6;
     }
   }
   if (g.eStep === 3 && g.timer >= 0.95){
@@ -302,7 +312,7 @@ function enemyUpdate(dt){
     g.eStep = 5; m.pi++;
     if (g.cfg.boss && m.phase === 1 && m.hp <= m.max / 2){
       m.phase = 2; m.pi = 0; m.atk += 1; m.def += 2; g.shake = 8;
-      banner('보스가 분노했다', '2페이즈', true);
+      banner('보스가 분노했다', '2페이즈', true); sfx('rage');
     }
     if (p.hp <= 0){ g.phase = 'lose'; g.timer = 0; return; }
     // phase를 먼저 바꾼다: drawOrb가 구슬 줄을 다시 그릴 때 "발사!"가 "발사 대기"로 돌아오게
