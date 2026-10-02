@@ -25,7 +25,7 @@ function showChoice(o){
     if (orbKind){ b.classList.add('orbCard'); b.append(orbPortrait(orbKind)); }
     const body = document.createElement('div'); body.className = 'cardBody'; body.append(t, d);
     b.append(body);
-    b.onclick = () => { if (mode !== o.mode) return; c.onPick(); };
+    b.onclick = () => { if (mode !== o.mode) return; sfx('pick'); c.onPick(); };
     box.append(b);
   }
   const row = $('cBtns'); row.textContent = '';
@@ -63,6 +63,7 @@ function showMain(){
   ['drill','guard','basic','bomb','heavy'].forEach(k => display.append(orbPortrait(k)));
   setHeader('', '');
   setMode('main', 'ovMain');
+  bgm('calm'); renderSound();
   (saved ? c : $('mNew')).focus();
   refreshBoard();
 }
@@ -157,13 +158,15 @@ function showMap(){
   }
   setHeader(`세션 ${RUN.s + 1}`, '갈림길');
   setMode('map', 'ovMap');
+  bgm('calm');
   const first = box.querySelector('.node.reach'); if (first) first.focus();
 }
 
 function enterNode(n){
   RUN.pending = { r:n.r, l:n.l }; saveRun();
-  if (n.t === 'rest') return showRest();
-  if (n.t === 'shop') return showShop();
+  // 들어서는 순간 한 번만 울린다(덜어내기 취소 등으로 화면을 다시 그릴 때는 울리지 않게 여기서)
+  if (n.t === 'rest'){ sfx('rest'); return showRest(); }
+  if (n.t === 'shop'){ sfx('shop'); return showShop(); }
   startBattle(n);
 }
 function completeNode(){
@@ -180,6 +183,8 @@ function startBattle(n){
   setHeader(`세션 ${RUN.s + 1}  ${label} ${NODE_NAME[n.t]}`, G.cfg.name);
   setMode('play', null);
   banner(n.t === 'boss' ? `세션 ${RUN.s + 1} 보스` : label, G.cfg.name, n.t !== 'battle');
+  bgm(n.t === 'boss' ? 'boss' : 'battle');
+  if (n.t === 'boss') sfx('boss');
 }
 function battleEnd(win){
   const n = G.node;
@@ -191,10 +196,12 @@ function battleEnd(win){
   completeNode();
   RUN.pendingReward = n.t === 'battle' ? 'orb' : n.t;
   saveRun();
+  sfx('win'); bgm('calm');
   showReward(RUN.pendingReward);
 }
 function runOver(){
   const n = G.node; clearRun(); recordRun(RUN);
+  bgm(null); sfx('lose');
   showChoice({
     mode:'result', title:'원정 실패',
     sub:`${RUN.s + 1}-${n.r + 1}, ${G.cfg.name}에게 쓰러졌다. 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개를 모았다.`,
