@@ -1,7 +1,7 @@
 // 헤드리스 밸런스 시뮬레이터
 // 사용법: node tools/sim.mjs [원정 횟수=60]
 //
-// index.html의 <script>를 꺼내 가짜 DOM 위에서 돌리고, "조준 봇"이 원정을 끝까지 플레이한다.
+// index.html이 불러오는 js/*.js를 순서대로 이어 붙여 가짜 DOM 위에서 돌리고, "조준 봇"이 원정을 끝까지 플레이한다.
 // 봇은 사람보다 약하다(목표 열을 단순하게 고르고, 지도·보상은 무작위). 절대값보다 "변경 전후 비교"에 쓴다.
 //
 // 주의: 게임 코드의 특정 줄을 문자열로 찾아 테스트 훅을 끼워 넣는다(HOOK_*).
@@ -12,14 +12,14 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const m = html.match(/<script>([\s\S]*)<\/script>/);
-if (!m) throw new Error('index.html에서 <script>를 찾지 못했다');
+const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
+if (!srcs.length) throw new Error('index.html에서 <script src>를 찾지 못했다');
 
 const HOOK_STATE = "let RUN = null, G = null, mode = 'main', prevMode = null;";
 const HOOK_BREAK = "br.dead = true; onBreak(br); ballBreak(b, br); }";
 const HOOK_CEIL = 'b.hits++;';
 const HOOK_FIRE = "g.phase = 'fire'; g.fireT = 1;";
-let code = m[1];
+let code = srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n');
 for (const h of [HOOK_STATE, HOOK_BREAK, HOOK_CEIL, HOOK_FIRE])
   if (code.split(h).length !== 2) throw new Error('훅 삽입 실패: ' + h);
 code = 'globalThis.ST=globalThis.ST||{br:0,ch:0,sh:0};' + code
@@ -27,6 +27,8 @@ code = 'globalThis.ST=globalThis.ST||{br:0,ch:0,sh:0};' + code
   .replace(HOOK_BREAK, HOOK_BREAK.replace('br.dead = true;', 'br.dead = true; ST.br++;'))
   .replace(HOOK_CEIL, 'b.hits++; ST.ch++;')
   .replace(HOOK_FIRE, 'ST.sh++; ' + HOOK_FIRE);
+// 브라우저에선 파일들이 전역 스코프를 공유하지만, 여기선 원정마다 다시 eval하므로 IIFE로 감싸 재선언 오류를 막는다
+code = '(() => {' + code + '\n})();';
 
 // ── 가짜 DOM: 게임이 쓰는 최소한만 흉내 낸다
 function mk(){

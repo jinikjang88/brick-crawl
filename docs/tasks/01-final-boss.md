@@ -42,8 +42,18 @@
 - 지도 제목에 "세션 2 / 3"처럼 남은 거리를 보여준다.
 - 세션 3의 보스 노드는 "최종"으로 표기하고 강조색 테두리.
 
+## 손댈 파일 (예상)
+| 요구사항 | 파일 |
+|---|---|
+| A. 시드 RNG | `js/config.js`(`rnd`·`pickOne`·`shuffle`·`pickW`가 `Math.random`을 씀), `js/map.js`, `js/battle.js`, `js/rewards.js`, `js/screens.js`(코인) |
+| A. 저장 v3 | `js/save.js`(`SAVE_KEY`·`loadRun`의 `r.v === 2` 검사), `js/map.js`(`freshRun`의 `v:2`) |
+| B·E. 3세션·지도 표시 | `js/screens.js`(`showMap`·`battleEnd`), `js/map.js` |
+| C. 최종 보스 | `js/data.js`(MON), `js/sprites.js`(16×16 스프라이트·아이콘), `js/battle.js`(봉인 판정), `js/render.js`(봉인 빗금·예고) |
+| D. 엔딩 | `js/screens.js`, `index.html`(오버레이가 필요하면), `js/save.js`(메타 `clears`) |
+| 시뮬레이터 | `tools/sim.mjs`(HOOK_* 문자열은 `js/` 파일들을 이어 붙인 코드에서 찾는다) |
+
 ## 하지 말 것
-- 외부 라이브러리·파일 추가, 빌드 단계 추가.
+- 외부 라이브러리·CDN 추가, 빌드 단계 추가. (저장소 안 JS 파일은 나눠도 되지만 ES 모듈은 금지 — `CLAUDE.md` 기술 제약)
 - 기존 밸런스 수치를 근거 없이 크게 바꾸기.
 - 시드 입력 UI, 고난 단계, 랭킹 (다음 작업).
 
