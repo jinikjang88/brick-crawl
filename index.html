@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="app">
+<div class="app" id="app">
+  <div class="brandStrip"><span>BRICK / CRAWL</span><span>구슬로 여는 원정</span></div>
   <header class="hud">
     <div>
       <div class="hStage" id="hStage"></div>
@@ -28,6 +29,8 @@
     <div class="ov on ovMain" id="ovMain">
       <canvas class="logoCv" id="logoCv" role="img" aria-label="BRICK CRAWL"></canvas>
       <div class="logo">브릭 크롤</div>
+      <div class="orbShowcase" id="orbShowcase" aria-hidden="true"></div>
+      <p class="tagline">성벽을 깨고, 운명을 튕겨라.</p>
       <div class="who"><span class="whoLbl">플레이어</span><b id="mName"></b></div>
       <p class="sub" id="mRecord"></p>
       <div class="mainBtns">
@@ -64,6 +67,7 @@
       <button class="linkbtn" id="pGiveup">원정 포기</button>
     </div>
   </div></div>
+<p class="playHint" id="playHint">조준선에 맞춰 탭 · Space / Enter 발사</p>
 </div>
 
 <!-- 순서가 곧 의존 관계: 앞 파일의 전역을 뒤 파일이 쓴다. ES 모듈은 file://에서 막혀서 일반 script로 둔다 -->

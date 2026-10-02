@@ -74,6 +74,8 @@ function draw(){
       if (b.flash > 0) fill = C.line;
       ctx.fillStyle = fill; ctx.fillRect(x, y, w, h);
       if (b.type === 'stone'){ ctx.fillStyle = C.field; for (let k = 2; k < w; k += 4) ctx.fillRect(x + k, y + 1, 1, 1); }
+      ctx.fillStyle = C.line; ctx.fillRect(x + 1, y + 1, w - 2, 1);
+      ctx.fillStyle = C.ink; ctx.fillRect(x + 1, y + h - 2, w - 2, 1);
       if (b.hp > 1) drawText(String(b.hp), x + w / 2, y + 4, C.field, 1, 'center');
     } else {
       const border = b.type === 'poison' ? C.accent : C.ink;
@@ -105,12 +107,25 @@ function draw(){
   }
 
   // 발사대: 이번에 쏠 구슬의 아이콘을 보여준다
-  if (g.phase === 'aim' || (g.phase === 'fire' && g.queue.length)) drawIcon(ORBS[g.orb].icon, g.lx - 3, FLOOR - 8, C.ink);
+  if (g.phase === 'aim' || (g.phase === 'fire' && g.queue.length)){
+    ctx.fillStyle = C.ink2; ctx.fillRect(g.lx - 7, FLOOR - 1, 14, 2);
+    drawOrbSprite(g.orb, g.lx, FLOOR - 7, 9);
+  }
   if (g.nextLx !== null){ ctx.fillStyle = C.ink2; ctx.fillRect(Math.round(g.nextLx) - 1, FLOOR - 3, 3, 3); }
-  ctx.fillStyle = C.ink;
   for (const b of g.balls){
-    const s = b.kind === 'heavy' ? 4 : 3;
-    ctx.fillRect(Math.round(b.x) - 1, Math.round(b.y) - 1, s, s);
+    const trail = b.trail || [];
+    for (let i = 0; i < trail.length; i++){
+      ctx.globalAlpha = (i + 1) / trail.length * .3;
+      ctx.fillStyle = b.kind === 'venom' ? C.accent : C.ink2;
+      ctx.fillRect(Math.round(trail[i].x) - 1, Math.round(trail[i].y) - 1, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+    drawOrbSprite(b.kind, b.x, b.y, b.kind === 'heavy' ? 7 : 5);
+    if (b.impact > 0){
+      ctx.globalAlpha = b.impact / .12; ctx.fillStyle = C.panel;
+      ctx.fillRect(b.x - 6, b.y, 3, 1); ctx.fillRect(b.x + 4, b.y, 3, 1);
+      ctx.fillRect(b.x, b.y - 6, 1, 3); ctx.globalAlpha = 1;
+    }
   }
 
   for (const pr of g.projs){
@@ -141,9 +156,15 @@ function renderOrbBar(){
   const el = $('orbBar'); el.textContent = '';
   if (!RUN || mode === 'main') return;
   if (G && mode === 'play'){
-    const b1 = document.createElement('b'); b1.textContent = ORBS[G.orb].name;
-    el.append('이번 ', b1, `  →  다음 ${ORBS[nextOrb()].name}`);
-    el.title = ORBS[G.orb].desc;
+    const current = document.createElement('div'); current.className = 'orbCurrent';
+    const label = document.createElement('div');
+    const small = document.createElement('small'); small.textContent = '발사 대기';
+    const name = document.createElement('b'); name.textContent = ORBS[G.orb].name;
+    label.append(small, name); current.append(orbPortrait(G.orb), label);
+    const next = document.createElement('div'); next.className = 'orbNext';
+    const text = document.createElement('span'); text.textContent = '다음';
+    next.append(text, orbPortrait(nextOrb()), ORBS[nextOrb()].name.replace(' 구슬', ''));
+    el.append(current, next); el.title = ORBS[G.orb].desc;
   } else el.append(`구슬 덱 ${RUN.deck.length}개: ${deckSummary()}`);
 }
 function renderAbil(){
