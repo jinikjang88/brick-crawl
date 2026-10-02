@@ -101,3 +101,44 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 #ovRank{justify-content:flex-start;padding-top:24px}
 
 @media (prefers-reduced-motion: reduce){ .banner{transition:none} .node.reach{animation:none} .btn:active,.rCard:active,.iconBtn:active{transform:none} }
+
+/* 얇은 인쇄선과 단차로 원정 장비 같은 무게감을 준다. */
+.app{gap:8px;padding-top:16px}
+.brandStrip{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ink3);padding-bottom:8px;font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--ink2)}
+.brandStrip span:last-child{letter-spacing:0;font-weight:500}
+.hud{padding:4px 0}
+#cv{border:3px solid var(--ink);border-bottom-width:6px}
+.stage{width:clamp(240px,calc((100svh - 220px) * .5294),100%)}
+.ov{inset:3px 3px 6px;background:var(--bg);padding:18px 14px}
+.ovMain{gap:10px;background:var(--field);border:6px double var(--line)}
+.logoCv{width:155px;height:110px}
+.ovMain .logo{font-size:13px;letter-spacing:.5em}
+.tagline{font-size:14px;font-weight:700;margin:0 0 8px;color:var(--ink2)}
+.orbPortrait{width:48px;height:48px;image-rendering:pixelated;flex:none}
+.orbShowcase{display:flex;align-items:center;justify-content:center;gap:0;height:66px}
+.orbShowcase .orbPortrait{width:42px;height:42px;transform:translateY(5px)}
+.orbShowcase .orbPortrait:nth-child(3){width:64px;height:64px;transform:translateY(-3px)}
+.orbShowcase .orbPortrait:nth-child(2),.orbShowcase .orbPortrait:nth-child(4){width:48px;height:48px;transform:none}
+.orbBar:not(:empty){border:1px solid var(--ink3);border-bottom:3px solid var(--ink2);background:var(--panel);padding:6px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:60px}
+.orbCurrent,.orbNext{display:flex;align-items:center;gap:6px}
+.orbCurrent small{display:block;font-size:11px;letter-spacing:.1em;color:var(--ink2)}
+.orbCurrent b{display:block;font-size:16px}
+.orbNext{font-size:12px;flex-wrap:wrap;justify-content:flex-end}
+.orbNext .orbPortrait{width:30px;height:30px}
+.orbNext span{font-size:11px}
+.orbCard{display:flex;gap:10px;align-items:center;padding:10px}
+.cardBody{flex:1;min-width:0}
+.rCard{transition:background .15s}
+.rCard:hover:not(:disabled),.btn:hover:not(:disabled){background:var(--field)}
+.btn.primary:hover:not(:disabled){background:var(--ink2)}
+.rCard span{display:block;margin-top:4px;line-height:1.5}
+.node{color:var(--ink2);border-color:var(--line)}
+.node.reach{outline:3px solid var(--line);outline-offset:3px}
+.mapHead{width:100%;padding:4px 0 10px;border-bottom:1px solid var(--ink3)}
+.playHint{display:none;text-align:center;margin:0;font-size:12px;color:var(--ink2)}
+.app[data-mode="play"] .playHint{display:block}
+.app[data-mode="main"] .hud,.app[data-mode="main"] .orbBar,.app[data-mode="main"] .abil{display:none}
+.app[data-mode="main"] .stage{width:clamp(240px,calc((100svh - 80px) * .5294),100%)}
+.abil .none{color:var(--ink2)}
+@media(max-width:360px){.orbCurrent b{font-size:14px}.orbCurrent .orbPortrait{width:38px;height:38px}.orbNext{gap:3px}.ov{padding:12px 10px}.big{font-size:25px}}
+@media(prefers-reduced-motion:reduce){.rCard{transition:none}}

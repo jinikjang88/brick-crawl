@@ -169,3 +169,39 @@ function drawLogo(cvs){
   for (let k = 0; k < 6; k++) if (k !== 3) g.fillRect(1 + k * 5, 19, 4, 2);
   g.fillStyle = C.ink; g.fillRect(17, 16, 1, 1);
 }
+
+// 같은 명암과 각인을 전투·덱·보상에서 공유해야 작은 구슬도 식별된다.
+function drawOrbSprite(kind, x, y, size = 9, target = ctx){
+  const g = target, u = size / 12;
+  g.save(); g.translate(Math.round(x - size / 2), Math.round(y - size / 2)); g.scale(u, u);
+  const rect = (col, a, b, w, h) => { g.fillStyle = col; g.fillRect(a, b, w, h); };
+  rect(C.line, 3, 12, 8, 1);
+  rect(C.ink, 3, 0, 6, 12); rect(C.ink, 1, 2, 10, 8); rect(C.ink, 0, 4, 12, 4);
+  rect(C.ink2, 3, 1, 6, 9); rect(C.ink2, 1, 3, 9, 5);
+  rect(C.ink3, 3, 1, 5, 7); rect(C.ink3, 2, 3, 5, 4);
+  rect(C.panel, 3, 2, 3, 2); rect(C.panel, 2, 4, 1, 2);
+  rect(C.field, 9, 7, 1, 2);
+  if (kind === 'bomb'){
+    rect(C.ink, 7, -2, 2, 3); rect(C.accent, 9, -3, 2, 2);
+    rect(C.ink, 4, 5, 4, 3); rect(C.panel, 5, 5, 2, 1);
+  } else if (kind === 'drill'){
+    rect(C.ink, 5, -3, 2, 3); rect(C.panel, 5, 4, 3, 1); rect(C.panel, 4, 6, 4, 1); rect(C.panel, 3, 8, 5, 1);
+  } else if (kind === 'guard'){
+    rect(C.ink, 4, 4, 5, 4); rect(C.panel, 5, 4, 3, 3); rect(C.panel, 6, 7, 1, 2);
+  } else if (kind === 'split'){
+    rect(C.ink, -2, 0, 3, 3); rect(C.panel, -1, 0, 1, 1);
+    rect(C.ink, 11, 0, 3, 3); rect(C.panel, 12, 0, 1, 1);
+    rect(C.panel, 5, 5, 1, 4); rect(C.panel, 7, 5, 1, 4);
+  } else if (kind === 'venom'){
+    rect(C.accent, 4, 4, 5, 4); rect(C.ink, 5, 5, 1, 1); rect(C.ink, 7, 5, 1, 1); rect(C.accent, 5, 8, 3, 1);
+  } else if (kind === 'heavy'){
+    rect(C.panel, 3, 5, 7, 1); rect(C.ink, 4, 6, 5, 3); rect(C.ink3, 5, 6, 1, 2);
+  }
+  g.restore();
+}
+function orbPortrait(kind, className = 'orbPortrait'){
+  const c = document.createElement('canvas'); c.width = 32; c.height = 32;
+  c.className = className; c.setAttribute('aria-hidden', 'true');
+  drawOrbSprite(kind, 16, 16, 22, c.getContext('2d'));
+  return c;
+}

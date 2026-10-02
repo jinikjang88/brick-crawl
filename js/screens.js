@@ -5,7 +5,7 @@
 const OVERLAYS = ['ovMain','ovRank','ovMap','ovChoose','ovPause'];
 function show(id){ OVERLAYS.forEach(o => $(o).classList.toggle('on', o === id)); }
 function setMode(m, overlay){
-  mode = m; show(overlay); refreshHud();
+  mode = m; $('app').dataset.mode = m; show(overlay); refreshHud();
   // 메인·결과 화면에서는 메뉴가 열리지 않으니 버튼도 감춘다(자리는 남겨 헤더가 흔들리지 않게)
   $('btnMenu').style.visibility = m === 'main' || m === 'result' ? 'hidden' : '';
 }
@@ -21,7 +21,10 @@ function showChoice(o){
     const t = document.createElement('b'); t.append(c.name);
     if (c.tag){ const em = document.createElement('em'); em.textContent = c.tag; t.append(em); }
     const d = document.createElement('span'); d.textContent = c.desc;
-    b.append(t, d);
+    const orbKind = c.orb || Object.keys(ORBS).find(k => ORBS[k].name === c.name);
+    if (orbKind){ b.classList.add('orbCard'); b.append(orbPortrait(orbKind)); }
+    const body = document.createElement('div'); body.className = 'cardBody'; body.append(t, d);
+    b.append(body);
     b.onclick = () => { if (mode !== o.mode) return; c.onPick(); };
     box.append(b);
   }
@@ -56,6 +59,8 @@ function showMain(){
     : META.runs ? `원정 ${META.runs}회 · 아직 돌파한 칸이 없다` : '첫 원정을 떠나 보자';
   ensureProfile(); $('mName').textContent = PROFILE.name;
   drawLogo($('logoCv'));
+  const display = $('orbShowcase'); display.textContent = '';
+  ['drill','guard','basic','bomb','heavy'].forEach(k => display.append(orbPortrait(k)));
   setHeader('', '');
   setMode('main', 'ovMain');
   (saved ? c : $('mNew')).focus();

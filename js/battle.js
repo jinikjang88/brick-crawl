@@ -136,7 +136,7 @@ function hitBricks(b){
     // 송곳 구슬만 뚫고 지나간다. 나머지는 부숴도 튕긴다(한 줄씩 깎아 길을 내야 천장에 닿는다)
     const drilled = b.drill > 0;
     if (drilled){ b.drill--; br.hp = 0; } else br.hp--;
-    br.flash = 0.07;
+    br.flash = 0.07; b.impact = .12;
     if (br.hp <= 0){ br.dead = true; onBreak(br); ballBreak(b, br); }
     if (drilled) return;
     const ox = Math.min(b.x - l, r - b.x), oy = Math.min(b.y - t, bo - b.y);
@@ -146,6 +146,10 @@ function hitBricks(b){
   }
 }
 function moveBall(b, dt){
+  // 잔상은 실제 이동 위치만 기록하여 반사 지점에서 벽을 뚫어 보이지 않게 한다.
+  b.trail = b.trail || []; b.trail.push({ x:b.x, y:b.y });
+  if (b.trail.length > 5) b.trail.shift();
+  b.impact = Math.max(0, (b.impact || 0) - dt);
   const n = Math.max(1, Math.ceil(BALL_SPEED * dt / 1.5));
   for (let i = 0; i < n; i++){
     b.x += b.vx * dt / n; b.y += b.vy * dt / n;
