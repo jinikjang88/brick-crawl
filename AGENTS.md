@@ -24,9 +24,13 @@
   - 파일이 로드되자마자 실행되는 최상위 코드는 **앞 파일**에 정의된 것만 쓸 수 있다(함수 호이스팅은 파일 안에서만 통한다). 함수 몸체 안의 참조는 순서와 무관.
   - 새 파일을 만들면 `index.html`의 `<script>` 목록에 의존 순서대로 추가한다. 시뮬레이터도 이 목록을 그대로 읽는다.
 - 저장은 `localStorage`만 쓰고 모든 읽기/쓰기를 try/catch로 감싼다. 저장이 비어 있거나 깨져도 정상 동작해야 한다.
-- 저장 구조를 바꾸면 `v` 값을 올리고, 이전 버전 저장은 이전(migration)하거나 안전하게 버린다. 키 이름: `brickquest:run:v*`, `brickquest:meta:v*`.
+- 저장 구조를 바꾸면 `v` 값을 올리고, 이전 버전 저장은 이전(migration)하거나 안전하게 버린다. 키 이름: `brickquest:run:v*`, `brickquest:meta:v*`, `brickquest:profile:v*`.
   (게임명 변경 전 이름이지만 기존 저장을 지키려고 키는 유지한다. 바꾸려면 이전 키를 읽어 옮기는 처리를 함께 넣는다.)
 - 시크릿·API 키를 코드에 넣지 않는다(랭킹 서버 단계에서 특히 주의).
+- **기록 서버는 선택 기능이다.** 게임은 서버 없이(오프라인·`file://`·서버 장애) 완전히 돌아야 한다. 통신 실패는 조용히 넘기고, 못 보낸 기록은 대기열에 남겨 다음에 다시 보낸다.
+  - 서버: Cloudflare Pages Functions(`functions/api/[[path]].js`) + D1(바인딩 이름 `DB`). 스키마는 `db/schema.sql`. 서버 코드는 브라우저에 로드되지 않으므로 ES 모듈(`export`)을 쓴다.
+  - 플레이어 `id`(UUID)는 기록을 올리는 비밀 열쇠다. 화면·랭킹 응답·URL에 내보내지 않는다. 공개되는 것은 닉네임뿐.
+  - 시뮬레이터(Node)에서는 `location`이 없어 통신이 꺼진다. 봇의 원정이 실제 랭킹에 섞이지 않게 이 조건을 유지한다.
 
 ## 코드 규칙
 - 주석은 한글. "무엇"이 아니라 **"왜"**를 쓴다.
@@ -40,12 +44,16 @@
   | `js/data.js` | 데이터: `MON`·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS` |
   | `js/sprites.js` | 도트 리소스(`SPR`·`ICON`·`FONT`)와 `drawText`·`drawIcon`·`drawSprite` |
   | `js/save.js` | `localStorage` 저장·불러오기(원정·메타) |
+  | `js/profile.js` | 임의 닉네임 생성(3음절 × 3단어), 플레이어 프로필(`PROFILE`)·`uuid()`·`runProgress()` |
+  | `js/net.js` | 기록 서버 통신: 닉네임 등록, 원정 기록 대기열·전송, 랭킹 조회 |
   | `js/map.js` | 원정 상태(`RUN`·`G`·`mode`), 갈림길 지도 생성·이동 가능 칸 |
   | `js/battle.js` | 전투 상태, 벽돌 줄 생성, 구슬 물리, 턴 진행, 몬스터 행동 |
   | `js/render.js` | 캔버스 `draw()`와 HUD(헤더·구슬 줄·유물 칩) |
   | `js/screens.js` | 오버레이 전환, 메인·지도 화면, 노드 진입, 전투 시작·종료 |
   | `js/rewards.js` | 보상·휴식·덜어내기·상점 화면 |
   | `js/main.js` | 메뉴(일시정지), 입력, 메인 루프 시작 — 항상 마지막 |
+  | `functions/api/[[path]].js` | (서버) 기록 API: `player`·`record`·`board` |
+  | `db/schema.sql` | (서버) D1 테이블: `players`·`runs` |
 - 연출용 무작위(파티클 등)와 게임 결과에 영향을 주는 무작위를 구분한다. 후자는 시드 RNG를 쓴다(작업 01에서 도입).
 
 ## UI·시각 규칙
@@ -65,6 +73,9 @@
 2. 밸런스: `node tools/sim.mjs 60` (조준 봇이 원정을 끝까지 플레이). 결과는 실행마다 ±10%p 흔들리므로 표본 60 이상으로 비교.
    게임 코드의 훅 대상 줄이 바뀌면 시뮬레이터가 "훅 삽입 실패"로 멈춘다. 그때는 `tools/sim.mjs`의 HOOK_* 를 새 코드에 맞춘다.
 3. 실제 브라우저: Playwright가 있으면 `file://` 로 열어(파일 분리 후 로드 순서·전역 충돌 오류는 여기서만 드러난다) 메인 → 지도 → 전투 → 보상 → 새로고침 후 이어하기까지 돌리고 콘솔 오류가 없는지 본다.
+4. 기록 서버를 바꿨다면 로컬에서 Functions + D1을 띄워 확인한다(저장소에 `wrangler.toml`을 커밋하지 않는다. 바인딩은 대시보드에서 관리):
+   임시 폴더에 `wrangler.toml`(`pages_build_output_dir = "."`, `[[d1_databases]] binding = "DB"`)을 두고
+   `npx wrangler d1 execute DB --local --file db/schema.sql` → `npx wrangler pages dev .`
 
 ## 밸런스 목표 (조준 봇 기준)
 - 1세션 돌파율 30~40%.
