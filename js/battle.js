@@ -183,6 +183,7 @@ function fire(){
   if (mode !== 'play' || !g || g.phase !== 'aim' || g.aimT < 0.2) return;
   g.phase = 'fire'; g.fireT = 1; g.fireEl = 0; g.nextLx = null;
   g.queue = g.orb === 'split' ? [g.aim - 0.16, g.aim, g.aim + 0.16].map(a => clamp(a, AIM_MIN, AIM_MAX)) : [g.aim];
+  renderOrbBar();   // "발사 대기" → "발사!"
 }
 
 // ── 턴 진행
@@ -304,7 +305,8 @@ function enemyUpdate(dt){
       banner('보스가 분노했다', '2페이즈', true);
     }
     if (p.hp <= 0){ g.phase = 'lose'; g.timer = 0; return; }
-    g.disc.push(g.orb); drawOrb();
-    g.phase = 'aim'; g.turn++; g.cur = null; resetAim();
+    // phase를 먼저 바꾼다: drawOrb가 구슬 줄을 다시 그릴 때 "발사!"가 "발사 대기"로 돌아오게
+    g.phase = 'aim'; g.turn++; g.cur = null;
+    g.disc.push(g.orb); drawOrb(); resetAim();
   }
 }
