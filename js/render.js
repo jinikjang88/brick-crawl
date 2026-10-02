@@ -158,7 +158,10 @@ function renderOrbBar(){
   if (G && mode === 'play'){
     const current = document.createElement('div'); current.className = 'orbCurrent';
     const label = document.createElement('div');
-    const small = document.createElement('small'); small.textContent = '발사 대기';
+    // 쏜 순간부터 다음 턴 조준 전까지 "발사!": 누른 입력이 먹혔다는 걸 바로 보여준다
+    const fired = G.phase !== 'aim';
+    const small = document.createElement('small'); small.textContent = fired ? '발사!' : '발사 대기';
+    if (fired) small.className = 'fired';
     const name = document.createElement('b'); name.textContent = ORBS[G.orb].name;
     label.append(small, name); current.append(orbPortrait(G.orb), label);
     const next = document.createElement('div'); next.className = 'orbNext';
