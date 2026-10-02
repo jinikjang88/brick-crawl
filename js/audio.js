@@ -65,7 +65,8 @@ const sfxLast = {};
 function sfx(name, opt){
   if (!actx || !AUDIO.sfx || !SFX[name]) return;
   const now = actx.currentTime;
-  if (now - (sfxLast[name] || 0) < (SFX_GAP[name] || 0.025)) return;
+  // 처음 내는 소리는 검사하지 않는다: 컨텍스트를 막 만든 직후(currentTime≈0) 첫 장면 효과음이 버려지지 않게
+  if (name in sfxLast && now - sfxLast[name] < (SFX_GAP[name] || 0.025)) return;
   sfxLast[name] = now;
   try { SFX[name](sfxBus, now, opt || {}); } catch(e){}
 }

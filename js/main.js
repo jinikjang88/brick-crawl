@@ -33,6 +33,10 @@ function renderSound(){
 SND_BTNS.forEach(([id, k]) => $(id).onclick = () => { unlockAudio(); setAudio(k, !AUDIO[k]); renderSound(); });
 document.addEventListener('pointerdown', unlockAudio, true);
 document.addEventListener('keydown', unlockAudio, true);
+// 일부 모바일 브라우저는 터치의 사용자 활성화를 pointerdown이 아니라 pointerup·click에서 준다.
+// 그때 다시 resume해야 첫 탭에서 만든 컨텍스트가 suspended로 남지 않는다
+document.addEventListener('pointerup', unlockAudio, true);
+document.addEventListener('click', unlockAudio, true);
 
 // ── 입력: 조준선은 스스로 움직이고, 플레이어는 타이밍에 맞춰 누르기만 한다
 cv.addEventListener('pointerdown', e => { if (mode === 'play'){ e.preventDefault(); fire(); } });
