@@ -77,7 +77,7 @@
 표본마다 ±10%p 흔들리므로 비교는 60회 이상으로 한다.
 
 ## 코드 위치
-수치·데이터는 `js/data.js`, 지도 생성은 `js/map.js`, 전투 규칙은 `js/battle.js`, 보상·상점 가격은 `js/rewards.js`, 코인 획득·보스 회복은 `js/screens.js`의 `battleEnd()`. 전체 파일 지도는 `CLAUDE.md`.
+수치·데이터는 `js/data.js`, 지도 생성은 `js/map.js`, 전투 규칙은 `js/battle.js`, 보상·상점 가격은 `js/rewards.js`, 코인 획득·보스 회복은 `js/screens.js`의 `battleEnd()`. 전체 파일 지도는 `AGENTS.md`.
 
 ## 설계 원칙 (지금까지의 결정과 이유)
 - 실시간 패들 대신 턴제 조준 발사: 위아래 두 화면을 번갈아 볼 수 있어야 전략이 생긴다.
