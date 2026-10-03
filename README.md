@@ -119,6 +119,7 @@ js/screens.js       오버레이 전환, 메인·지도 화면, 전투 시작·�
 js/rewards.js       보상·휴식·덜어내기·상점
 js/main.js          메뉴·입력·메인 루프 (항상 마지막)
 tools/sim.mjs       헤드리스 밸런스 시뮬레이터(조준 봇)
+tools/export_assets.py  도트 에셋·연출을 PNG/GIF로 내보내는 툴 (결과: docs/assets/)
 functions/api/      (서버) Cloudflare Pages Functions 기록 API
 db/schema.sql       (서버) D1 테이블 정의
 docs/GAME_DESIGN.md 현재 구현 기준 게임 디자인 문서
@@ -181,6 +182,19 @@ node tools/sim.mjs 60    # 인자 = 원정 횟수(기본 60)
 
 **3. 실제 브라우저**
 `index.html`을 `file://`로 연다. 메인 → 지도 → 전투 → 보상 → 새로고침 후 이어하기까지 해 보고 콘솔 오류를 확인한다. 로드 순서나 전역 이름 충돌 문제는 여기서만 드러난다. Playwright로 자동화해도 된다.
+
+### 에셋 이미지 내보내기
+게임 코드(`js/sprites.js`의 `SPR`·`ICON`·`FONT`·`drawOrbSprite`, `css/style.css`의 색 토큰)를 그대로 읽어 PNG·GIF로 뽑는다. 도트를 고쳤으면 다시 돌리기만 하면 된다. 게임 실행에는 필요 없는 개발 도구다(Python 3 + Pillow).
+```bash
+pip install pillow
+python3 tools/export_assets.py                  # docs/assets/light
+python3 tools/export_assets.py --theme both     # 라이트·다크
+python3 tools/export_assets.py --only static,fx --scale 4
+```
+- 정적: 스프라이트(기본·정예·피격 변형), 아이콘, 구슬, 숫자 폰트, 로고, 한 장 모음(`contact_sheet.png`)
+- 연출 GIF: 몬스터별 공격·피격·쓰러짐, 보스 분노, 벽돌 종류별 파괴, 폭탄 폭발, 구슬별 대기 연출, 전투 한 판 재현(`battle.gif`)
+- 연출은 `battle.js`의 공식(파편·숫자 팝업·포물선 탄·돌진·물리)을 옮겨 재현한다. 충격파 링·히트스톱·슬로모션·대기 동작은 **툴 전용 제안**으로, 게임에는 아직 없다.
+- 미리보기: [`docs/assets/README.md`](docs/assets/README.md)
 
 ## 배포
 
