@@ -51,11 +51,11 @@ function draw(){
     ctx.globalAlpha = 1;
   }
   // 몬스터의 다음 행동 예고: 이것만 보고 이번 턴에 무엇을 노릴지 정한다
+  // 공격: 붉은 숫자 = 남은 연속 공격 턴 수. 한 번의 피해는 언제나 아래 ⚔ 숫자다
   if (!m.dead && (g.phase === 'aim' || g.phase === 'fire')){
     const it = intent();
-    if (it.t === 'atk'){ drawIcon('sword', MX - 14, 27, C.accent); drawText(String(atkVal(it)), MX - 4, 25, C.accent, 2); }
+    if (it.t === 'atk'){ drawIcon('sword', MX - 14, 27, C.accent); drawText(String(atkLeft(it)), MX - 4, 25, C.accent, 2); }
     else if (it.t === 'guard'){ drawIcon('shield', MX - 14, 27, C.ink); drawText('+' + it.v, MX - 4, 25, C.ink, 2); }
-    else if (it.t === 'charge') drawIcon('up', MX - 4, 27, C.ink);
     else if (it.t === 'spore') drawIcon('brick', MX - 4, 27, C.accent);
     else if (it.t === 'poison'){ drawIcon('skull', MX - 14, 27, C.accent); drawText('+' + it.v, MX - 4, 25, C.accent, 2); }
     else if (it.t === 'summon') drawIcon('brick', MX - 4, 27, C.ink);

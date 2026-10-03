@@ -7,7 +7,7 @@ function newBattle(node){
   G = {
     node, cfg, time:0, turn:1, phase:'aim', timer:0, eStep:0, cur:null, shown:false,
     p:{ hp:RUN.hp, max:RUN.maxHp, atk:1, def:0, poison:0, flash:0 },   // 공격·방어는 전투마다 초기화
-    m:{ hp:cfg.hp, max:cfg.hp, atk:cfg.atk, def:cfg.def, poison:0, pi:0, phase:1, flash:0, lunge:0, dead:false, deadT:0 },
+    m:{ hp:cfg.hp, max:cfg.hp, atk:cfg.atk, def:cfg.def, poison:0, pi:0, ai:0, phase:1, flash:0, lunge:0, dead:false, deadT:0 },
     bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], queue:[],
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
     draw:shuffle(RUN.deck), disc:[], orb:'basic',
@@ -53,7 +53,8 @@ function resetAim(){
 }
 
 const intent = () => { const pat = G.m.phase === 2 ? G.cfg.pattern2 : G.cfg.pattern; return pat[G.m.pi % pat.length]; };
-const atkVal = it => Math.round(G.m.atk * it.m);
+// 연속 공격에서 남은 공격 턴 수(이번 턴 포함). 머리 위 붉은 숫자가 3 → 2 → 1로 줄어든다
+const atkLeft = it => it.n - G.m.ai;
 // 방어도는 체력 앞에 붙은 보호막: 피해를 먼저 흡수하고 흡수한 만큼 깎인다
 function hurt(t, v){ const ab = Math.min(t.def, v); t.def -= ab; t.hp = Math.max(0, t.hp - (v - ab)); return [ab, v - ab]; }
 function hurtPlayer(v, icon, fromMonster){
@@ -272,14 +273,13 @@ function enemyUpdate(dt){
     const it = g.cur;
     if (it.t === 'atk' || it.t === 'poison') m.lunge = 0.001;
     else if (it.t === 'guard'){ m.def += it.v; pop(MX, 30, '+' + it.v, C.ink, 'shield'); }
-    else if (it.t === 'charge') pop(MX, 30, '', C.ink, 'up');
     else if (it.t === 'spore') pop(MX, 30, '', C.accent, 'brick');
     else if (it.t === 'summon') pop(MX, 30, '', C.ink, 'brick');
     else pop(MX, 30, '', C.ink3, 'dots');
   }
   if (g.eStep === 1 && g.timer >= 0.2){
     g.eStep = 2;
-    if (g.cur.t === 'atk') hurtPlayer(atkVal(g.cur), undefined, true);
+    if (g.cur.t === 'atk') hurtPlayer(m.atk, undefined, true);
     else if (g.cur.t === 'poison'){ p.poison += g.cur.v; burst(PX, 66, C.accent, 8); pop(PX, 30, '+' + g.cur.v, C.accent, 'skull'); sfx('pickup', { kind:'poison' }); }
   }
   if (g.eStep === 2 && g.timer >= 0.6){
@@ -309,9 +309,11 @@ function enemyUpdate(dt){
     }
   }
   if (g.eStep === 4 && g.timer >= 0.95 + g.tickT){
-    g.eStep = 5; m.pi++;
+    g.eStep = 5;
+    // 연속 공격은 n번을 다 때려야 다음 행동으로 넘어간다
+    if (g.cur.t === 'atk' && ++m.ai < g.cur.n){} else { m.ai = 0; m.pi++; }
     if (g.cfg.boss && m.phase === 1 && m.hp <= m.max / 2){
-      m.phase = 2; m.pi = 0; m.atk += 1; m.def += 2; g.shake = 8;
+      m.phase = 2; m.pi = 0; m.ai = 0; m.atk += 1; m.def += 2; g.shake = 8;
       banner('보스가 분노했다', '2페이즈', true); sfx('rage');
     }
     if (p.hp <= 0){ g.phase = 'lose'; g.timer = 0; return; }
