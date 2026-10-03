@@ -2,22 +2,24 @@
 'use strict';
 
 // ── 몬스터: 숫자 인플레이션을 막기 위해 세션 상승폭은 작게(체력 +35%, 공·방 +1)
+// 공격은 배율 없이 {t:'atk', n}: n턴 연속으로 매 턴 공격력만큼 때린다.
+// 배율(×2.5 등)을 두면 화면의 ⚔ 숫자와 실제 피해가 어긋나 읽히지 않아서, 피해는 항상 ⚔ 숫자 그대로다
 const MON = {
   slime: { name:'슬라임', spr:'slime', hp:6, atk:1, def:0, sweep:1.1,
-    pattern:[{t:'atk',m:1},{t:'atk',m:1},{t:'wait'}],
+    pattern:[{t:'atk',n:2},{t:'wait'}],
     row:{ d:.55, hard:0, stat:.5, w:{ atk:1 } } },
   bat: { name:'박쥐', spr:'bat', hp:8, atk:1, def:0, sweep:1.3,
-    pattern:[{t:'atk',m:1},{t:'atk',m:1},{t:'charge'},{t:'atk',m:2.5}],
+    pattern:[{t:'atk',n:3},{t:'wait'}],
     row:{ d:.6, hard:.2, stat:.4, w:{ atk:1, def:1 } } },
   golem: { name:'골렘', spr:'golem', hp:9, atk:1, def:2, sweep:1.5,
-    pattern:[{t:'atk',m:1},{t:'guard',v:2},{t:'atk',m:1.5}],
+    pattern:[{t:'atk',n:2},{t:'guard',v:2}],
     row:{ d:.6, hard:.25, stat:.4, w:{ atk:2, def:1 } } },
   shroom: { name:'독버섯', spr:'shroom', hp:9, atk:1, def:1, sweep:1.7,
-    pattern:[{t:'atk',m:1},{t:'poison',v:2},{t:'atk',m:1},{t:'spore'}],
+    pattern:[{t:'atk',n:1},{t:'poison',v:2},{t:'atk',n:1},{t:'spore'}],
     row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 }, poison:.2 } },
   boss: { name:'탑의 주인', spr:'boss', hp:16, atk:1, def:1, sweep:2.0, boss:true,
-    pattern:[{t:'atk',m:1},{t:'summon'},{t:'charge'},{t:'atk',m:2.4}],
-    pattern2:[{t:'atk',m:1},{t:'summon'},{t:'atk',m:1},{t:'charge'},{t:'atk',m:2.25}],
+    pattern:[{t:'atk',n:5},{t:'summon'}],
+    pattern2:[{t:'atk',n:6},{t:'summon'}],
     row:{ d:.62, hard:.35, stat:.35, w:{ atk:1, def:1, heal:1 }, poison:.3 } },
 };
 // 성벽 밀도·시작 줄 수: 구슬이 튕기는 구조라 틈이 있어야 천장까지 길을 낼 수 있다

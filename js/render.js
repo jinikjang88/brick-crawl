@@ -2,8 +2,8 @@
 'use strict';
 
 // ── 렌더
-function statRow(cx, atk, def, atkCol = C.ink){
-  drawIcon('sword', cx - 36, 94, atkCol); drawText(String(atk), cx - 27, 93, atkCol, 2);
+function statRow(cx, atk, def){
+  drawIcon('sword', cx - 36, 94, C.ink); drawText(String(atk), cx - 27, 93, C.ink, 2);
   drawIcon('shield', cx + 2, 94, C.ink); drawText(String(def), cx + 11, 93, C.ink, 2);
 }
 function hpBlock(cx, hp, max, danger, poison){
@@ -41,13 +41,9 @@ function draw(){
   drawSprite(SPR.knight, PX - 18, 50, 3, p.flash > 0 ? C.accent : C.ink, C.ink2, C.bg);
 
   const angry = g.cfg.boss && m.phase === 2;
-  // 공격 턴에는 ⚔ 숫자를 이번에 실제로 들어올 피해(기본 × 배율)로 바꿔 붉게 칠한다.
-  // 기본값과 예고값을 따로 보여 주면 "힘 모음" 뒤의 강공격처럼 두 숫자가 어긋나 헷갈렸다
-  const it = !m.dead && ['aim','fire','enemy'].includes(g.phase) ? intent() : null;
-  const atkTurn = it && it.t === 'atk';
   if (!m.dead || Math.floor(m.deadT * 10) % 2 === 0){
     hpBlock(MX, m.hp, m.max, false, m.poison);
-    statRow(MX, atkTurn ? atkVal(it) : m.atk, m.def, atkTurn ? C.accent : C.ink);
+    statRow(MX, m.atk, m.def);
     const lunge = m.lunge > 0 ? -Math.sin(Math.PI * m.lunge / 0.4) * 14 : 0;
     const sink = m.dead ? Math.min(20, m.deadT * 30) : 0;
     ctx.globalAlpha = m.dead ? Math.max(0, 1 - m.deadT) : 1;
@@ -55,11 +51,11 @@ function draw(){
     ctx.globalAlpha = 1;
   }
   // 몬스터의 다음 행동 예고: 이것만 보고 이번 턴에 무엇을 노릴지 정한다
-  // 공격은 "공격 턴"이라는 사실만 알린다. 피해량은 아래 ⚔ 숫자 하나로만 보여 준다
-  if (it && g.phase !== 'enemy'){
-    if (it.t === 'atk') drawIcon('sword', MX - 4, 27, C.accent);
+  // 공격: 붉은 숫자 = 남은 연속 공격 턴 수. 한 번의 피해는 언제나 아래 ⚔ 숫자다
+  if (!m.dead && (g.phase === 'aim' || g.phase === 'fire')){
+    const it = intent();
+    if (it.t === 'atk'){ drawIcon('sword', MX - 14, 27, C.accent); drawText(String(atkLeft(it)), MX - 4, 25, C.accent, 2); }
     else if (it.t === 'guard'){ drawIcon('shield', MX - 14, 27, C.ink); drawText('+' + it.v, MX - 4, 25, C.ink, 2); }
-    else if (it.t === 'charge') drawIcon('up', MX - 4, 27, C.ink);
     else if (it.t === 'spore') drawIcon('brick', MX - 4, 27, C.accent);
     else if (it.t === 'poison'){ drawIcon('skull', MX - 14, 27, C.accent); drawText('+' + it.v, MX - 4, 25, C.accent, 2); }
     else if (it.t === 'summon') drawIcon('brick', MX - 4, 27, C.ink);
