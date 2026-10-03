@@ -142,7 +142,7 @@ CLAUDE.md           Claude Code용 진입점(AGENTS.md를 불러옴)
 **기술 제약**
 - 저장소 안의 파일만으로 완결한다. 외부 스크립트·폰트·이미지·CDN, 빌드 단계를 쓰지 않는다.
 - 저장은 `localStorage`만 쓰고 모든 읽기/쓰기를 `try/catch`로 감싼다. 저장이 비었거나 깨져도 정상 동작해야 한다.
-- 저장 구조를 바꾸면 키의 버전(`brickquest:run:v*`, `brickquest:meta:v*`)을 올리고, 이전 저장은 옮기거나(migration) 안전하게 버린다.
+- 저장 구조를 바꾸면 키의 버전(`brickquest:run:v*`, `brickquest:meta:v*`, `brickquest:profile:v*`, `brickquest:audio:v*`)을 올리고, 이전 저장은 옮기거나(migration) 안전하게 버린다.
 - 게임 결과에 영향을 주는 무작위와 연출용 무작위를 구분한다.
 
 **코드 스타일**
@@ -235,7 +235,9 @@ GitHub Pages, Netlify 같은 다른 정적 호스팅에도 올릴 수 있다. �
 
 - [ ] **작업 01**: 3세션 고정 + 최종 보스 "성벽의 왕" + 엔딩 + 시드 RNG ([지시서](docs/tasks/01-final-boss.md))
 - [ ] 고난 단계: 클리어 후 해금. 단계마다 규칙을 하나씩 추가한다(숫자 인플레이션 없이 어려워지게).
-- [ ] 일일 도전 + 랭킹: 모두 같은 시드로 한 판씩. Cloudflare Worker + D1.
+- [x] 임의 닉네임 + 최고 도달 칸 랭킹 (Cloudflare Pages Functions + D1)
+- [x] 사운드: Web Audio 합성 효과음·장면별 BGM
+- [ ] 일일 도전 + 랭킹: 모두 같은 시드로 한 판씩. 지금의 기록 서버(Pages Functions + D1)를 확장한다.
 
 ## 라이선스
 
