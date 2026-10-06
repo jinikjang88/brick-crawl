@@ -21,8 +21,8 @@ function showChoice(o){
     const t = document.createElement('b'); t.append(c.name);
     if (c.tag){ const em = document.createElement('em'); em.textContent = c.tag; t.append(em); }
     const d = document.createElement('span'); d.textContent = c.desc;
-    const orbKind = c.orb || Object.keys(ORBS).find(k => ORBS[k].name === c.name);
-    if (orbKind){ b.classList.add('orbCard'); b.append(orbPortrait(orbKind)); }
+    const kind = c.orb ? orbKind(c.orb) : Object.keys(ORBS).find(k => ORBS[k].name === c.name);
+    if (kind){ b.classList.add('orbCard'); b.append(orbPortrait(kind)); }
     const body = document.createElement('div'); body.className = 'cardBody'; body.append(t, d);
     b.append(body);
     b.onclick = () => { if (mode !== o.mode) return; sfx('pick'); c.onPick(); };
@@ -57,6 +57,8 @@ function showMain(){
   $('mNew').textContent = '새 원정'; $('mNew').dataset.arm = '';
   $('mRecord').textContent = META.best > 0 ? `최고 ${progLabel(META.best)} 돌파 · 원정 ${META.runs}회`
     : META.runs ? `원정 ${META.runs}회 · 아직 돌파한 칸이 없다` : '첫 원정을 떠나 보자';
+  const open = GIFTS.filter(g => (META.xp || 0) >= g.need).length;
+  if (META.runs) $('mRecord').textContent += ` · 출발 선물 ${open}/${GIFTS.length}`;
   ensureProfile(); $('mName').textContent = PROFILE.name;
   drawLogo($('logoCv'));
   const display = $('orbShowcase'); display.textContent = '';
@@ -72,12 +74,14 @@ $('mContinue').onclick = () => { const r = loadRun(); if (!r) return showMain();
 $('mNew').onclick = e => {
   const b = e.currentTarget, saved = loadRun();
   if (saved && !b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 저장된 원정이 사라진다'; return; }
-  if (saved) recordRun(saved);
+  if (saved) endRun(saved);
   startNewRun();
 };
 // 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); }); } catch(e){}
-function startNewRun(){ RUN = freshRun(); META.runs++; saveMeta(); saveRun(); showMap(); }
+function startNewRun(){ RUN = freshRun(); META.runs++; saveMeta(); saveRun(); showGift(); }
+// 끝난 원정의 도달 칸 수를 쌓는다(출발 선물 해금 기준). 랭킹 기록과 같은 시점에 부른다
+function endRun(r){ recordRun(r); META.xp = (META.xp || 0) + runProgress(r); saveMeta(); }
 
 // ── 랭킹: 밀린 기록을 먼저 올리고 받아 온다. 서버가 없거나 실패하면 조용히 비워 둔다(게임은 오프라인으로도 돈다)
 let BOARD = null;
@@ -114,6 +118,7 @@ function renderBoard(){
 $('mRank').onclick = () => { show('ovRank'); $('rankBack').focus(); refreshBoard(); };
 $('rankBack').onclick = () => { show('ovMain'); $('mRank').focus(); };
 function resumeRun(){
+  if (RUN.gift) return showGift();
   if (RUN.pendingReward) return showReward(RUN.pendingReward);
   if (RUN.pending) return enterNode(nodeAt(RUN.pending.r, RUN.pending.l));
   showMap();
@@ -192,7 +197,8 @@ function battleEnd(win){
   RUN.hp = Math.min(RUN.maxHp, G.p.hp + 2 * rel('medkit'));
   const gain = n.t === 'boss' ? 40 : n.t === 'elite' ? 22 + rnd(7) : 10 + rnd(5);
   RUN.coins += gain; RUN.lastGain = gain;
-  if (n.t === 'boss') RUN.hp = Math.min(RUN.maxHp, RUN.hp + Math.ceil(RUN.maxHp / 2));   // 세션 돌파: 절반 회복
+  // 세션 돌파: 최대 체력 +4 후 절반 회복. 몬스터는 세션마다 공·방이 오르는데 기사 체력만 고정이면 후반이 벽이 된다
+  if (n.t === 'boss'){ RUN.maxHp += 4; RUN.hp = Math.min(RUN.maxHp, RUN.hp + 4 + Math.ceil(RUN.maxHp / 2)); }
   completeNode();
   RUN.pendingReward = n.t === 'battle' ? 'orb' : n.t;
   saveRun();
@@ -200,7 +206,7 @@ function battleEnd(win){
   showReward(RUN.pendingReward);
 }
 function runOver(){
-  const n = G.node; clearRun(); recordRun(RUN);
+  const n = G.node; clearRun(); endRun(RUN);
   bgm(null); sfx('lose');
   showChoice({
     mode:'result', title:'원정 실패',

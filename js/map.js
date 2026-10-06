@@ -6,7 +6,7 @@ let RUN = null, G = null, mode = 'main', prevMode = null;
 function freshRun(){
   // rid: 기록 서버에서 같은 원정을 두 번 세지 않게 하는 원정 식별자
   return { v:2, rid:uuid(), s:0, hp:24, maxHp:24, coins:0, deck:['basic','basic','bomb'], relics:{},
-           map:genMap(), pos:null, pending:null, path:[], pendingReward:null, shop:null };
+           map:genMap(), pos:null, pending:null, path:[], pendingReward:null, shop:null, gift:true };
 }
 
 // ── 갈림길 지도: 3갈래 × 4칸 + 보스. 같은 칸으로는 항상, 옆 칸으로는 40% 확률로 이어진다
