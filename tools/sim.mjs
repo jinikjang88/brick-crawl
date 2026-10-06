@@ -42,7 +42,7 @@ function mk(){
 }
 const pickOne = a => a[Math.floor(Math.random() * a.length)];
 const N = +process.argv[2] || 60;
-const reach = new Array(20).fill(0), bossHp = [];
+const reach = new Array(20).fill(0), bossHp = [], bossMet = [0,0,0,0,0], bossWon = [0,0,0,0,0];
 let s1clear = 0;
 
 for (let run = 0; run < N; run++){
@@ -64,7 +64,7 @@ for (let run = 0; run < N; run++){
   for (let f = 0; f < 60 * 60 * 120 && !done; f++){
     const { RUN, G, mode } = __h.st();
     if (mode === 'map'){ __h.enterNode(pickOne(__h.reachable())); continue; }
-    if (['reward','rest','shop','remove','result'].includes(mode)){
+    if (['reward','rest','shop','remove','upgrade','gift','result'].includes(mode)){
       if (mode === 'result'){ done = true; break; }
       const cards = $('cCards').children.filter(c => !c.disabled), btns = $('cBtns').children.filter(c => !c.disabled);
       if (mode === 'shop'){ btns[btns.length - 1].onclick(); continue; }
@@ -90,7 +90,8 @@ for (let run = 0; run < N; run++){
         if (wait < 0 && G.aimT > 0.2 && Math.abs(G.aim - want) < 0.03) wait = Math.floor(Math.random() * 5);
         if (wait === 0){ L.keydown({ key:' ', preventDefault(){} }); wait = -2; } else if (wait > 0) wait--;
       }
-      if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec){ G.__rec = 1; bossHp.push(G.p.hp / G.p.max); if (RUN.s === 0) s1clear++; }
+      if (G.node.t === 'boss' && !G.__seen){ G.__seen = 1; bossMet[Math.min(RUN.s, 4)]++; }
+      if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec){ G.__rec = 1; bossWon[Math.min(RUN.s, 4)]++; bossHp.push(G.p.hp / G.p.max); if (RUN.s === 0) s1clear++; }
     }
     now += 16.7; raf(now);
     const st = __h.st();
@@ -106,3 +107,4 @@ console.log('완료한 칸 수 분포 (5 = 1세션 보스까지 완료):', reach
 console.log(`1세션 돌파 ${s1clear}/${N} (${(s1clear / N * 100).toFixed(0)}%)`);
 console.log('보스 격파 순간 남은 체력 중앙값', bossHp.length ? (med(bossHp) * 100).toFixed(0) + '%' : '-',
             `/ 30% 이하로 이긴 비율 ${bossHp.filter(x => x <= .3).length}/${bossHp.length}`);
+console.log('세션별 보스 승률:', bossMet.map((m, i) => m ? `${i + 1}세션 ${bossWon[i]}/${m} (${(bossWon[i] / m * 100).toFixed(0)}%)` : '').filter(Boolean).join(' · '));
