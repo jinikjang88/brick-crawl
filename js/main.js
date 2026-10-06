@@ -50,7 +50,7 @@ let last = performance.now();
 function frame(now){
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (G && mode === 'play') update(dt);
-  draw();
+  draw(); drawScene(dt);
   if (G && mode === 'play') $('hCoin').textContent = `코인 ${RUN.coins}  ${G.turn}턴`;
   requestAnimationFrame(frame);
 }

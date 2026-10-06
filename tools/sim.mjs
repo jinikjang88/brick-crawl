@@ -32,7 +32,7 @@ code = '(() => {' + code + '\n})();';
 
 // ── 가짜 DOM: 게임이 쓰는 최소한만 흉내 낸다
 function mk(){
-  const o = { children:[], classList:{ add(){}, remove(){}, toggle(){} }, style:{}, dataset:{}, disabled:false, className:'', hidden:false,
+  const o = { children:[], classList:{ add(){}, remove(){}, toggle(){} }, style:{ setProperty(){} }, dataset:{}, disabled:false, className:'', hidden:false,
     setAttribute(){}, focus(){}, addEventListener(){}, append(...c){ this.children.push(...c.filter(x => typeof x === 'object')); },
     querySelector(){ return null; },
     getContext(){ return new Proxy({}, { get:(t, k) => k === 'globalAlpha' ? 1 : () => {}, set:() => true }); },

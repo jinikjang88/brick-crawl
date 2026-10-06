@@ -9,14 +9,16 @@ function freshRun(){
            map:genMap(), pos:null, pending:null, path:[], pendingReward:null, shop:null, gift:true };
 }
 
-// ── 갈림길 지도: 3갈래 × 4칸 + 보스. 같은 칸으로는 항상, 옆 칸으로는 40% 확률로 이어진다
+// ── 갈림길 지도: 5갈래 × 4칸 + 보스. 같은 칸으로는 항상, 옆 칸으로는 40% 확률로 이어진다
+// 갈래를 3 → 5로 늘려 고를 길이 많아졌다(같은 갈래만 따라가도 되고, 옆으로 갈아탈 기회도 늘었다)
+const LANES = 5, BOSS_L = 2;
 const NODE_NAME = { battle:'전투', elite:'정예', rest:'휴식', shop:'상점', boss:'보스' };
 function genMap(){
   const pools = [['slime'], ['bat','golem'], ['golem','shroom'], ['shroom','golem','bat']];
   const rows = [];
   for (let r = 0; r < 4; r++){
     const row = [];
-    for (let l = 0; l < 3; l++){
+    for (let l = 0; l < LANES; l++){
       let t = 'battle';
       if (r > 0){
         const w = { battle:45, elite:r === 1 ? 10 : 16, shop:17, rest:r === 3 ? 34 : 18 };
@@ -30,10 +32,10 @@ function genMap(){
   for (let r = 0; r < 3; r++) for (const n of rows[r]){
     n.to = [n.l];
     if (n.l > 0 && Math.random() < .4) n.to.push(n.l - 1);
-    if (n.l < 2 && Math.random() < .4) n.to.push(n.l + 1);
+    if (n.l < LANES - 1 && Math.random() < .4) n.to.push(n.l + 1);
   }
-  for (const n of rows[3]) n.to = [1];
-  rows.push([{ r:4, l:1, t:'boss', mon:'boss', to:[] }]);
+  for (const n of rows[3]) n.to = [BOSS_L];
+  rows.push([{ r:4, l:BOSS_L, t:'boss', mon:'boss', to:[] }]);
   return rows;
 }
 const nodeAt = (r, l) => RUN.map[r].find(n => n.l === l);

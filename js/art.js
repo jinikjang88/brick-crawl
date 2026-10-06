@@ -5,7 +5,7 @@
 // 로드 전·실패·Node(시뮬레이터)에서는 각 그리기 함수가 false를 돌려주고, 호출부가 기존 도트로 그린다
 const ART = { img:{}, tint:{} };
 const ART_CHARS = ['knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
-const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', ...ART_CHARS,
+const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS,
   ...['basic', 'bomb', 'drill', 'guard', 'split', 'venom', 'heavy'].map(k => 'orb_' + k),
   ...['n', 'stone', 'atk', 'def', 'heal', 'poison'].map(k => 'brick_' + k)];
 // 캐릭터 화면 상자(논리 px). 원본 크기가 제각각이라 발밑을 같은 바닥선에 맞추고 상자 안에 비율대로 넣는다.

@@ -26,12 +26,16 @@ function renderReward(kind){
   const cards = rewardStock.map(id => isOrb
     ? { name:ORBS[id].name, desc:ORBS[id].desc, rare:ORBS[id].rar === 2, onPick:() => takeReward(() => RUN.deck.push(id), kind) }
     : { name:RELICS[id].name + (rel(id) ? ` ${rel(id) + 1}단계` : ''), desc:RELICS[id].desc, onPick:() => takeReward(() => RUN.relics[id] = rel(id) + 1, kind) });
+  // 구슬 보상은 "덱을 늘릴지, 가진 구슬을 키울지"를 고르게 한다. 덱이 얇을수록 좋은 구슬이 자주 나오므로 둘 다 의미가 있다
+  if (isOrb && RUN.deck.some(o => !orbUp(o)))
+    cards.push({ name:'구슬 강화', tag:'덱 그대로', desc:'가진 구슬 하나를 강화한다(+)',
+      onPick:() => showUpgrade(() => takeReward(() => {}, kind), () => renderReward(kind)) });
   const buttons = [{ label:rerollLeft ? '다시 뽑기 (1회)' : '다시 뽑기 (사용함)', disabled:!rerollLeft || !cards.length,
                      onClick:() => { rerollLeft--; rewardStock = isOrb ? rollOrbs() : rollRelics(3); renderReward(kind); } }];
   // 구슬은 안 받는 것도 전략이다: 덱이 얇을수록 좋은 구슬이 자주 나온다
   if (isOrb || !cards.length) buttons.push({ label:'건너뛰기', onClick:() => takeReward(() => {}, kind) });
-  showChoice({ mode:'reward', title:isOrb ? '구슬 하나를 덱에 넣는다' : '유물 하나를 고른다',
-               sub:head + (isOrb ? ` 지금 덱: ${deckSummary()}` : ''), cards, buttons });
+  showChoice({ mode:'reward', title:isOrb ? '구슬 보상' : '유물 하나를 고른다',
+               sub:head + (isOrb ? ` 구슬을 덱에 넣거나 가진 구슬을 강화한다. 지금 덱: ${deckSummary()}` : ''), cards, buttons });
 }
 function takeReward(apply, kind){
   apply(); RUN.pendingReward = null;
@@ -43,7 +47,7 @@ function takeReward(apply, kind){
 function showRest(){
   const amt = Math.ceil(RUN.maxHp * 0.4);
   setHeader(`세션 ${RUN.s + 1}`, '휴식');
-  showChoice({ mode:'rest', title:'모닥불', sub:`체력 ${RUN.hp}/${RUN.maxHp}. 하나만 할 수 있다.`, cards:[
+  showChoice({ mode:'rest', scene:'rest', title:'모닥불', sub:`체력 ${RUN.hp}/${RUN.maxHp}. 하나만 할 수 있다.`, cards:[
     { name:'쉬기', desc:`체력 ${amt} 회복`, disabled:RUN.hp >= RUN.maxHp,
       onPick:() => { RUN.hp = Math.min(RUN.maxHp, RUN.hp + amt); sfx('heal'); finishNonBattle(); } },
     { name:'덜어내기', desc:'구슬 1개를 덱에서 뺀다. 좋은 구슬이 더 자주 나온다', disabled:RUN.deck.length <= 2,
@@ -120,5 +124,5 @@ function showShop(){
       disabled:it.sold || poor || RUN.deck.length <= 2,
       onPick:() => showRemove(() => { RUN.coins -= it.price; it.sold = true; sfx('coin'); saveRun(); showShop(); }, showShop) };
   });
-  showChoice({ mode:'shop', title:'상점', sub:`코인 ${RUN.coins}`, cards, buttons:[{ label:'나가기', primary:true, onClick:finishNonBattle }] });
+  showChoice({ mode:'shop', scene:'shop', title:'상점', sub:`코인 ${RUN.coins}`, cards, buttons:[{ label:'나가기', primary:true, onClick:finishNonBattle }] });
 }

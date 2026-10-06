@@ -6,12 +6,15 @@ const OVERLAYS = ['ovMain','ovRank','ovMap','ovChoose','ovPause'];
 function show(id){ OVERLAYS.forEach(o => $(o).classList.toggle('on', o === id)); }
 function setMode(m, overlay){
   mode = m; $('app').dataset.mode = m; show(overlay); refreshHud();
+  if (overlay !== 'ovChoose') setScene(null);
   // 메인·결과 화면에서는 메뉴가 열리지 않으니 버튼도 감춘다(자리는 남겨 헤더가 흔들리지 않게)
   $('btnMenu').style.visibility = m === 'main' || m === 'result' ? 'hidden' : '';
 }
 
 // 선택 화면(보상·휴식·상점·덜어내기)을 하나의 틀로 그린다
 function showChoice(o){
+  // 덜어내기·강화는 상점·휴식 안에서 이어지는 화면이라 장면을 그대로 둔다
+  setScene(o.scene !== undefined ? o.scene : ['remove', 'upgrade'].includes(o.mode) ? SCENE : null);
   $('cTitle').textContent = o.title; $('cTitle').className = 'big';
   $('cSub').textContent = o.sub || '';
   const box = $('cCards'); box.textContent = '';
@@ -125,8 +128,18 @@ function resumeRun(){
 }
 
 // ── 지도
-const LANE_X = [18, 50, 82], ROW_Y = [88, 69, 50, 31, 11];
-const nodeX = n => n.t === 'boss' ? 50 : LANE_X[n.l];
+// 갈래 수는 지도마다 읽는다: 3갈래로 만든 이전 저장 지도도 그대로 그려지게
+const ROW_Y = [88, 68, 48, 28, 8];
+const nodeX = n => n.t === 'boss' ? 50 : (n.l + .5) / RUN.map[0].length * 100;
+// 칸 메달 그림: 전투·정예는 그 칸의 몬스터, 휴식은 모닥불, 상점은 상인, 보스는 탑의 주인
+function nodeIcon(n){
+  const src = n.t === 'rest' ? null : n.t === 'shop' ? 'merchant' : n.mon;
+  const ic = document.createElement(src ? 'img' : 'span');
+  ic.className = 'nIc' + (n.t === 'rest' ? ' fire' : '');
+  ic.setAttribute('aria-hidden', 'true');
+  if (src){ ic.alt = ''; ic.src = 'assets/game/' + src + '.png'; ic.onerror = () => ic.remove(); }
+  return ic;
+}
 function showMap(){
   G = null;
   $('mapTitle').textContent = `세션 ${RUN.s + 1}`;
@@ -153,14 +166,24 @@ function showMap(){
   for (const row of RUN.map) for (const n of row){
     const b = document.createElement('button');
     const canGo = reach.includes(n);
-    b.className = 'node' + (n.t === 'boss' ? ' boss' : '') + (canGo ? ' reach' : '') + (visited(n.r, n.l) ? ' done' : '');
+    b.className = 'node t-' + n.t + (canGo ? ' reach' : '') + (visited(n.r, n.l) ? ' done' : '');
     b.style.left = nodeX(n) + '%'; b.style.top = ROW_Y[n.r] + '%';
-    b.textContent = NODE_NAME[n.t];
+    // 아래 칸부터 차례로 떠오르게: 탑을 올려다보는 느낌
+    b.style.setProperty('--d', (n.r * 70 + n.l * 18) + 'ms');
+    const cap = document.createElement('small'); cap.textContent = NODE_NAME[n.t];
+    b.append(nodeIcon(n), cap);
     b.setAttribute('aria-label', `${n.r + 1}번째 칸 ${NODE_NAME[n.t]}${canGo ? ', 갈 수 있음' : ''}`);
     b.disabled = !canGo;
     b.onclick = () => { if (mode === 'map' && canGo) enterNode(n); };
     box.append(b);
   }
+  // 기사 말: 지금 서 있는 칸(출발 전이면 지도 아래 가운데)
+  const tok = document.createElement('img');
+  tok.className = 'knightTok'; tok.alt = ''; tok.setAttribute('aria-hidden', 'true'); tok.src = 'assets/game/knight.png';
+  tok.onerror = () => tok.remove();
+  const at = RUN.pos ? nodeAt(RUN.pos.r, RUN.pos.l) : null;
+  tok.style.left = (at ? nodeX(at) : 50) + '%'; tok.style.top = (at ? ROW_Y[at.r] : 100) + '%';
+  box.append(tok);
   setHeader(`세션 ${RUN.s + 1}`, '갈림길');
   setMode('map', 'ovMap');
   bgm('calm');
