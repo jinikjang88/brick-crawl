@@ -27,7 +27,7 @@ RES = 4
 SHEET_ORDER = [
     ['orb_basic', 'orb_bomb', 'orb_drill', 'orb_guard', 'orb_split', 'orb_venom', 'orb_heavy'],
     ['brick_n', 'brick_stone', 'brick_atk', 'brick_def', 'brick_heal', 'brick_poison'],
-    [None, None, 'coin', 'spark', 'rubble', None],
+    ['ui_panel', 'ui_frame', 'coin', 'spark', 'rubble', 'ui_bar'],
 ]
 # 조각별 저장 크기(px). 구슬은 발사대 9px·HUD 48px 표시를 모두 감당하도록 넉넉히
 SHEET_SIZE = {'orb': (96, 96), 'brick': (22 * RES * 2, 12 * RES * 2), 'coin': (48, 48), 'spark': (64, 64), 'rubble': (64, 64)}
@@ -106,6 +106,10 @@ def build_sheet():
             ca[:h_, :w_, 3][other] = 0
             crop = Image.fromarray(ca)
             bb = crop.getbbox(); crop = crop.crop(bb)
+            if name.startswith('ui_'):
+                # DOM 장식(border-image)용: 비율을 지켜 절반 크기로. 테두리 조각 폭을 CSS에서 원본 비율로 자른다
+                save(crop.resize((crop.width // 2, crop.height // 2), Image.LANCZOS), name)
+                continue
             size = SHEET_SIZE[name.split('_')[0]]
             if name.startswith('brick'):
                 # 원본 벽돌(약 3:2)을 게임 벽돌(22:12) 비율로 늘린다. 돌 질감이라 늘려도 어색하지 않다

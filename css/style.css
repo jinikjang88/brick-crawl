@@ -154,3 +154,13 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 /* 코인 칩 앞에 일러스트 코인. 파일이 없으면 빈 칸만 남고 글자는 그대로 읽힌다 */
 .hCoin:not(:empty){display:inline-flex;align-items:center;gap:4px}
 .hCoin:not(:empty)::before{content:'';width:16px;height:16px;flex:none;background:url('../assets/game/coin.png') center/contain no-repeat}
+/* 일러스트 UI 조각(assets/game/ui_*). 이미지가 고정색이라 글자·바탕색도 테마와 무관하게 고정한다.
+   바탕색은 padding-box에만 깔아, 그림이 안 불러와져도 같은 대비로 읽히게 한다 */
+.btn.primary{color:#F9F6EF;background:#1B1A18;background-clip:padding-box;border-style:solid;border-width:6px 14px;border-image:url('../assets/game/ui_bar.png') 10 24 fill / 6px 14px}
+.btn.primary:hover:not(:disabled){background:#1B1A18;background-clip:padding-box;filter:brightness(1.25)}
+.btn.primary:active{border-width:6px 14px}
+.banner .b2{color:#1B1A18;background:#F4ECDD;background-clip:padding-box;border-style:solid;border-width:8px 22px;border-image:url('../assets/game/ui_panel.png') 16 34 fill / 8px 22px;padding:2px 6px}
+.banner.hot .b2{color:#C1443C}
+/* 지금 쏠 구슬은 액자에 넣어 "다음" 구슬과 한눈에 구분한다 */
+.orbCurrent .orbPortrait{width:62px;height:62px;border:9px solid transparent;border-image:url('../assets/game/ui_frame.png') 20 18 / 9px 8px}
+@media(max-width:360px){.orbCurrent .orbPortrait{width:52px;height:52px}}

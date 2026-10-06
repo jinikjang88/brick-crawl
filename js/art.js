@@ -5,16 +5,21 @@
 // 로드 전·실패·Node(시뮬레이터)에서는 각 그리기 함수가 false를 돌려주고, 호출부가 기존 도트로 그린다
 const ART = { img:{}, tint:{} };
 const ART_CHARS = ['knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
-const ART_FILES = ['dungeon', 'coin', 'spark', ...ART_CHARS,
+const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', ...ART_CHARS,
   ...['basic', 'bomb', 'drill', 'guard', 'split', 'venom', 'heavy'].map(k => 'orb_' + k),
   ...['n', 'stone', 'atk', 'def', 'heal', 'poison'].map(k => 'brick_' + k)];
 // 캐릭터 화면 상자(논리 px). 원본 크기가 제각각이라 발밑을 같은 바닥선에 맞추고 상자 안에 비율대로 넣는다.
 // 위로는 의도 아이콘(y 25~35), 아래로는 공·방 숫자(y 93)를 가리지 않는 높이로 정했다
 const ART_BOX = {
-  knight:{ w:46, h:50 }, slime:{ w:54, h:40 }, bat:{ w:62, h:40, lift:10 },
+  knight:{ w:46, h:50 }, slime:{ w:54, h:40 }, bat:{ w:62, h:40, lift:10, bob:2, rate:4.5 },
   golem:{ w:58, h:54 }, shroom:{ w:52, h:52 }, boss:{ w:62, h:54 },
 };
 const ART_FOOT = 90;
+// 일러스트에는 동작 프레임이 없어 숨쉬기(위아래 흔들림)로 살아 있는 느낌만 준다. 박쥐는 날갯짓처럼 크고 빠르게
+function artBob(name, t){
+  const box = ART_BOX[name] || {};
+  return Math.sin(t * (box.rate || 2.2) + name.length) * (box.bob || .75);
+}
 
 (function loadArt(){
   if (typeof Image === 'undefined') return;
@@ -103,5 +108,14 @@ function drawBrickArt(b, x, y, w, h){
 function drawSparkArt(x, y, a){
   const im = artImg('spark'); if (!im) return false;
   ctx.globalAlpha = a; ctx.drawImage(im, x - 5, y - 5, 10, 10); ctx.globalAlpha = 1;
+  return true;
+}
+
+// 성벽 벽돌이 부서질 때 돌 파편 그림 하나가 튀어 오르며 돌다 사라진다(battle.js burst의 img 파티클)
+function drawPartArt(q){
+  const im = artImg(q.img); if (!im) return false;
+  ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot || 0);
+  ctx.drawImage(im, -q.size / 2, -q.size / 2, q.size, q.size);
+  ctx.restore();
   return true;
 }
