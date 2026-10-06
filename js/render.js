@@ -27,6 +27,7 @@ function brickAt(x, y){
   return false;
 }
 function draw(){
+  fitCanvas();
   ctx.setTransform(RES, 0, 0, RES, 0, 0); ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   if (!drawBgArt()){
@@ -41,7 +42,7 @@ function draw(){
   const p = g.p, m = g.m;
   hpBlock(PX, p.hp, p.max, p.hp <= p.max * 0.3, p.poison);
   statRow(PX, p.atk, p.def);
-  if (!drawCharArt('knight', PX, 0, { flash:p.flash > 0 ? C.accent : null }))
+  if (!drawCharArt('knight', PX, p.hp > 0 ? artBob('knight', g.time) : 0, { flash:p.flash > 0 ? C.accent : null }))
     drawSprite(SPR.knight, PX - 18, 50, 3, p.flash > 0 ? C.accent : C.ink, C.ink2, C.bg);
 
   const angry = g.cfg.boss && m.phase === 2;
@@ -52,7 +53,7 @@ function draw(){
     const sink = m.dead ? Math.min(20, m.deadT * 30) : 0;
     ctx.globalAlpha = m.dead ? Math.max(0, 1 - m.deadT) : 1;
     const art = { flash:m.flash > 0 ? '#FFFDF8' : null, outline:(angry || g.cfg.elite) ? C.accent : null };
-    if (!drawCharArt(g.cfg.spr, MX + lunge, sink, art))
+    if (!drawCharArt(g.cfg.spr, MX + lunge, m.dead ? sink : artBob(g.cfg.spr, g.time), art))
       drawSprite(SPR[g.cfg.spr], MX - 24 + lunge, 38 + sink, 3, m.flash > 0 ? C.ink3 : C.ink, C.ink2, (angry || g.cfg.elite) ? C.accent : C.bg);
     ctx.globalAlpha = 1;
   }
@@ -142,7 +143,11 @@ function draw(){
     else if (pr.kind === 'poison') drawIcon('skull', x - 3, y - 3, C.accent);
     else drawIcon(pr.kind === 'atk' ? 'sword' : pr.kind === 'def' ? 'shield' : 'heart', x - 3, y - 3, C.ink);
   }
-  for (const q of g.parts){ ctx.globalAlpha = clamp(q.t * 2.5, 0, 1); ctx.fillStyle = q.col; ctx.fillRect(Math.round(q.x), Math.round(q.y), 2, 2); }
+  for (const q of g.parts){
+    ctx.globalAlpha = clamp(q.t * 2.5, 0, 1);
+    if (q.img){ drawPartArt(q); continue; }   // 그림이 없으면 파편은 생략: 같은 자리에 도트 파티클이 이미 튄다
+    ctx.fillStyle = q.col; ctx.fillRect(Math.round(q.x), Math.round(q.y), 2, 2);
+  }
   for (const pp of g.pops){
     ctx.globalAlpha = clamp(pp.t * 1.8, 0, 1);
     const tw = pp.txt ? (pp.txt.length * 4 - 1) * 2 : 0, iw = pp.icon ? 9 : 0, x0 = pp.x - (tw + iw) / 2;

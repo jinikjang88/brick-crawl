@@ -82,7 +82,10 @@ function banner(l1, l2, hot){
 // ── 벽돌 파괴: 성벽은 길만 막고, 강화·독 벽돌은 기사에게 날아간다
 function onBreak(b){
   const bx = OX + b.c * CW + CW / 2, by = b.y + BRH / 2;
-  if (b.type === 'n' || b.type === 'stone') burst(bx, by, C.ink3, 4);
+  if (b.type === 'n' || b.type === 'stone'){
+    burst(bx, by, C.ink3, 4);
+    G.parts.push({ x:bx, y:by, vx:(Math.random() - .5) * 40, vy:-35, t:.5, col:C.ink3, img:'rubble', size:b.type === 'stone' ? 11 : 9, rot:0, vr:(Math.random() - .5) * 8 });
+  }
   else if (b.type === 'poison'){
     G.projs.push({ x0:bx, y0:by, x1:PX, y1:66, t:0, dur:0.36, kind:'poison', v:1 });
     burst(bx, by, C.accent, 7);
@@ -211,7 +214,7 @@ function update(dt){
   g.projs = g.projs.filter(p => !p.hit);
   for (const p of g.pops){ p.y -= 14 * dt; p.t -= dt; }
   g.pops = g.pops.filter(p => p.t > 0);
-  for (const p of g.parts){ p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 180 * dt; p.t -= dt; }
+  for (const p of g.parts){ p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 180 * dt; p.t -= dt; if (p.vr) p.rot += p.vr * dt; }
   g.parts = g.parts.filter(p => p.t > 0);
   for (const f of g.cf) f.t -= dt;
   g.cf = g.cf.filter(f => f.t > 0);

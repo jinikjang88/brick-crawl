@@ -2,7 +2,7 @@
 """assets/illustrated 원본을 게임 런타임용 작은 PNG(assets/game)로 변환한다.
 
 원본은 1254px 캐릭터와 2MB급 시트라 그대로 쓰면 배포 크기·모바일 로딩이 무겁다.
-게임 캔버스는 논리 180×340을 4배(720×1360) 백버퍼로 그리므로, 각 에셋은
+게임 캔버스는 논리 180×340을 화면에 맞춘 정수배(휴대폰 기준 4~7배) 백버퍼로 그리므로, 각 에셋은
 그 화면에서 실제로 차지하는 크기의 1~2배만 남긴다.
 
 collection.png는 균등 격자가 아니라서 알파 영역(연결 요소)으로 조각을 찾는다.
@@ -20,14 +20,15 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'assets' / 'illustrated'
 OUT = ROOT / 'assets' / 'game'
 
-# 캔버스 백버퍼 배율(js/config.js의 RES와 같아야 한다)
+# 에셋 기준 배율. 게임의 RES(js/config.js fitCanvas)는 화면마다 2~8로 바뀌고, 그보다 크면 부드럽게 확대된다.
+# 올리면 큰 화면에서 선명해지지만 파일이 커진다(배경 하나가 배율 제곱으로 커짐)
 RES = 4
 
 # 원본 시트의 줄별 조각 순서(왼쪽→오른쪽). None은 쓰지 않는 조각
 SHEET_ORDER = [
     ['orb_basic', 'orb_bomb', 'orb_drill', 'orb_guard', 'orb_split', 'orb_venom', 'orb_heavy'],
     ['brick_n', 'brick_stone', 'brick_atk', 'brick_def', 'brick_heal', 'brick_poison'],
-    [None, None, 'coin', 'spark', 'rubble', None],
+    ['ui_panel', 'ui_frame', 'coin', 'spark', 'rubble', 'ui_bar'],
 ]
 # 조각별 저장 크기(px). 구슬은 발사대 9px·HUD 48px 표시를 모두 감당하도록 넉넉히
 SHEET_SIZE = {'orb': (96, 96), 'brick': (22 * RES * 2, 12 * RES * 2), 'coin': (48, 48), 'spark': (64, 64), 'rubble': (64, 64)}
@@ -106,6 +107,10 @@ def build_sheet():
             ca[:h_, :w_, 3][other] = 0
             crop = Image.fromarray(ca)
             bb = crop.getbbox(); crop = crop.crop(bb)
+            if name.startswith('ui_'):
+                # DOM 장식(border-image)용: 비율을 지켜 절반 크기로. 테두리 조각 폭을 CSS에서 원본 비율로 자른다
+                save(crop.resize((crop.width // 2, crop.height // 2), Image.LANCZOS), name)
+                continue
             size = SHEET_SIZE[name.split('_')[0]]
             if name.startswith('brick'):
                 # 원본 벽돌(약 3:2)을 게임 벽돌(22:12) 비율로 늘린다. 돌 질감이라 늘려도 어색하지 않다

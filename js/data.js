@@ -17,7 +17,7 @@ const MON = {
   shroom: { name:'독버섯', spr:'shroom', hp:9, atk:1, def:1, sweep:1.7,
     pattern:[{t:'atk',n:1},{t:'poison',v:2},{t:'atk',n:1},{t:'spore'}],
     row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 }, poison:.2 } },
-  boss: { name:'탑의 주인', spr:'boss', hp:16, atk:1, def:1, sweep:2.0, boss:true,
+  boss: { name:'탑의 주인', spr:'boss', hp:20, atk:1, def:1, sweep:2.0, boss:true,
     pattern:[{t:'atk',n:5},{t:'summon'}],
     pattern2:[{t:'atk',n:6},{t:'summon'}],
     row:{ d:.62, hard:.35, stat:.35, w:{ atk:1, def:1, heal:1 }, poison:.3 } },

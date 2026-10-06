@@ -10,8 +10,17 @@ const AIM_MIN = -Math.PI + 0.22, AIM_MAX = -0.22;   // 너무 눕힌 각도는 �
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
 // 백버퍼는 RES배: 게임 좌표·판정은 180×340 그대로 두고, 일러스트(assets/game)만 세밀하게 그리려고 늘렸다.
-// 도트 글자·아이콘은 논리 좌표에 반올림해 그리므로 RES배 블록으로 찍혀 도트 느낌이 유지된다
-const RES = 4;
+// 도트 글자·아이콘은 논리 좌표에 반올림해 그리므로 RES배 블록으로 찍힌다.
+// RES를 고정하면 화면 폭에 따라 확대 배율이 1.4배처럼 정수가 아니게 되고, 최근접 확대에서 도트 굵기가 칸마다 달라진다.
+// 그래서 표시 크기(기기 픽셀)를 덮는 가장 작은 정수배로 맞추고, 남는 1배 미만은 부드럽게 축소해 굵기를 고르게 한다
+let RES = 4;
+function fitCanvas(){
+  const dpr = (typeof devicePixelRatio === 'number' && devicePixelRatio > 0) ? devicePixelRatio : 1;
+  const px = (cv.clientWidth || W) * dpr;
+  // 0.05 여유: 테두리 반올림으로 6.01배처럼 살짝 넘칠 때 한 단계 큰 배율(=더 많이 축소)로 튀지 않게
+  const n = clamp(Math.ceil(px / W - 0.05), 2, 8);
+  if (n !== RES || cv.width !== W * n){ RES = n; cv.width = W * n; cv.height = H * n; }
+}
 cv.width = W * RES; cv.height = H * RES;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = n => Math.floor(Math.random() * n);
