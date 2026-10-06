@@ -27,18 +27,22 @@ function brickAt(x, y){
   return false;
 }
 function draw(){
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
-  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, BT);
-  ctx.fillStyle = C.field; ctx.fillRect(0, BT, W, H - BT);
+  ctx.setTransform(RES, 0, 0, RES, 0, 0); ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  if (!drawBgArt()){
+    ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, BT);
+    ctx.fillStyle = C.field; ctx.fillRect(0, BT, W, H - BT);
+  }
   const g = G; if (!g) return;
   const sx = g.shake > 0 ? Math.round((Math.random() - .5) * g.shake) : 0;
   const sy = g.shake > 0 ? Math.round((Math.random() - .5) * g.shake) : 0;
-  ctx.setTransform(1, 0, 0, 1, sx, sy);
+  ctx.setTransform(RES, 0, 0, RES, sx * RES, sy * RES);
 
   const p = g.p, m = g.m;
   hpBlock(PX, p.hp, p.max, p.hp <= p.max * 0.3, p.poison);
   statRow(PX, p.atk, p.def);
-  drawSprite(SPR.knight, PX - 18, 50, 3, p.flash > 0 ? C.accent : C.ink, C.ink2, C.bg);
+  if (!drawCharArt('knight', PX, 0, { flash:p.flash > 0 ? C.accent : null }))
+    drawSprite(SPR.knight, PX - 18, 50, 3, p.flash > 0 ? C.accent : C.ink, C.ink2, C.bg);
 
   const angry = g.cfg.boss && m.phase === 2;
   if (!m.dead || Math.floor(m.deadT * 10) % 2 === 0){
@@ -47,7 +51,9 @@ function draw(){
     const lunge = m.lunge > 0 ? -Math.sin(Math.PI * m.lunge / 0.4) * 14 : 0;
     const sink = m.dead ? Math.min(20, m.deadT * 30) : 0;
     ctx.globalAlpha = m.dead ? Math.max(0, 1 - m.deadT) : 1;
-    drawSprite(SPR[g.cfg.spr], MX - 24 + lunge, 38 + sink, 3, m.flash > 0 ? C.ink3 : C.ink, C.ink2, (angry || g.cfg.elite) ? C.accent : C.bg);
+    const art = { flash:m.flash > 0 ? '#FFFDF8' : null, outline:(angry || g.cfg.elite) ? C.accent : null };
+    if (!drawCharArt(g.cfg.spr, MX + lunge, sink, art))
+      drawSprite(SPR[g.cfg.spr], MX - 24 + lunge, 38 + sink, 3, m.flash > 0 ? C.ink3 : C.ink, C.ink2, (angry || g.cfg.elite) ? C.accent : C.bg);
     ctx.globalAlpha = 1;
   }
   // 몬스터의 다음 행동 예고: 이것만 보고 이번 턴에 무엇을 노릴지 정한다
@@ -69,6 +75,7 @@ function draw(){
 
   for (const b of g.bricks){
     const x = OX + b.c * CW + 1, y = Math.round(b.y), w = CW - 2, h = BRH;
+    if (drawBrickArt(b, x, y, w, h)) continue;
     if (b.type === 'n' || b.type === 'stone'){
       let fill = b.type === 'stone' ? C.ink : b.hp >= 3 ? C.ink : b.hp === 2 ? C.ink2 : C.ink3;
       if (b.flash > 0) fill = C.line;
@@ -121,7 +128,7 @@ function draw(){
     }
     ctx.globalAlpha = 1;
     drawOrbSprite(b.kind, b.x, b.y, b.kind === 'heavy' ? 7 : 5);
-    if (b.impact > 0){
+    if (b.impact > 0 && !drawSparkArt(b.x, b.y, b.impact / .12)){
       ctx.globalAlpha = b.impact / .12; ctx.fillStyle = C.panel;
       ctx.fillRect(b.x - 6, b.y, 3, 1); ctx.fillRect(b.x + 4, b.y, 3, 1);
       ctx.fillRect(b.x, b.y - 6, 1, 3); ctx.globalAlpha = 1;

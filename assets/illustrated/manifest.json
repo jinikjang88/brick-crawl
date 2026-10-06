@@ -1,6 +1,7 @@
 {
   "kind": "static-design-assets",
-  "runtimeIntegrated": false,
+  "runtimeIntegrated": true,
+  "runtimeAssets": "assets/game (tools/build_game_assets.py)",
   "assets": [
     {
       "path": "assets/illustrated/characters/bat.png",
