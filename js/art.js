@@ -5,7 +5,7 @@
 // 로드 전·실패·Node(시뮬레이터)에서는 각 그리기 함수가 false를 돌려주고, 호출부가 기존 도트로 그린다
 const ART = { img:{}, tint:{} };
 const ART_CHARS = ['knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
-const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', ...ART_CHARS,
+const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', ...ART_CHARS, ...ART_CHARS.map(n => n + '_actions'),
   ...['basic', 'bomb', 'drill', 'guard', 'split', 'venom', 'heavy'].map(k => 'orb_' + k),
   ...['n', 'stone', 'atk', 'def', 'heal', 'poison'].map(k => 'brick_' + k)];
 // 캐릭터 화면 상자(논리 px). 원본 크기가 제각각이라 발밑을 같은 바닥선에 맞추고 상자 안에 비율대로 넣는다.
@@ -15,7 +15,7 @@ const ART_BOX = {
   golem:{ w:58, h:54 }, shroom:{ w:52, h:52 }, boss:{ w:62, h:54 },
 };
 const ART_FOOT = 90;
-// 일러스트에는 동작 프레임이 없어 숨쉬기(위아래 흔들림)로 살아 있는 느낌만 준다. 박쥐는 날갯짓처럼 크고 빠르게
+// 대기 중에만 숨쉬기를 더한다. 공격·피격·사망은 별도 시트의 실제 포즈를 재생한다.
 // 동작 줄이기 설정이면 끈다: 정보가 없는 장식 움직임이고, CSS 쪽 장식 애니메이션도 같은 설정에서 끈다
 let artCalm = null;
 try { artCalm = matchMedia('(prefers-reduced-motion: reduce)'); } catch(e){}
@@ -73,9 +73,55 @@ function drawBgArt(){
   return true;
 }
 
+// 각 동작은 여섯 포즈. 공격의 타격 프레임을 짧게 두고 복귀에 여유를 준다.
+const ART_ACTIONS = {
+  attack:{ row:0, times:[.06,.06,.05,.06,.09,.10] },
+  hit:{ row:1, times:[.035,.04,.055,.05,.06,.08] },
+  death:{ row:2, times:[.10,.10,.12,.12,.14,.16] },
+};
+function artPose(actor, action){
+  if (!actor || (actor.artAction === 'death' && action !== 'death')) return;
+  actor.artAction = action; actor.artElapsed = 0;
+}
+function artAdvance(actor, dt){
+  if (!actor.artAction) return;
+  actor.artElapsed += dt;
+  const clip = ART_ACTIONS[actor.artAction];
+  if (actor.artAction !== 'death' && actor.artElapsed >= clip.times.reduce((a,b) => a+b, 0)) actor.artAction = null;
+}
+function artFrame(action, elapsed){
+  const clip = ART_ACTIONS[action];
+  if (!clip) return null;
+  if (artCalm && artCalm.matches) return { row:clip.row, col:action === 'death' ? 5 : 3 };
+  let col = 0;
+  while (col < 5 && elapsed >= clip.times[col]) elapsed -= clip.times[col++];
+  return { row:clip.row, col };
+}
+
 // cx: 가운데, 발밑은 ART_FOOT + dy. o = { flash:색, flashA, outline:색 }
 function drawCharArt(name, cx, dy, o = {}){
-  const im = artImg(name), box = ART_BOX[name]; if (!im || !box) return false;
+  const box = ART_BOX[name];
+  const pose = o.actor && (artFrame(o.actor.artAction, o.actor.artElapsed) || { row:0, col:5 });
+  const sheet = pose && artImg(name + '_actions');
+  if (sheet && box){
+    // 시트는 고정 크기 셀로 전처리한다. 사망 포즈도 확대하지 않아 바닥에서 크기가 튀지 않는다.
+    const cw = sheet.naturalWidth / 6, ch = sheet.naturalHeight / 3;
+    const size = Math.min(box.w, box.h);
+    const lift = o.actor.artAction === 'death' ? 0 : (box.lift || 0);
+    const x = cx-size/2, y = ART_FOOT-lift-size + (o.actor.artAction ? 0 : dy);
+    const paint = (im, ox=0, oy=0) => ctx.drawImage(im, pose.col*cw, pose.row*ch, cw, ch, x+ox, y+oy, size, size);
+    if (o.outline){
+      const tint = artTint(name + '_actions', o.outline);
+      if (tint) for (const [ox,oy] of [[-1,0],[1,0],[0,-1],[0,1]]) paint(tint, ox, oy);
+    }
+    paint(sheet);
+    if (o.flash){
+      const tint = artTint(name + '_actions', o.flash), alpha = ctx.globalAlpha;
+      if (tint){ ctx.globalAlpha = alpha * (o.flashA ?? .35); paint(tint); ctx.globalAlpha = alpha; }
+    }
+    return true;
+  }
+  const im = artImg(name); if (!im || !box) return false;
   const k = Math.min(box.w / im.naturalWidth, box.h / im.naturalHeight);
   const w = im.naturalWidth * k, h = im.naturalHeight * k;
   const x = cx - w / 2, y = ART_FOOT - (box.lift || 0) - h + dy;

@@ -1,0 +1,30 @@
+// 프레임 경계·우선순위·에셋 실패가 전투 렌더를 깨뜨리지 않는지 검증한다.
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const calls = [], media = { matches:false };
+const context = vm.createContext({ matchMedia:()=>media,
+  ctx:{globalAlpha:1,drawImage:(...args)=>calls.push(args)},
+});
+vm.runInContext(fs.readFileSync(new URL('../js/art.js', import.meta.url),'utf8'), context);
+const run = code => vm.runInContext(code, context);
+run("ART.img.knight = {complete:true,naturalWidth:200,naturalHeight:256}; ART.img.knight_actions = {complete:true,naturalWidth:1536,naturalHeight:768}; globalThis.actor = {};");
+for (const action of ['attack','hit','death']){
+  run(`actor.artAction=null; artPose(actor,'${action}')`);
+  const times = run(`ART_ACTIONS.${action}.times`);
+  let elapsed = 0;
+  for(let col=0;col<6;col++){
+    assert.equal(run(`artFrame('${action}',${elapsed+.00001}).col`), col);
+    elapsed += times[col];
+  }
+  run(`artAdvance(actor,${elapsed+.1})`);
+  assert.equal(run('actor.artAction'), action==='death' ? 'death' : null);
+}
+run("artPose(actor,'hit')");assert.equal(run('actor.artAction'),'death');
+run("drawCharArt('knight',45,0,{actor})");assert.equal(calls.at(-1)[1],1280);
+assert.equal(calls.at(-1)[2],512);
+run("delete ART.img.knight_actions; drawCharArt('knight',45,0,{actor})");assert.equal(calls.at(-1).length,5);
+run('delete ART.img.knight');assert.equal(run("drawCharArt('knight',45,0,{actor})"),false);
+media.matches=true;assert.equal(run("artFrame('death',0).col"),5);
+assert.equal(run("artFrame('attack',0).col"),3);
+console.log('PASS: 18개 프레임 경계, 동작 종료, 사망 우선, 소스 좌표, 폴백, 동작 줄이기');
