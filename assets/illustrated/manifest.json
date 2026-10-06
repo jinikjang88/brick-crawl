@@ -1,0 +1,78 @@
+{
+  "kind": "static-design-assets",
+  "runtimeIntegrated": false,
+  "assets": [
+    {
+      "path": "assets/illustrated/characters/bat.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha": true,
+      "bytes": 1091313,
+      "sha256": "8321869adc27b875d45144ffd69f5e72f145730dd7eb1f5007e29d7f5f926a6b"
+    },
+    {
+      "path": "assets/illustrated/characters/boss.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha": true,
+      "bytes": 1955893,
+      "sha256": "4b0b33d04eb787b846c2b2f049b65036730c516716b4a8bca1019baf01d27b55"
+    },
+    {
+      "path": "assets/illustrated/characters/golem.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha": true,
+      "bytes": 2280639,
+      "sha256": "28ecf5d67180443a596614efbccd13d853e55bf7e0749e0028c6861bd07d89da"
+    },
+    {
+      "path": "assets/illustrated/characters/knight.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha": true,
+      "bytes": 1328095,
+      "sha256": "e493a3ac2a7ae858e462bfdc089d959ad731c0966061bca2c3bedc5988858c81"
+    },
+    {
+      "path": "assets/illustrated/characters/shroom.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha": true,
+      "bytes": 1686398,
+      "sha256": "9abd5d18c3b7e064ca746fac86ce5256f08ba4a3d2dc404f3a680a5155f43f10"
+    },
+    {
+      "path": "assets/illustrated/characters/slime.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha": true,
+      "bytes": 1328094,
+      "sha256": "18f954fd07f95d747d0a1d9c78e5c360dd163b42db54e11bb6f18f1063b51695"
+    },
+    {
+      "path": "assets/illustrated/collection.png",
+      "width": 1838,
+      "height": 856,
+      "mode": "RGBA",
+      "alpha": true,
+      "bytes": 2051033,
+      "sha256": "9efeb580909a67bb19425074da34bb4b4672a36955f73c1305b699ed6568f4fc"
+    },
+    {
+      "path": "assets/illustrated/dungeon.png",
+      "width": 912,
+      "height": 1724,
+      "mode": "RGBA",
+      "alpha": true,
+      "bytes": 2265506,
+      "sha256": "8f7299d426a8f72833a43f662446eb78d244b5eccad4c10b428aa02befb4ed40"
+    }
+  ]
+}
