@@ -26,12 +26,18 @@ const MON = {
 // 성벽 밀도·시작 줄 수: 구슬이 튕기는 구조라 틈이 있어야 천장까지 길을 낼 수 있다
 const WALL = { dens:0.5, init:3, every:2, hpMul:0.6 };
 const SCALE = { hp:0.35, atk:1, def:1, sweep:0.15, sweepMax:2.6, elite:1.5 };
+// ── 무한 심연(엔드게임 시험판): 3세션(s=2)까지가 본편, 그 뒤 s=3부터 "심연 1층".
+// 층마다 체력이 곱으로(×1.3) 늘어 덧셈 성장만으로는 언젠가 막힌다. 스킬 트리 핵심 노드(곱연산)가 버티는 수단이고,
+// 얼마나 깊이 내려갔는지가 랭킹(도달 칸)이 된다. 최종 구조(5세션 + 챕터)는 docs/tasks/02-chapters.md
+const ABYSS_FROM = 3, ABYSS = { hp:1.3, atk:1 };
+const abyssDepth = s => Math.max(0, s - ABYSS_FROM + 1);
+const stageName = s => abyssDepth(s) ? `심연 ${abyssDepth(s)}층` : `세션 ${s + 1}`;
 function monCfg(id, s, elite){
-  const b = MON[id];
+  const b = MON[id], dp = abyssDepth(s);
   return Object.assign({}, b, {
     id, elite:!!elite, name:(elite ? '정예 ' : '') + b.name,
-    hp: Math.max(3, Math.round(b.hp * WALL.hpMul * (1 + SCALE.hp * s) * (elite ? SCALE.elite : 1))),
-    atk: b.atk + SCALE.atk * s,
+    hp: Math.max(3, Math.round(b.hp * WALL.hpMul * (1 + SCALE.hp * s) * (elite ? SCALE.elite : 1) * Math.pow(ABYSS.hp, dp))),
+    atk: b.atk + SCALE.atk * s + ABYSS.atk * dp,
     def: b.def + SCALE.def * s + (elite ? 1 : 0),
     sweep: Math.min(SCALE.sweepMax, b.sweep + SCALE.sweep * s + (elite ? 0.1 : 0)),
   });

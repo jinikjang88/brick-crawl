@@ -22,7 +22,8 @@ function showReward(kind){
 }
 function renderReward(kind){
   const isOrb = kind === 'orb';
-  const head = kind === 'boss' ? `세션 ${RUN.s + 1} 돌파! 최대 체력 +4, 체력 절반 회복, 코인 +${RUN.lastGain || 0}.` : `승리! 코인 +${RUN.lastGain || 0}.`;
+  const head = kind === 'boss' ? `${stageName(RUN.s)} 돌파! 최대 체력 +4, 체력 절반 회복, 코인 +${RUN.lastGain || 0}.`
+    + (abyssDepth(RUN.s + 1) === 1 ? ' 이제부터 끝없는 심연이다.' : '') : `승리! 코인 +${RUN.lastGain || 0}.`;
   const cards = rewardStock.map(id => isOrb
     ? { name:ORBS[id].name, desc:orbDesc(id), rare:ORBS[id].rar === 2, onPick:() => takeReward(() => RUN.deck.push(id), kind) }
     : { name:RELICS[id].name + (rel(id) ? ` ${rel(id) + 1}단계` : ''), desc:RELICS[id].desc, onPick:() => takeReward(() => RUN.relics[id] = rel(id) + 1, kind) });
@@ -46,7 +47,7 @@ function takeReward(apply, kind){
 // ── 휴식
 function showRest(){
   const amt = Math.ceil(RUN.maxHp * 0.4);
-  setHeader(`세션 ${RUN.s + 1}`, '휴식');
+  setHeader(`${stageName(RUN.s)}`, '휴식');
   showChoice({ mode:'rest', scene:'rest', title:'모닥불', sub:`체력 ${RUN.hp}/${RUN.maxHp}. 하나만 할 수 있다.`, cards:[
     { name:'쉬기', desc:`체력 ${amt} 회복`, disabled:RUN.hp >= RUN.maxHp,
       onPick:() => { RUN.hp = Math.min(RUN.maxHp, RUN.hp + amt); sfx('heal'); finishNonBattle(); } },
@@ -85,7 +86,7 @@ function showShop(){
     if (tree('e2')) RUN.shop.forEach(it => it.price = Math.round(it.price * .8));
     saveRun();
   }
-  setHeader(`세션 ${RUN.s + 1}`, '상점');
+  setHeader(`${stageName(RUN.s)}`, '상점');
   const cards = RUN.shop.map((it, i) => {
     const poor = RUN.coins < it.price, tag = it.sold ? '판매됨' : `${it.price}코인`;
     const buy = after => { RUN.coins -= it.price; it.sold = true; sfx('coin'); after(); saveRun(); showShop(); };

@@ -204,3 +204,6 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .treeInfo b{font-size:17px}
 .treeInfo span,.treeInfo small{font-size:14px;color:var(--ink2)}
 .tBranch{position:absolute;transform:translate(-50%,-50%);font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--ink2);pointer-events:none}
+/* 심연: 지도 배경을 더 어둡게 눌러 본편과 다른 곳임을 보여 준다 */
+.ovMap.abyss::before{opacity:.55;filter:brightness(.35) grayscale(.4)}
+.ovMap.abyss .mapHead .t{letter-spacing:.08em}

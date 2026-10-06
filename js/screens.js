@@ -209,7 +209,8 @@ function nodeIcon(n){
 }
 function showMap(){
   G = null;
-  $('mapTitle').textContent = `세션 ${RUN.s + 1}`;
+  $('mapTitle').textContent = `${stageName(RUN.s)}`;
+  $('ovMap').classList.toggle('abyss', abyssDepth(RUN.s) > 0);
   $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  코인 ${RUN.coins}`;
   const box = $('mapBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg';
@@ -244,7 +245,7 @@ function showMap(){
     b.onclick = () => { if (mode === 'map' && canGo) enterNode(n); };
     box.append(b);
   }
-  setHeader(`세션 ${RUN.s + 1}`, '갈림길');
+  setHeader(`${stageName(RUN.s)}`, '갈림길');
   setMode('map', 'ovMap');
   bgm('calm');
   const first = box.querySelector('.node.reach'); if (first) first.focus();
@@ -268,9 +269,9 @@ function finishNonBattle(){ completeNode(); RUN.shop = null; saveRun(); showMap(
 function startBattle(n){
   newBattle(n);
   const label = `${RUN.s + 1}-${n.r + 1}`;
-  setHeader(`세션 ${RUN.s + 1}  ${label} ${NODE_NAME[n.t]}`, G.cfg.name);
+  setHeader(`${stageName(RUN.s)}  ${label} ${NODE_NAME[n.t]}`, G.cfg.name);
   setMode('play', null);
-  banner(n.t === 'boss' ? `세션 ${RUN.s + 1} 보스` : label, G.cfg.name, n.t !== 'battle');
+  banner(n.t === 'boss' ? `${stageName(RUN.s)} 보스` : label, G.cfg.name, n.t !== 'battle');
   bgm(n.t === 'boss' ? 'boss' : 'battle');
   if (n.t === 'boss') sfx('boss');
 }
