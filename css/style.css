@@ -100,8 +100,7 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 .board.mini li{min-height:26px;padding:1px 8px}
 #ovRank{justify-content:flex-start;padding-top:24px}
 
-@media (prefers-reduced-motion: reduce){ .banner{transition:none} .node,.node.reach,.knightTok{animation:none} .btn:active,.rCard:active,.iconBtn:active{transform:none} }
-
+@media (prefers-reduced-motion: reduce){ .banner{transition:none} .node,.node.reach,
 /* 얇은 인쇄선과 단차로 원정 장비 같은 무게감을 준다. */
 .app{gap:8px;padding-top:16px}
 .brandStrip{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ink3);padding-bottom:8px;font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--ink2)}
@@ -168,6 +167,7 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .node{position:absolute;transform:translate(-50%,-50%);width:52px;height:52px;padding:0;border:3px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ink2);cursor:default;
   display:flex;align-items:center;justify-content:center;animation:nodeIn .35s var(--d,0ms) both}
 .node .nIc{width:40px;height:40px;object-fit:contain;pointer-events:none}
+.node .nIc.dot{width:28px;height:28px;image-rendering:pixelated}
 .node .nIc.fire{background:url('../assets/game/campfire.png') 0 0/300% 100% no-repeat;width:42px;height:38px}
 .node small{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:1px;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap;
   background:var(--panel);padding:0 4px;border:1px solid var(--line)}
@@ -182,7 +182,6 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .node.t-boss{width:72px;height:72px;border-color:var(--accent);border-width:4px}
 .node.t-boss .nIc{width:58px;height:58px}
 .node.t-boss small{color:var(--accent)}
-.knightTok{position:absolute;width:36px;height:36px;object-fit:contain;transform:translate(-50%,calc(-100% - 20px));pointer-events:none;z-index:2;animation:tokIn .5s .2s both}
 @keyframes nudge{50%{transform:translate(-50%,calc(-50% - 2px))}}
 @keyframes nodeIn{from{opacity:0;transform:translate(-50%,-20%) scale(.6)}}
-@keyframes tokIn{from{opacity:0;transform:translate(-50%,calc(-100% - 40px))}}
+.orbCurrent b .dmg{font-style:normal;font-size:12px;font-weight:800;margin-left:6px;padding:0 5px;border:1px solid var(--ink3);color:var(--ink2);vertical-align:2px}

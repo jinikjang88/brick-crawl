@@ -121,7 +121,7 @@ function arrive(pr){
     return;
   }
   sfx('pickup', { kind:pr.kind });
-  if (pr.kind === 'atk'){ const v = 1 + rel('harvest'); g.p.atk += v; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); }
+  if (pr.kind === 'atk'){ const v = 1 + rel('harvest'); g.p.atk += v; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); renderOrbBar(); }
   else if (pr.kind === 'def'){ const v = 2 + rel('harvest'); g.p.def += v; pop(PX + 12, 88, '+' + v, C.ink, 'shield'); }
   else if (pr.kind === 'heal'){
     const before = g.p.hp; g.p.hp = Math.min(g.p.max, g.p.hp + 4);
@@ -173,7 +173,7 @@ function moveBall(b, dt){
       if (!G.m.dead && b.hits < hitCap() + (b.kind === 'basic' && b.up ? 1 : 0)){
         b.hits++;
         sfx('ceil', { orb:b.kind, n:b.hits - 1 });
-        const v = G.p.atk * (b.kind === 'heavy' ? (b.up ? 3 : 2) : 1);
+        const v = orbDmg(b.kind + (b.up ? '+' : '')) + G.p.atk - 1;
         G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.kind === 'venom' ? (b.up ? 2 : 1) : 0 });
         if (b.hits === 3 && rel('leech') && G.p.hp < G.p.max){ G.p.hp++; pop(PX, 30, '+1', C.ink, 'heart'); }
         G.cf.push({ x:b.x, t:0.25 });

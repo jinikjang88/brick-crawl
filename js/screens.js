@@ -131,8 +131,16 @@ function resumeRun(){
 // 갈래 수는 지도마다 읽는다: 3갈래로 만든 이전 저장 지도도 그대로 그려지게
 const ROW_Y = [88, 68, 48, 28, 8];
 const nodeX = n => n.t === 'boss' ? 50 : (n.l + .5) / RUN.map[0].length * 100;
-// 칸 메달 그림: 전투·정예는 그 칸의 몬스터, 휴식은 모닥불, 상점은 상인, 보스는 탑의 주인
+// 칸 메달 그림: 휴식은 모닥불, 상점은 상인, 보스는 탑의 주인.
+// 전투·정예는 어떤 몬스터인지 들어가기 전까지 모르게 도트 아이콘(칼·해골)만 보여 준다(긴장감·선택의 불확실성)
 function nodeIcon(n){
+  if (n.t === 'battle' || n.t === 'elite'){
+    const m = ICON[n.t === 'elite' ? 'skull' : 'sword'], c = document.createElement('canvas');
+    c.width = 7; c.height = 7; c.className = 'nIc dot'; c.setAttribute('aria-hidden', 'true');
+    const g = c.getContext('2d'); g.fillStyle = n.t === 'elite' ? C.accent : C.ink;
+    for (let r = 0; r < 7; r++) for (let k = 0; k < 7; k++) if (m[r][k] === '#') g.fillRect(k, r, 1, 1);
+    return c;
+  }
   const src = n.t === 'rest' ? null : n.t === 'shop' ? 'merchant' : n.mon;
   const ic = document.createElement(src ? 'img' : 'span');
   ic.className = 'nIc' + (n.t === 'rest' ? ' fire' : '');
@@ -177,13 +185,6 @@ function showMap(){
     b.onclick = () => { if (mode === 'map' && canGo) enterNode(n); };
     box.append(b);
   }
-  // 기사 말: 지금 서 있는 칸(출발 전이면 지도 아래 가운데)
-  const tok = document.createElement('img');
-  tok.className = 'knightTok'; tok.alt = ''; tok.setAttribute('aria-hidden', 'true'); tok.src = 'assets/game/knight.png';
-  tok.onerror = () => tok.remove();
-  const at = RUN.pos ? nodeAt(RUN.pos.r, RUN.pos.l) : null;
-  tok.style.left = (at ? nodeX(at) : 50) + '%'; tok.style.top = (at ? ROW_Y[at.r] : 100) + '%';
-  box.append(tok);
   setHeader(`세션 ${RUN.s + 1}`, '갈림길');
   setMode('map', 'ovMap');
   bgm('calm');

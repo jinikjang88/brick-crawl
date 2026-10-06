@@ -24,7 +24,7 @@ function renderReward(kind){
   const isOrb = kind === 'orb';
   const head = kind === 'boss' ? `세션 ${RUN.s + 1} 돌파! 최대 체력 +4, 체력 절반 회복, 코인 +${RUN.lastGain || 0}.` : `승리! 코인 +${RUN.lastGain || 0}.`;
   const cards = rewardStock.map(id => isOrb
-    ? { name:ORBS[id].name, desc:ORBS[id].desc, rare:ORBS[id].rar === 2, onPick:() => takeReward(() => RUN.deck.push(id), kind) }
+    ? { name:ORBS[id].name, desc:orbDesc(id), rare:ORBS[id].rar === 2, onPick:() => takeReward(() => RUN.deck.push(id), kind) }
     : { name:RELICS[id].name + (rel(id) ? ` ${rel(id) + 1}단계` : ''), desc:RELICS[id].desc, onPick:() => takeReward(() => RUN.relics[id] = rel(id) + 1, kind) });
   // 구슬 보상은 "덱을 늘릴지, 가진 구슬을 키울지"를 고르게 한다. 덱이 얇을수록 좋은 구슬이 자주 나오므로 둘 다 의미가 있다
   if (isOrb && RUN.deck.some(o => !orbUp(o)))
@@ -67,7 +67,7 @@ function showRemove(done, back){
 function showUpgrade(done, back){
   const kinds = [...new Set(RUN.deck.filter(o => !orbUp(o)))];
   showChoice({ mode:'upgrade', title:'강화할 구슬을 고른다', sub:`지금 덱: ${deckSummary()}`,
-    cards:kinds.map(o => ({ name:orbName(o) + ' → +', orb:o, desc:ORBS[o].up,
+    cards:kinds.map(o => ({ name:orbName(o) + ' → +', orb:o, desc:orbDesc(o + '+'),
       onPick:() => { RUN.deck[RUN.deck.indexOf(o)] = o + '+'; done(); } })),
     buttons:[{ label:'취소', onClick:back }] });
 }
@@ -86,7 +86,7 @@ function showGift(){
     pick:() => {
       const rare = Object.keys(ORBS).filter(k => ORBS[k].rar === 2);
       showChoice({ mode:'gift', title:'희귀 구슬 하나를 고른다', sub:'덱에 넣고 떠난다', buttons:[{ label:'취소', onClick:showGift }],
-        cards:rare.map(k => ({ name:ORBS[k].name, orb:k, desc:ORBS[k].desc, rare:true, onPick:() => { RUN.deck.push(k); done(); } })) });
+        cards:rare.map(k => ({ name:ORBS[k].name, orb:k, desc:orbDesc(k), rare:true, onPick:() => { RUN.deck.push(k); done(); } })) });
     },
   };
   setHeader('출발', '출발 선물');
@@ -111,7 +111,7 @@ function showShop(){
   const cards = RUN.shop.map((it, i) => {
     const poor = RUN.coins < it.price, tag = it.sold ? '판매됨' : `${it.price}코인`;
     const buy = after => { RUN.coins -= it.price; it.sold = true; sfx('coin'); after(); saveRun(); showShop(); };
-    if (it.k === 'orb') return { name:ORBS[it.id].name, tag, desc:ORBS[it.id].desc, rare:ORBS[it.id].rar === 2,
+    if (it.k === 'orb') return { name:ORBS[it.id].name, tag, desc:orbDesc(it.id), rare:ORBS[it.id].rar === 2,
       disabled:it.sold || poor, onPick:() => buy(() => RUN.deck.push(it.id)) };
     if (it.k === 'relic') return { name:RELICS[it.id].name, tag, desc:RELICS[it.id].desc,
       disabled:it.sold || poor, onPick:() => buy(() => RUN.relics[it.id] = rel(it.id) + 1) };

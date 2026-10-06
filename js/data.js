@@ -45,13 +45,18 @@ const ORBS = {
   guard: { name:'방패 구슬',   icon:'shield',  rar:1, desc:'벽돌을 부술 때마다 방어도 +1', up:'벽돌을 부술 때마다 방어도 +2' },
   split: { name:'분열 구슬',   icon:'o_split', rar:2, desc:'세 갈래로 갈라져 발사된다', up:'다섯 갈래로 갈라져 발사된다' },
   venom: { name:'독 구슬',     icon:'skull',   rar:2, desc:'천장을 칠 때마다 몬스터에게 독 +1', up:'천장을 칠 때마다 몬스터에게 독 +2' },
-  heavy: { name:'묵직한 구슬', icon:'o_heavy', rar:2, desc:'천장 타격 피해가 2배', up:'천장 타격 피해가 3배' },
+  heavy: { name:'묵직한 구슬', icon:'o_heavy', rar:2, desc:'한 방이 무겁다', up:'한 방이 더 무겁다' },
 };
+// 구슬마다 기본 피해가 있다. 천장 타격 피해 = 구슬 피해 + (공격력 - 1).
+// 공격력은 ⚔ 벽돌로 전투 중에만 오르는 덧셈 보너스라, 구슬을 고르는 이유(피해)와 벽돌을 노리는 이유(공격력)가 따로 선다
+const ORB_DMG = { basic:1, bomb:1, drill:1, guard:1, split:1, venom:1, heavy:3 };
+const ORB_DMG_UP = { heavy:4 };
 // 강화 구슬은 덱에 'bomb+'처럼 끝에 +를 붙여 담는다. 숫자를 키우는 대신 구슬 고유 효과를 한 단계 올린다(질적 성장)
 const orbKind = o => o.replace('+', '');
 const orbUp = o => o.endsWith('+');
 const orbName = o => ORBS[orbKind(o)].name + (orbUp(o) ? '+' : '');
-const orbDesc = o => orbUp(o) ? ORBS[orbKind(o)].up : ORBS[orbKind(o)].desc;
+const orbDmg = o => orbUp(o) && ORB_DMG_UP[orbKind(o)] ? ORB_DMG_UP[orbKind(o)] : ORB_DMG[orbKind(o)];
+const orbDesc = o => `피해 ${orbDmg(o)} · ` + (orbUp(o) ? ORBS[orbKind(o)].up : ORBS[orbKind(o)].desc);
 // ── 유물: 원정 내내 유지되는 패시브
 const RELICS = {
   combo:    { name:'천장 연타', max:2, desc:'구슬 하나가 천장을 칠 수 있는 횟수 +1 (기본 3회)' },
