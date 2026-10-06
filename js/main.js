@@ -31,6 +31,16 @@ function renderSound(){
   });
 }
 SND_BTNS.forEach(([id, k]) => $(id).onclick = () => { unlockAudio(); setAudio(k, !AUDIO[k]); renderSound(); });
+// 테마 전환: 자동 → 밝게 → 어둡게. 캔버스·로고·지도 아이콘은 색 토큰을 읽어 그리므로 바꾼 뒤 다시 읽고 다시 그린다
+const THEME_LABEL = { auto:'화면 자동', light:'화면 밝게', dark:'화면 어둡게' };
+function renderTheme(){ ['mTheme', 'pTheme'].forEach(id => { $(id).textContent = THEME_LABEL[THEME]; $(id).setAttribute('aria-label', `화면 테마: ${THEME_LABEL[THEME]}. 눌러서 바꾸기`); }); }
+['mTheme', 'pTheme'].forEach(id => $(id).onclick = () => {
+  THEME = THEMES[(THEMES.indexOf(THEME) + 1) % THEMES.length];
+  try { localStorage.setItem(THEME_KEY, THEME); } catch(e){}
+  applyTheme(); readColors(); renderTheme();
+  if (mode === 'main') drawLogo($('logoCv'));
+});
+renderTheme();
 document.addEventListener('pointerdown', unlockAudio, true);
 document.addEventListener('keydown', unlockAudio, true);
 // 일부 모바일 브라우저는 터치의 사용자 활성화를 pointerdown이 아니라 pointerup·click에서 준다.

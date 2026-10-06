@@ -29,6 +29,17 @@ const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ co
 const rowY = r => BT + 4 + r * ROWH;
 function pickW(w){ let x = Math.random() * Object.values(w).reduce((a, b) => a + b, 0); for (const k in w){ x -= w[k]; if (x < 0) return k; } return Object.keys(w)[0]; }
 
+// 화면 테마: 자동(기기 설정)·밝게·어둡게. CSS는 html[data-theme]로 토큰을 바꾸므로, 색을 읽기 전에 먼저 붙인다
+const THEME_KEY = 'brickquest:theme:v1', THEMES = ['auto', 'light', 'dark'];
+let THEME = 'auto';
+try { const t = localStorage.getItem(THEME_KEY); if (THEMES.includes(t)) THEME = t; } catch(e){}
+function applyTheme(){
+  const el = document.documentElement;
+  if (!el || !el.setAttribute) return;   // 시뮬레이터의 가짜 DOM
+  if (THEME === 'auto') el.removeAttribute('data-theme'); else el.setAttribute('data-theme', THEME);
+}
+applyTheme();
+
 const C = {};
 function readColors(){
   const s = getComputedStyle(document.documentElement);
