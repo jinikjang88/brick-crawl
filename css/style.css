@@ -31,7 +31,8 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 
 .stageWrap{display:flex;justify-content:center}
 .stage{position:relative;aspect-ratio:9/17;width:clamp(240px,calc((100vh - 160px) * .5294),100%);width:clamp(240px,calc((100svh - 160px) * .5294),100%)}
-#cv{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;border:2px solid var(--ink);border-bottom-width:4px;border-radius:0;touch-action:none;cursor:pointer}
+/* 캔버스 백버퍼는 표시 크기 이상(fitCanvas)이라 축소만 일어난다. 최근접 축소는 도트를 들쭉날쭉 지우므로 기본 보간을 쓴다 */
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;border:2px solid var(--ink);border-bottom-width:4px;border-radius:0;touch-action:none;cursor:pointer}
 
 .ov{position:absolute;inset:2px 2px 4px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:18px;text-align:center;background:var(--bg);background:color-mix(in srgb,var(--bg) 97%,transparent);overflow:auto;z-index:5}
 .ov.on{display:flex}

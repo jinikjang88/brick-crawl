@@ -27,6 +27,7 @@ function brickAt(x, y){
   return false;
 }
 function draw(){
+  fitCanvas();
   ctx.setTransform(RES, 0, 0, RES, 0, 0); ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   if (!drawBgArt()){
