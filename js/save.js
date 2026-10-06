@@ -5,6 +5,10 @@
 const SAVE_KEY = 'brickquest:run:v2', META_KEY = 'brickquest:meta:v2';
 let META = { best:0, runs:0 };
 try { const m = JSON.parse(localStorage.getItem(META_KEY)); if (m && typeof m.best === 'number') META = m; } catch(e){}
+// 출발 선물 시절의 누적 칸(xp)은 영혼석으로 옮긴다. 필드만 늘어나는 변경이라 키 버전(v2)은 그대로 둔다
+if (typeof META.soul !== 'number') META.soul = META.xp || 0;
+if (!META.tree || typeof META.tree !== 'object') META.tree = {};
+delete META.xp;
 function saveMeta(){ try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch(e){} }
 function saveRun(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(RUN)); } catch(e){} }
 function loadRun(){

@@ -2,13 +2,13 @@
 'use strict';
 
 // ── 화면 전환 공통
-const OVERLAYS = ['ovMain','ovRank','ovMap','ovChoose','ovPause'];
+const OVERLAYS = ['ovMain','ovRank','ovTree','ovMap','ovChoose','ovPause'];
 function show(id){ OVERLAYS.forEach(o => $(o).classList.toggle('on', o === id)); }
 function setMode(m, overlay){
   mode = m; $('app').dataset.mode = m; show(overlay); refreshHud();
   if (overlay !== 'ovChoose') setScene(null);
   // 메인·결과 화면에서는 메뉴가 열리지 않으니 버튼도 감춘다(자리는 남겨 헤더가 흔들리지 않게)
-  $('btnMenu').style.visibility = m === 'main' || m === 'result' ? 'hidden' : '';
+  $('btnMenu').style.visibility = m === 'main' || m === 'result' || m === 'tree' ? 'hidden' : '';
 }
 
 // 선택 화면(보상·휴식·상점·덜어내기)을 하나의 틀로 그린다
@@ -60,8 +60,7 @@ function showMain(){
   $('mNew').textContent = '새 원정'; $('mNew').dataset.arm = '';
   $('mRecord').textContent = META.best > 0 ? `최고 ${progLabel(META.best)} 돌파 · 원정 ${META.runs}회`
     : META.runs ? `원정 ${META.runs}회 · 아직 돌파한 칸이 없다` : '첫 원정을 떠나 보자';
-  const open = GIFTS.filter(g => (META.xp || 0) >= g.need).length;
-  if (META.runs) $('mRecord').textContent += ` · 출발 선물 ${open}/${GIFTS.length}`;
+  $('mTree').textContent = `스킬 트리 · 영혼석 ${META.soul}`;
   ensureProfile(); $('mName').textContent = PROFILE.name;
   drawLogo($('logoCv'));
   const display = $('orbShowcase'); display.textContent = '';
@@ -82,9 +81,16 @@ $('mNew').onclick = e => {
 };
 // 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); }); } catch(e){}
-function startNewRun(){ RUN = freshRun(); META.runs++; saveMeta(); saveRun(); showGift(); }
-// 끝난 원정의 도달 칸 수를 쌓는다(출발 선물 해금 기준). 랭킹 기록과 같은 시점에 부른다
-function endRun(r){ recordRun(r); META.xp = (META.xp || 0) + runProgress(r); saveMeta(); }
+function startNewRun(){ RUN = freshRun(); applyTreeStart(RUN); META.runs++; saveMeta(); saveRun(); showMap(); }
+// 스킬 트리 중 원정 시작 때 한 번 정해지는 효과
+function applyTreeStart(r){
+  if (tree('d1')){ r.maxHp += 4; r.hp += 4; }
+  if (tree('o1')){ const i = r.deck.indexOf('bomb'); if (i >= 0) r.deck[i] = 'bomb+'; }
+  if (tree('e1')) r.coins += 30;
+  if (tree('e3')){ const id = shuffle(Object.keys(RELICS))[0]; r.relics[id] = 1; }
+}
+// 끝난 원정의 도달 칸 수만큼 영혼석을 준다. 랭킹 기록과 같은 시점에 부른다
+function endRun(r){ recordRun(r); const g = runProgress(r); META.soul = (META.soul || 0) + g; META.lastSoul = g; saveMeta(); }
 
 // ── 랭킹: 밀린 기록을 먼저 올리고 받아 온다. 서버가 없거나 실패하면 조용히 비워 둔다(게임은 오프라인으로도 돈다)
 let BOARD = null;
@@ -118,10 +124,63 @@ function renderBoard(){
   $('rankSub').textContent = !top.length ? '아직 기록이 없다. 첫 번째가 되어 보자'
     : me && me.rank ? `${BOARD.total}명 중 ${me.rank}위` : `기록 ${BOARD.total}명 · 원정을 끝내면 이름이 오른다`;
 }
+// ── 스킬 트리: 노드를 누르면 아래에 설명과 "찍기"가 뜬다(잘못 눌러 영혼석을 쓰지 않게 두 단계)
+let treeBack = null, treePick = null;
+function treeState(n){
+  if (tree(n.id) || n.id === 'root') return 'own';
+  return n.req && !(tree(n.req) || n.req === 'root') ? 'lock' : META.soul >= n.cost ? 'open' : 'poor';
+}
+function showTree(back){
+  treeBack = back || treeBack || showMain;
+  $('treeSub').textContent = `영혼석 ${META.soul} · 원정이 끝날 때 도달한 칸만큼 얻는다`;
+  const box = $('treeBox'); box.textContent = '';
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('aria-hidden', 'true');
+  for (const n of TREE){
+    if (!n.req) continue;
+    const p = TREE.find(t => t.id === n.req), ln = document.createElementNS(NS, 'line'), on = treeState(n) === 'own';
+    ln.setAttribute('x1', p.x); ln.setAttribute('y1', p.y); ln.setAttribute('x2', n.x); ln.setAttribute('y2', n.y);
+    ln.setAttribute('stroke', on ? C.ink : C.ink3); ln.setAttribute('stroke-width', on ? 3 : 1.5);
+    if (!on) ln.setAttribute('stroke-dasharray', '3 3');
+    ln.setAttribute('vector-effect', 'non-scaling-stroke'); svg.append(ln);
+  }
+  box.append(svg);
+  for (const [t, x, y] of [['공격', 64, 21], ['방어', 64, 79], ['구슬', 20, 58], ['경제', 80, 42]]){
+    const s = document.createElement('span'); s.className = 'tBranch'; s.textContent = t;
+    s.style.left = x + '%'; s.style.top = y + '%'; box.append(s);
+  }
+  for (const n of TREE){
+    const st = treeState(n), b = document.createElement('button');
+    b.className = `tNode ${st}${n.key ? ' key' : ''}${n.id === 'root' ? ' root' : ''}${treePick === n.id ? ' pick' : ''}`;
+    b.style.left = n.x + '%'; b.style.top = n.y + '%';
+    const t = document.createElement('span'); t.textContent = n.id === 'root' ? '★' : st === 'own' ? '✓' : n.cost; b.append(t);
+    b.setAttribute('aria-label', `${n.name}: ${n.desc}. ${st === 'own' ? '찍음' : st === 'lock' ? '앞 노드를 먼저 찍어야 한다' : `영혼석 ${n.cost}`}`);
+    b.onclick = () => { if (mode !== 'tree') return; treePick = n.id; sfx('pick'); showTree(); };
+    box.append(b);
+  }
+  const info = $('treeInfo'); info.textContent = '';
+  const n = TREE.find(t => t.id === treePick);
+  if (n){
+    const st = treeState(n), h = document.createElement('b'), d = document.createElement('span');
+    h.textContent = n.name + (n.key ? ' · 핵심' : ''); d.textContent = n.desc;
+    info.append(h, d);
+    if (st === 'open' || st === 'poor'){
+      const buy = document.createElement('button'); buy.className = 'btn primary'; buy.disabled = st === 'poor';
+      buy.textContent = st === 'poor' ? `영혼석 ${n.cost} 필요` : `찍기 (영혼석 ${n.cost})`;
+      buy.onclick = () => { if (mode !== 'tree' || treeState(n) !== 'open') return;
+        META.soul -= n.cost; META.tree[n.id] = 1; saveMeta(); sfx('coin'); showTree(); };
+      info.append(buy);
+    } else if (st === 'lock'){ const l = document.createElement('small'); l.textContent = '앞 노드를 먼저 찍어야 열린다'; info.append(l); }
+  } else { const d = document.createElement('span'); d.textContent = '노드를 눌러 효과를 본다. 갈래 끝 핵심 노드는 곱연산이다.'; info.append(d); }
+  setMode('tree', 'ovTree');
+}
+$('mTree').onclick = () => { treePick = null; showTree(showMain); };
+$('treeBack').onclick = () => { if (mode === 'tree') treeBack(); };
 $('mRank').onclick = () => { show('ovRank'); $('rankBack').focus(); refreshBoard(); };
 $('rankBack').onclick = () => { show('ovMain'); $('mRank').focus(); };
 function resumeRun(){
-  if (RUN.gift) return showGift();
+  // 출발 선물 시절 저장(선물 고르기 전): 선물 없이 지도로
+  if (RUN.gift){ RUN.gift = false; RUN.giftStock = null; saveRun(); }
   if (RUN.pendingReward) return showReward(RUN.pendingReward);
   if (RUN.pending) return enterNode(nodeAt(RUN.pending.r, RUN.pending.l));
   showMap();
@@ -131,8 +190,16 @@ function resumeRun(){
 // 갈래 수는 지도마다 읽는다: 3갈래로 만든 이전 저장 지도도 그대로 그려지게
 const ROW_Y = [88, 68, 48, 28, 8];
 const nodeX = n => n.t === 'boss' ? 50 : (n.l + .5) / RUN.map[0].length * 100;
-// 칸 메달 그림: 전투·정예는 그 칸의 몬스터, 휴식은 모닥불, 상점은 상인, 보스는 탑의 주인
+// 칸 메달 그림: 휴식은 모닥불, 상점은 상인, 보스는 탑의 주인.
+// 전투·정예는 어떤 몬스터인지 들어가기 전까지 모르게 도트 아이콘(칼·해골)만 보여 준다(긴장감·선택의 불확실성)
 function nodeIcon(n){
+  if (n.t === 'battle' || n.t === 'elite'){
+    const m = ICON[n.t === 'elite' ? 'skull' : 'sword'], c = document.createElement('canvas');
+    c.width = 7; c.height = 7; c.className = 'nIc dot'; c.setAttribute('aria-hidden', 'true');
+    const g = c.getContext('2d'); g.fillStyle = n.t === 'elite' ? C.accent : C.ink;
+    for (let r = 0; r < 7; r++) for (let k = 0; k < 7; k++) if (m[r][k] === '#') g.fillRect(k, r, 1, 1);
+    return c;
+  }
   const src = n.t === 'rest' ? null : n.t === 'shop' ? 'merchant' : n.mon;
   const ic = document.createElement(src ? 'img' : 'span');
   ic.className = 'nIc' + (n.t === 'rest' ? ' fire' : '');
@@ -142,7 +209,8 @@ function nodeIcon(n){
 }
 function showMap(){
   G = null;
-  $('mapTitle').textContent = `세션 ${RUN.s + 1}`;
+  $('mapTitle').textContent = `${stageName(RUN.s)}`;
+  $('ovMap').classList.toggle('abyss', abyssDepth(RUN.s) > 0);
   $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  코인 ${RUN.coins}`;
   const box = $('mapBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg';
@@ -177,14 +245,7 @@ function showMap(){
     b.onclick = () => { if (mode === 'map' && canGo) enterNode(n); };
     box.append(b);
   }
-  // 기사 말: 지금 서 있는 칸(출발 전이면 지도 아래 가운데)
-  const tok = document.createElement('img');
-  tok.className = 'knightTok'; tok.alt = ''; tok.setAttribute('aria-hidden', 'true'); tok.src = 'assets/game/knight.png';
-  tok.onerror = () => tok.remove();
-  const at = RUN.pos ? nodeAt(RUN.pos.r, RUN.pos.l) : null;
-  tok.style.left = (at ? nodeX(at) : 50) + '%'; tok.style.top = (at ? ROW_Y[at.r] : 100) + '%';
-  box.append(tok);
-  setHeader(`세션 ${RUN.s + 1}`, '갈림길');
+  setHeader(`${stageName(RUN.s)}`, '갈림길');
   setMode('map', 'ovMap');
   bgm('calm');
   const first = box.querySelector('.node.reach'); if (first) first.focus();
@@ -208,9 +269,9 @@ function finishNonBattle(){ completeNode(); RUN.shop = null; saveRun(); showMap(
 function startBattle(n){
   newBattle(n);
   const label = `${RUN.s + 1}-${n.r + 1}`;
-  setHeader(`세션 ${RUN.s + 1}  ${label} ${NODE_NAME[n.t]}`, G.cfg.name);
+  setHeader(`${stageName(RUN.s)}  ${label} ${NODE_NAME[n.t]}`, G.cfg.name);
   setMode('play', null);
-  banner(n.t === 'boss' ? `세션 ${RUN.s + 1} 보스` : label, G.cfg.name, n.t !== 'battle');
+  banner(n.t === 'boss' ? `${stageName(RUN.s)} 보스` : label, G.cfg.name, n.t !== 'battle');
   bgm(n.t === 'boss' ? 'boss' : 'battle');
   if (n.t === 'boss') sfx('boss');
 }
@@ -233,9 +294,10 @@ function runOver(){
   bgm(null); sfx('lose');
   showChoice({
     mode:'result', title:'원정 실패',
-    sub:`${RUN.s + 1}-${n.r + 1}, ${G.cfg.name}에게 쓰러졌다. 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개를 모았다.`,
+    sub:`${RUN.s + 1}-${n.r + 1}, ${G.cfg.name}에게 쓰러졌다. 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개를 모았다. 영혼석 +${META.lastSoul || 0} (모은 영혼석 ${META.soul})`,
     cards:[], buttons:[
       { label:'새 원정', primary:true, onClick:startNewRun },
+      { label:'스킬 트리', onClick:() => { treePick = null; showTree(showMain); } },
       { label:'메인 화면', onClick:showMain },
     ],
   });

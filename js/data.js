@@ -26,12 +26,18 @@ const MON = {
 // 성벽 밀도·시작 줄 수: 구슬이 튕기는 구조라 틈이 있어야 천장까지 길을 낼 수 있다
 const WALL = { dens:0.5, init:3, every:2, hpMul:0.6 };
 const SCALE = { hp:0.35, atk:1, def:1, sweep:0.15, sweepMax:2.6, elite:1.5 };
+// ── 무한 심연(엔드게임 시험판): 3세션(s=2)까지가 본편, 그 뒤 s=3부터 "심연 1층".
+// 층마다 체력이 곱으로(×1.3) 늘어 덧셈 성장만으로는 언젠가 막힌다. 스킬 트리 핵심 노드(곱연산)가 버티는 수단이고,
+// 얼마나 깊이 내려갔는지가 랭킹(도달 칸)이 된다. 최종 구조(5세션 + 챕터)는 docs/tasks/02-chapters.md
+const ABYSS_FROM = 3, ABYSS = { hp:1.3, atk:1 };
+const abyssDepth = s => Math.max(0, s - ABYSS_FROM + 1);
+const stageName = s => abyssDepth(s) ? `심연 ${abyssDepth(s)}층` : `세션 ${s + 1}`;
 function monCfg(id, s, elite){
-  const b = MON[id];
+  const b = MON[id], dp = abyssDepth(s);
   return Object.assign({}, b, {
     id, elite:!!elite, name:(elite ? '정예 ' : '') + b.name,
-    hp: Math.max(3, Math.round(b.hp * WALL.hpMul * (1 + SCALE.hp * s) * (elite ? SCALE.elite : 1))),
-    atk: b.atk + SCALE.atk * s,
+    hp: Math.max(3, Math.round(b.hp * WALL.hpMul * (1 + SCALE.hp * s) * (elite ? SCALE.elite : 1) * Math.pow(ABYSS.hp, dp))),
+    atk: b.atk + SCALE.atk * s + ABYSS.atk * dp,
     def: b.def + SCALE.def * s + (elite ? 1 : 0),
     sweep: Math.min(SCALE.sweepMax, b.sweep + SCALE.sweep * s + (elite ? 0.1 : 0)),
   });
@@ -45,13 +51,18 @@ const ORBS = {
   guard: { name:'방패 구슬',   icon:'shield',  rar:1, desc:'벽돌을 부술 때마다 방어도 +1', up:'벽돌을 부술 때마다 방어도 +2' },
   split: { name:'분열 구슬',   icon:'o_split', rar:2, desc:'세 갈래로 갈라져 발사된다', up:'다섯 갈래로 갈라져 발사된다' },
   venom: { name:'독 구슬',     icon:'skull',   rar:2, desc:'천장을 칠 때마다 몬스터에게 독 +1', up:'천장을 칠 때마다 몬스터에게 독 +2' },
-  heavy: { name:'묵직한 구슬', icon:'o_heavy', rar:2, desc:'천장 타격 피해가 2배', up:'천장 타격 피해가 3배' },
+  heavy: { name:'묵직한 구슬', icon:'o_heavy', rar:2, desc:'한 방이 무겁다', up:'한 방이 더 무겁다' },
 };
+// 구슬마다 기본 피해가 있다. 천장 타격 피해 = 구슬 피해 + (공격력 - 1).
+// 공격력은 ⚔ 벽돌로 전투 중에만 오르는 덧셈 보너스라, 구슬을 고르는 이유(피해)와 벽돌을 노리는 이유(공격력)가 따로 선다
+const ORB_DMG = { basic:1, bomb:1, drill:1, guard:1, split:1, venom:1, heavy:3 };
+const ORB_DMG_UP = { heavy:4 };
 // 강화 구슬은 덱에 'bomb+'처럼 끝에 +를 붙여 담는다. 숫자를 키우는 대신 구슬 고유 효과를 한 단계 올린다(질적 성장)
 const orbKind = o => o.replace('+', '');
 const orbUp = o => o.endsWith('+');
 const orbName = o => ORBS[orbKind(o)].name + (orbUp(o) ? '+' : '');
-const orbDesc = o => orbUp(o) ? ORBS[orbKind(o)].up : ORBS[orbKind(o)].desc;
+const orbDmg = o => orbUp(o) && ORB_DMG_UP[orbKind(o)] ? ORB_DMG_UP[orbKind(o)] : ORB_DMG[orbKind(o)];
+const orbDesc = o => `피해 ${orbDmg(o)} · ` + (orbUp(o) ? ORBS[orbKind(o)].up : ORBS[orbKind(o)].desc);
 // ── 유물: 원정 내내 유지되는 패시브
 const RELICS = {
   combo:    { name:'천장 연타', max:2, desc:'구슬 하나가 천장을 칠 수 있는 횟수 +1 (기본 3회)' },
@@ -66,14 +77,24 @@ const RELICS = {
   leech:    { name:'흡혈',      max:1, desc:'구슬 하나가 천장을 세 번째 칠 때 체력 +1' },
   endure:   { name:'인내',      max:1, desc:'몬스터 연속 공격의 첫 타를 막는다' },
 };
-// ── 출발 선물(메타 성장): 원정마다 도달한 칸 수를 쌓아(META.xp) 해금한다. 새 원정을 시작할 때 하나를 고른다.
-// 시작을 조금 편하게 할 뿐 원정 안의 성장 규칙(질적 성장)은 그대로다
-const GIFTS = [
-  { id:'coins',  need:0,  name:'두둑한 주머니', desc:'코인 +30' },
-  { id:'vital',  need:0,  name:'튼튼한 몸',     desc:'최대 체력 +4' },
-  { id:'temper', need:8,  name:'벼린 폭탄',     desc:'시작 폭탄 구슬이 폭탄 구슬+로' },
-  { id:'pick',   need:20, name:'고른 구슬',     desc:'희귀 구슬 하나를 골라 덱에 넣는다' },
-  { id:'relic',  need:40, name:'오래된 유물',   desc:'무작위 유물 하나를 지니고 떠난다' },
+// ── 스킬 트리(영구 성장): 원정이 끝날 때 도달 칸만큼 영혼석을 얻어 노드를 찍는다(POE2식 갈래).
+// 갈래마다 앞 노드를 찍어야 다음이 열린다. 갈래 끝 핵심 노드(key)만 곱연산이다:
+// 원정 안의 성장은 여전히 덧셈·질적 성장이고, 곱연산은 3세션 이후 심연(엔드게임)에서 버티라고 영구 성장에만 둔다
+const TREE = [
+  { id:'root', name:'원정의 서약',  cost:0, req:null, x:50, y:50, desc:'모든 갈래의 출발점' },
+  { id:'a1', name:'날 세우기',  cost:2, req:'root', x:50, y:35, desc:'모든 구슬 피해 +1' },
+  { id:'a2', name:'연타',       cost:4, req:'a1',   x:50, y:21, desc:'구슬마다 천장 타격 상한 +1' },
+  { id:'a3', name:'파괴자',     cost:8, req:'a2',   x:50, y:7,  key:true, desc:'천장 타격 피해 ×1.5' },
+  { id:'d1', name:'단련된 몸',  cost:2, req:'root', x:50, y:65, desc:'최대 체력 +4' },
+  { id:'d2', name:'방패술',     cost:4, req:'d1',   x:50, y:79, desc:'전투 시작 방어도 +2' },
+  { id:'d3', name:'불굴',       cost:8, req:'d2',   x:50, y:93, key:true, desc:'몬스터·붕괴 피해 ×0.75' },
+  { id:'o1', name:'숙련',       cost:2, req:'root', x:30, y:50, desc:'시작 폭탄 구슬이 폭탄 구슬+' },
+  { id:'o2', name:'눈썰미',     cost:4, req:'o1',   x:17, y:40, desc:'구슬 보상 후보 +1장' },
+  { id:'o3', name:'공명',       cost:8, req:'o2',   x:8,  y:26, key:true, desc:'강화(+) 구슬의 천장 타격 피해 ×2' },
+  { id:'e1', name:'두둑한 주머니', cost:2, req:'root', x:70, y:50, desc:'시작 코인 +30' },
+  { id:'e2', name:'흥정',       cost:4, req:'e1',   x:83, y:60, desc:'상점 가격 -20%' },
+  { id:'e3', name:'보물 사냥꾼', cost:8, req:'e2',  x:92, y:74, key:true, desc:'무작위 유물 하나를 지니고 출발' },
 ];
+const tree = id => !!(META.tree && META.tree[id]);
 const rel = id => (RUN && RUN.relics[id]) || 0;
-const hitCap = () => 3 + rel('combo');
+const hitCap = () => 3 + rel('combo') + (tree('a2') ? 1 : 0);
