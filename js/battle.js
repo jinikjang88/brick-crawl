@@ -6,7 +6,7 @@ function newBattle(node){
   const cfg = monCfg(node.mon, RUN.s, node.t === 'elite');
   G = {
     node, cfg, time:0, turn:1, phase:'aim', timer:0, eStep:0, cur:null, shown:false,
-    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1, def:0, poison:0, flash:0 },   // 공격·방어는 전투마다 초기화
+    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1, def:3 * rel('armor'), poison:0, flash:0 },   // 공격·방어는 전투마다 초기화(갑옷만 시작 방어도)
     m:{ hp:cfg.hp, max:cfg.hp, atk:cfg.atk, def:cfg.def, poison:0, pi:0, ai:0, phase:1, flash:0, lunge:0, dead:false, deadT:0 },
     bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], queue:[],
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
@@ -96,13 +96,13 @@ function onBreak(b){
 }
 // 구슬 종류별 파괴 효과
 function ballBreak(b, br){
-  if (b.kind === 'guard'){ G.p.def += 1; pop(PX + 12, 88, '+1', C.ink2, 'shield'); }
+  if (b.kind === 'guard'){ const v = b.up ? 2 : 1; G.p.def += v; pop(PX + 12, 88, '+' + v, C.ink2, 'shield'); }
   if (b.kind === 'bomb' && !b.bombed){
     b.bombed = true; G.shake = Math.max(G.shake, 3); sfx('boom');
     burst(OX + br.c * CW + CW / 2, br.y + BRH / 2, C.ink, 16);
     for (const o of G.bricks){
       if (o.dead || o === br || Math.abs(o.r - br.r) > 1 || Math.abs(o.c - br.c) > 1) continue;
-      o.hp--; o.flash = 0.1;
+      o.hp -= b.up ? 2 : 1; o.flash = 0.1;
       if (o.hp <= 0){ o.dead = true; onBreak(o); }
     }
   }
@@ -116,7 +116,7 @@ function arrive(pr){
     if (ab) pop(jx, 44, '-' + ab, C.ink2, 'shield');
     if (hit) pop(jx, ab ? 32 : 44, '-' + hit, C.ink);
     sfx(hit ? 'mhit' : 'block', { big:hit >= 3 });
-    if (pr.venom){ g.m.poison++; pop(MX + 20, 30, '+1', C.accent, 'skull'); }
+    if (pr.venom){ g.m.poison += pr.venom; pop(MX + 20, 30, '+' + pr.venom, C.accent, 'skull'); }
     if (g.m.hp === 0) killMonster();
     return;
   }
@@ -170,11 +170,12 @@ function moveBall(b, dt){
     if (b.y < BT + 1.5){
       b.y = BT + 1.5; b.vy = Math.abs(b.vy);
       // 천장 타격: 성벽을 뚫고 올라온 구슬만 몬스터를 친다
-      if (!G.m.dead && b.hits < hitCap()){
+      if (!G.m.dead && b.hits < hitCap() + (b.kind === 'basic' && b.up ? 1 : 0)){
         b.hits++;
         sfx('ceil', { orb:b.kind, n:b.hits - 1 });
-        const v = G.p.atk * (b.kind === 'heavy' ? 2 : 1);
-        G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.kind === 'venom' });
+        const v = G.p.atk * (b.kind === 'heavy' ? (b.up ? 3 : 2) : 1);
+        G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.kind === 'venom' ? (b.up ? 2 : 1) : 0 });
+        if (b.hits === 3 && rel('leech') && G.p.hp < G.p.max){ G.p.hp++; pop(PX, 30, '+1', C.ink, 'heart'); }
         G.cf.push({ x:b.x, t:0.25 });
         burst(b.x, BT + 1, C.ink, 6);
       }
@@ -196,9 +197,10 @@ function fire(){
   if (mode !== 'play' || !g || g.phase !== 'aim' || g.aimT < 0.2) return;
   artPose(g.p, 'attack');
   g.phase = 'fire'; g.fireT = 1; g.fireEl = 0; g.nextLx = null;
-  g.queue = g.orb === 'split' ? [g.aim - 0.16, g.aim, g.aim + 0.16].map(a => clamp(a, AIM_MIN, AIM_MAX)) : [g.aim];
+  const spread = orbKind(g.orb) !== 'split' ? [0] : orbUp(g.orb) ? [-0.32, -0.16, 0, 0.16, 0.32] : [-0.16, 0, 0.16];
+  g.queue = spread.map(d => clamp(g.aim + d, AIM_MIN, AIM_MAX));
   renderOrbBar();   // "발사 대기" → "발사!"
-  sfx('fire', { orb:g.orb });
+  sfx('fire', { orb:orbKind(g.orb) });
 }
 
 // ── 턴 진행
@@ -240,7 +242,7 @@ function update(dt){
       g.fireT = 0;
       const a = g.queue.shift();
       g.balls.push({ x:g.lx, y:FLOOR - 2, vx:Math.cos(a) * BALL_SPEED, vy:Math.sin(a) * BALL_SPEED,
-                     hits:0, kind:g.orb, drill:g.orb === 'drill' ? 3 : 0, bombed:false });
+                     hits:0, kind:orbKind(g.orb), up:orbUp(g.orb), drill:orbKind(g.orb) === 'drill' ? (orbUp(g.orb) ? 5 : 3) : 0, bombed:false });
     }
     // 오래 도는 구슬은 점점 빨리 감고, 25초가 넘으면 갇힌 것으로 보고 회수한다
     const ts = g.fireEl > 10 ? 3 : g.fireEl > 5 ? 2 : 1;
@@ -291,7 +293,9 @@ function enemyUpdate(dt){
   }
   if (g.eStep === 1 && g.timer >= 0.2){
     g.eStep = 2;
-    if (g.cur.t === 'atk') hurtPlayer(m.atk, undefined, true);
+    // 인내: 연속 공격 묶음의 첫 타만 막는다. 긴 연속 공격일수록 덜 막히니 후반 보스를 혼자 무력화하지는 못한다
+    if (g.cur.t === 'atk' && m.ai === 0 && rel('endure')){ pop(PX, 42, '0', C.ink2, 'shield'); sfx('block'); }
+    else if (g.cur.t === 'atk') hurtPlayer(m.atk, undefined, true);
     else if (g.cur.t === 'poison'){ p.poison += g.cur.v; burst(PX, 66, C.accent, 8); pop(PX, 30, '+' + g.cur.v, C.accent, 'skull'); sfx('pickup', { kind:'poison' }); }
   }
   if (g.eStep === 2 && g.timer >= 0.6){

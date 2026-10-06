@@ -32,7 +32,7 @@ code = '(() => {' + code + '\n})();';
 
 // ── 가짜 DOM: 게임이 쓰는 최소한만 흉내 낸다
 function mk(){
-  const o = { children:[], classList:{ add(){}, remove(){}, toggle(){} }, style:{}, dataset:{}, disabled:false, className:'', hidden:false,
+  const o = { children:[], classList:{ add(){}, remove(){}, toggle(){} }, style:{ setProperty(){} }, dataset:{}, disabled:false, className:'', hidden:false,
     setAttribute(){}, focus(){}, addEventListener(){}, append(...c){ this.children.push(...c.filter(x => typeof x === 'object')); },
     querySelector(){ return null; },
     getContext(){ return new Proxy({}, { get:(t, k) => k === 'globalAlpha' ? 1 : () => {}, set:() => true }); },
@@ -75,7 +75,7 @@ for (let run = 0; run < N; run++){
     const { RUN, G, mode } = __h.st();
     if (RUN && !entered.has(RUN.s)){ entered.add(RUN.s); session(RUN.s).entered++; }
     if (mode === 'map'){ __h.enterNode(pickOne(__h.reachable())); continue; }
-    if (['reward','rest','shop','remove','result'].includes(mode)){
+    if (['reward','rest','shop','remove','upgrade','gift','result'].includes(mode)){
       if (mode === 'result'){ done = true; break; }
       const cards = $('cCards').children.filter(c => !c.disabled), btns = $('cBtns').children.filter(c => !c.disabled);
       if (mode === 'shop'){ btns[btns.length - 1].onclick(); continue; }

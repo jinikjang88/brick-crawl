@@ -117,7 +117,9 @@ function draw(){
   // 발사대: 이번에 쏠 구슬의 아이콘을 보여준다
   if (g.phase === 'aim' || (g.phase === 'fire' && g.queue.length)){
     ctx.fillStyle = C.ink2; ctx.fillRect(g.lx - 7, FLOOR - 1, 14, 2);
-    drawOrbSprite(g.orb, g.lx, FLOOR - 7, 9);
+    drawOrbSprite(orbKind(g.orb), g.lx, FLOOR - 7, 9);
+    // 강화 구슬은 발사대 옆에 +를 붙여, HUD를 안 봐도 이번 구슬이 센 구슬인 걸 알게 한다
+    if (orbUp(g.orb)) drawText('+', g.lx + 6, FLOOR - 14, C.ink);
   }
   if (g.nextLx !== null){ ctx.fillStyle = C.ink2; ctx.fillRect(Math.round(g.nextLx) - 1, FLOOR - 3, 3, 3); }
   for (const b of g.balls){
@@ -162,7 +164,7 @@ function setHeader(stage, name){ $('hStage').textContent = stage; $('hName').tex
 function renderCoins(){ $('hCoin').textContent = RUN && mode !== 'main' ? `코인 ${RUN.coins}` : ''; }
 function deckSummary(){
   const cnt = {}; RUN.deck.forEach(o => cnt[o] = (cnt[o] || 0) + 1);
-  return Object.keys(cnt).map(o => `${ORBS[o].name.replace(' 구슬', '')} ${cnt[o]}`).join(', ');
+  return Object.keys(cnt).map(o => `${orbName(o).replace(' 구슬', '')} ${cnt[o]}`).join(', ');
 }
 function renderOrbBar(){
   const el = $('orbBar'); el.textContent = '';
@@ -174,12 +176,12 @@ function renderOrbBar(){
     const fired = G.phase !== 'aim';
     const small = document.createElement('small'); small.textContent = fired ? '발사!' : '발사 대기';
     if (fired) small.className = 'fired';
-    const name = document.createElement('b'); name.textContent = ORBS[G.orb].name;
-    label.append(small, name); current.append(orbPortrait(G.orb), label);
+    const name = document.createElement('b'); name.textContent = orbName(G.orb);
+    label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
     const next = document.createElement('div'); next.className = 'orbNext';
     const text = document.createElement('span'); text.textContent = '다음';
-    next.append(text, orbPortrait(nextOrb()), ORBS[nextOrb()].name.replace(' 구슬', ''));
-    el.append(current, next); el.title = ORBS[G.orb].desc;
+    next.append(text, orbPortrait(orbKind(nextOrb())), orbName(nextOrb()).replace(' 구슬', ''));
+    el.append(current, next); el.title = orbDesc(G.orb);
   } else el.append(`구슬 덱 ${RUN.deck.length}개: ${deckSummary()}`);
 }
 function renderAbil(){

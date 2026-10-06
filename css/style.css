@@ -79,12 +79,6 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 .mapHead .s{font-size:14px;color:var(--ink2)}
 .mapBox{position:relative;flex:1;width:100%;min-height:280px}
 .mapBox svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.node{position:absolute;transform:translate(-50%,-50%);min-width:58px;min-height:44px;padding:0 8px;border:2px solid var(--ink3);border-bottom-width:4px;background:var(--panel);color:var(--ink3);font-weight:800;font-size:15px;border-radius:0}
-.node.reach{border-color:var(--ink);color:var(--ink);cursor:pointer;animation:nudge 1s steps(2) infinite}
-.node.done{background:var(--ink);border-color:var(--ink);color:var(--bg)}
-.node.boss{border-color:var(--accent);color:var(--accent);min-width:76px}
-.node.boss.done{background:var(--accent);color:var(--bg)}
-@keyframes nudge{50%{transform:translate(-50%,calc(-50% - 2px))}}
 
 .banner{position:absolute;left:0;right:0;top:34%;text-align:center;pointer-events:none;z-index:4;opacity:0;transition:opacity .25s}
 .banner.on{opacity:1}
@@ -106,7 +100,7 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 .board.mini li{min-height:26px;padding:1px 8px}
 #ovRank{justify-content:flex-start;padding-top:24px}
 
-@media (prefers-reduced-motion: reduce){ .banner{transition:none} .node.reach{animation:none} .btn:active,.rCard:active,.iconBtn:active{transform:none} }
+@media (prefers-reduced-motion: reduce){ .banner{transition:none} .node,.node.reach,.knightTok{animation:none} .btn:active,.rCard:active,.iconBtn:active{transform:none} }
 
 /* 얇은 인쇄선과 단차로 원정 장비 같은 무게감을 준다. */
 .app{gap:8px;padding-top:16px}
@@ -140,8 +134,6 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 .rCard:hover:not(:disabled),.btn:hover:not(:disabled){background:var(--field)}
 .btn.primary:hover:not(:disabled){background:var(--ink2)}
 .rCard span{display:block;margin-top:4px;line-height:1.5}
-.node{color:var(--ink2);border-color:var(--line)}
-.node.reach{outline:3px solid var(--line);outline-offset:3px}
 .mapHead{width:100%;padding:4px 0 10px;border-bottom:1px solid var(--ink3)}
 .playHint{display:none;text-align:center;margin:0;font-size:12px;color:var(--ink2)}
 .app[data-mode="play"] .playHint{display:block}
@@ -165,3 +157,32 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 /* 지금 쏠 구슬은 액자에 넣어 "다음" 구슬과 한눈에 구분한다 */
 .orbCurrent .orbPortrait{width:62px;height:62px;border:9px solid transparent;border-image:url('../assets/game/ui_frame.png') 20 18 / 9px 8px}
 @media(max-width:360px){.orbCurrent .orbPortrait{width:52px;height:52px}}
+/* 상점·휴식 장면: 도트 장면 캔버스(scene.js). 카드 목록 위에 무대처럼 둔다 */
+.sceneCv{display:block;width:100%;max-width:300px;aspect-ratio:180/84;flex:none;border:3px solid var(--ink);border-bottom-width:6px}
+.sceneCv[hidden]{display:none}
+#ovChoose:has(.sceneCv:not([hidden])){justify-content:flex-start}
+/* 지도: 던전 그림을 옅게 깐 탑. 칸은 그림 메달(몬스터·모닥불·상인), 기사 말이 지금 위치에 선다 */
+.ovMap{position:absolute;isolation:isolate}
+.ovMap::before{content:'';position:absolute;inset:0;z-index:-1;background:url('../assets/game/dungeon.png') center/cover no-repeat;opacity:.32}
+.mapBox svg line{stroke-linecap:round}
+.node{position:absolute;transform:translate(-50%,-50%);width:52px;height:52px;padding:0;border:3px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ink2);cursor:default;
+  display:flex;align-items:center;justify-content:center;animation:nodeIn .35s var(--d,0ms) both}
+.node .nIc{width:40px;height:40px;object-fit:contain;pointer-events:none}
+.node .nIc.fire{background:url('../assets/game/campfire.png') 0 0/300% 100% no-repeat;width:42px;height:38px}
+.node small{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:1px;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap;
+  background:var(--panel);padding:0 4px;border:1px solid var(--line)}
+.node:disabled .nIc{opacity:.45;filter:grayscale(1)}
+.node.reach{border-color:var(--ink);color:var(--ink);cursor:pointer;outline:3px solid var(--line);outline-offset:2px;
+  animation:nodeIn .35s var(--d,0ms) both,nudge 1s steps(2) .6s infinite}
+.node.done{background:var(--ink);border-color:var(--ink)}
+.node.done .nIc{opacity:.75;filter:grayscale(1) brightness(1.6)}
+.node.done small{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+/* 붉은색 = 위험: 정예·보스 칸만 붉은 테 */
+.node.t-elite{border-color:var(--accent)}
+.node.t-boss{width:72px;height:72px;border-color:var(--accent);border-width:4px}
+.node.t-boss .nIc{width:58px;height:58px}
+.node.t-boss small{color:var(--accent)}
+.knightTok{position:absolute;width:36px;height:36px;object-fit:contain;transform:translate(-50%,calc(-100% - 20px));pointer-events:none;z-index:2;animation:tokIn .5s .2s both}
+@keyframes nudge{50%{transform:translate(-50%,calc(-50% - 2px))}}
+@keyframes nodeIn{from{opacity:0;transform:translate(-50%,-20%) scale(.6)}}
+@keyframes tokIn{from{opacity:0;transform:translate(-50%,calc(-100% - 40px))}}

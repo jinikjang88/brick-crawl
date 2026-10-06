@@ -16,7 +16,7 @@ $('pMain').onclick = () => { $('ovPause').classList.remove('on'); showMain(); };
 $('pGiveup').onclick = e => {
   const b = e.currentTarget;
   if (!b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 원정이 끝난다'; return; }
-  $('ovPause').classList.remove('on'); clearRun(); recordRun(RUN); showMain();
+  $('ovPause').classList.remove('on'); clearRun(); endRun(RUN); showMain();
 };
 document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') openMenu(); });
 
@@ -50,7 +50,7 @@ let last = performance.now();
 function frame(now){
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (G && mode === 'play') update(dt);
-  draw();
+  draw(); drawScene(dt);
   if (G && mode === 'play') $('hCoin').textContent = `코인 ${RUN.coins}  ${G.turn}턴`;
   requestAnimationFrame(frame);
 }
