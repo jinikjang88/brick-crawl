@@ -73,6 +73,10 @@ function drawBgArt(){
   return true;
 }
 
+// 동작 아틀라스 배치(tools/build_action_assets.py가 다시 쓴다). 칸은 넘친 팔·무기까지 품는 정사각형이고,
+// 모든 프레임이 칸의 (ax, foot)을 발밑 기준점으로 공유한다. iw·ih는 대기 포즈 크기: 화면 상자에 맞출 배율을 여기서 구한다
+const ART_SHEET = { cell:320, ax:160, foot:314,
+  knight:{ iw:176, ih:209 }, slime:{ iw:217, ih:170 }, bat:{ iw:279, ih:258 }, golem:{ iw:238, ih:249 }, shroom:{ iw:213, ih:200 }, boss:{ iw:265, ih:262 } };
 // 각 동작은 여섯 포즈. 공격의 타격 프레임을 짧게 두고 복귀에 여유를 준다.
 const ART_ACTIONS = {
   attack:{ row:0, times:[.06,.06,.05,.06,.09,.10] },
@@ -103,13 +107,15 @@ function drawCharArt(name, cx, dy, o = {}){
   const box = ART_BOX[name];
   const pose = o.actor && (artFrame(o.actor.artAction, o.actor.artElapsed) || { row:0, col:5 });
   const sheet = pose && artImg(name + '_actions');
-  if (sheet && box){
-    // 시트는 고정 크기 셀로 전처리한다. 사망 포즈도 확대하지 않아 바닥에서 크기가 튀지 않는다.
-    const cw = sheet.naturalWidth / 6, ch = sheet.naturalHeight / 3;
-    const size = Math.min(box.w, box.h);
-    const lift = o.actor.artAction === 'death' ? 0 : (box.lift || 0);
-    const x = cx-size/2, y = ART_FOOT-lift-size + (o.actor.artAction ? 0 : dy);
-    const paint = (im, ox=0, oy=0) => ctx.drawImage(im, pose.col*cw, pose.row*ch, cw, ch, x+ox, y+oy, size, size);
+  const meta = ART_SHEET[name];
+  if (sheet && box && meta){
+    // 대기 포즈를 상자에 맞춘 배율을 모든 프레임에 쓴다. 팔·무기는 상자 밖으로 뻗고, 누운 포즈도 커지지 않는다
+    const cell = ART_SHEET.cell, src = sheet.naturalWidth / 6;
+    const k = Math.min(box.w / meta.iw, box.h / meta.ih), size = cell * k;
+    // 날던 박쥐는 사망 앞 세 포즈(0.32초) 동안 바닥으로 내려온다. 한 번에 0으로 떨어지면 첫 프레임이 순간이동해 보인다
+    const lift = (box.lift || 0) * (o.actor.artAction === 'death' ? Math.max(0, 1 - o.actor.artElapsed / .32) : 1);
+    const x = cx - ART_SHEET.ax * k, y = ART_FOOT - lift - ART_SHEET.foot * k + (o.actor.artAction ? 0 : dy);
+    const paint = (im, ox=0, oy=0) => ctx.drawImage(im, pose.col*src, pose.row*src, src, src, x+ox, y+oy, size, size);
     if (o.outline){
       const tint = artTint(name + '_actions', o.outline);
       if (tint) for (const [ox,oy] of [[-1,0],[1,0],[0,-1],[0,1]]) paint(tint, ox, oy);
