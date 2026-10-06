@@ -9,7 +9,10 @@ const PX = 44, MX = 136, BALL_SPEED = 300;
 const AIM_MIN = -Math.PI + 0.22, AIM_MAX = -0.22;   // 너무 눕힌 각도는 벽만 타므로 뺀다
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
-cv.width = W; cv.height = H;
+// 백버퍼는 RES배: 게임 좌표·판정은 180×340 그대로 두고, 일러스트(assets/game)만 세밀하게 그리려고 늘렸다.
+// 도트 글자·아이콘은 논리 좌표에 반올림해 그리므로 RES배 블록으로 찍혀 도트 느낌이 유지된다
+const RES = 4;
+cv.width = W * RES; cv.height = H * RES;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = n => Math.floor(Math.random() * n);
 const pickOne = a => a[rnd(a.length)];

@@ -47,7 +47,8 @@
   | `js/config.js` | 화면 상수(W·H·COLS…), `$`·`clamp`·`rnd`·`pickW` 등 유틸, `readColors()` |
   | `js/data.js` | 데이터: `MON`·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS` |
   | `js/sprites.js` | 도트 리소스(`SPR`·`ICON`·`FONT`)와 `drawText`·`drawIcon`·`drawSprite` |
-  | `js/audio.js` | 소리 합성: 효과음(`sfx`·`SFX`), 장면별 BGM(`bgm`·`SONGS`), 켬/끔 설정(`AUDIO`·`setAudio`) |
+  | `js/art.js` | 일러스트 에셋(`assets/game`) 로드와 그리기(`drawCharArt`·`drawBrickArt`·`drawBgArt`). 로드 전·실패·Node에서는 false를 돌려 도트로 폴백 |
+| `js/audio.js` | 소리 합성: 효과음(`sfx`·`SFX`), 장면별 BGM(`bgm`·`SONGS`), 켬/끔 설정(`AUDIO`·`setAudio`) |
   | `js/save.js` | `localStorage` 저장·불러오기(원정·메타) |
   | `js/profile.js` | 임의 닉네임 생성(3음절 × 3단어), 플레이어 프로필(`PROFILE`)·`uuid()`·`runProgress()` |
   | `js/net.js` | 기록 서버 통신: 닉네임 등록, 원정 기록 대기열·전송, 랭킹 조회 |
@@ -65,7 +66,9 @@
 - 배경은 베이지 계열, 강조색은 **화(火) #C1443C 하나만**. 나머지는 무채색 위계(ink, ink2, ink3, line).
 - 붉은색의 의미는 "위험"으로 고정: 몬스터 공격 예고, 독, 피해, 붕괴선 경고, 보스·정예 표시, 희귀 등급.
 - 색은 CSS 변수(`--bg` 등)로만 정의하고, 캔버스도 `readColors()`로 같은 토큰을 읽는다. 다크 모드 대응 유지.
-- 도트 렌더: 캔버스 논리 해상도 180×340을 CSS로 확대. 캔버스 안 글자는 숫자(3×5 도트 폰트)와 아이콘만, 한글은 DOM에.
+- 도트 렌더: 캔버스 논리 해상도 180×340(백버퍼는 `RES`=4배)을 CSS로 확대. 좌표·판정은 논리 해상도 기준.
+- 일러스트: 원본은 `assets/illustrated`, 게임용 축소본은 `assets/game`(`python3 tools/build_game_assets.py`로 재생성). 원본을 고치면 다시 돌린다. 일러스트 위 색은 테마와 무관한 고정색이므로 다크 모드는 배경을 덮어 맞춘다.
+- 이미지는 `<img>`/`Image`로만 불러온다(`fetch`는 `file://`에서 막힌다). 캔버스 픽셀을 읽는 API(`getImageData`)는 `file://`에서 오염 오류가 나므로 쓰지 않는다. 캔버스 안 글자는 숫자(3×5 도트 폰트)와 아이콘만, 한글은 DOM에.
 - mobile-first 단일 유동 레이아웃, WCAG AA 가독성, 탭 타겟 44px 이상.
 - 그라디언트·보라색·과장된 그림자 금지.
 - **설명서 없이 읽히는 게임**이 원칙. 새 요소는 텍스트 튜토리얼 대신 시각적 규칙(아이콘·날아가는 연출·색)으로 전달한다.
