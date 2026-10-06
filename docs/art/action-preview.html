@@ -1,0 +1,11 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>브릭크롤 동작 프레임</title>
+<style>body{background:#eee8db;color:#282621;font:16px system-ui;margin:24px}button,select{font:inherit;padding:10px;margin:4px}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}article{background:#faf6ed;border:1px solid #c7bda9;padding:16px;text-align:center}canvas{width:100%;max-width:320px}h1{font-size:26px}</style>
+<h1>브릭크롤 · 6프레임 동작</h1><p>기사와 몬스터 5종 · 공격 / 피격 / 사망 · 각 6프레임</p>
+<select id="action"><option value="0">공격</option><option value="1">피격</option><option value="2">사망</option></select><button id="pause">일시정지</button><label>속도 <select id="speed"><option value="1">1배</option><option value="0.5">0.5배</option><option value="0.25">0.25배</option></select></label><main id="grid"></main>
+<script>
+const names={knight:'기사',slime:'슬라임',bat:'박쥐',golem:'골렘',shroom:'독버섯',boss:'탑의 주인'};
+const clips=[[.06,.06,.05,.06,.09,.10],[.035,.04,.055,.05,.06,.08],[.10,.10,.12,.12,.14,.16]];
+const views=[];for(const [name,label]of Object.entries(names)){const article=document.createElement('article'),title=document.createElement('h2'),canvas=document.createElement('canvas'),image=new Image();title.textContent=label;canvas.width=canvas.height=320;image.src='../../assets/game/'+name+'_actions.png';article.append(title,canvas);grid.append(article);views.push({canvas,image});}
+let stopped=false,t=0,last=0;pause.onclick=()=>{stopped=!stopped;pause.textContent=stopped?'재생':'일시정지'};action.onchange=()=>t=0;
+function tick(now){if(!stopped)t+=(now-last)/1000*Number(speed.value);last=now;const row=Number(action.value),times=clips[row],duration=times.reduce((a,b)=>a+b,0);let elapsed=t%(duration+.65),col=0;while(col<5&&elapsed>=times[col])elapsed-=times[col++];for(const {canvas,image}of views){const c=canvas.getContext('2d');c.clearRect(0,0,320,320);if(image.complete&&image.naturalWidth){const cell=image.naturalWidth/6;c.drawImage(image,col*cell,row*cell,cell,cell,0,0,320,320)};}requestAnimationFrame(tick)}requestAnimationFrame(tick);
+</script></html>

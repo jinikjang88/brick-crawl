@@ -42,17 +42,17 @@ function draw(){
   const p = g.p, m = g.m;
   hpBlock(PX, p.hp, p.max, p.hp <= p.max * 0.3, p.poison);
   statRow(PX, p.atk, p.def);
-  if (!drawCharArt('knight', PX, p.hp > 0 ? artBob('knight', g.time) : 0, { flash:p.flash > 0 ? C.accent : null }))
+  if (!drawCharArt('knight', PX, p.hp > 0 ? artBob('knight', g.time) : 0, { actor:p, flash:p.flash > 0 ? C.accent : null }))
     drawSprite(SPR.knight, PX - 18, 50, 3, p.flash > 0 ? C.accent : C.ink, C.ink2, C.bg);
 
   const angry = g.cfg.boss && m.phase === 2;
-  if (!m.dead || Math.floor(m.deadT * 10) % 2 === 0){
+  if (!m.dead || artImg(g.cfg.spr + '_actions') || Math.floor(m.deadT * 10) % 2 === 0){
     hpBlock(MX, m.hp, m.max, false, m.poison);
     statRow(MX, m.atk, m.def);
     const lunge = m.lunge > 0 ? -Math.sin(Math.PI * m.lunge / 0.4) * 14 : 0;
     const sink = m.dead ? Math.min(20, m.deadT * 30) : 0;
-    ctx.globalAlpha = m.dead ? Math.max(0, 1 - m.deadT) : 1;
-    const art = { flash:m.flash > 0 ? '#FFFDF8' : null, outline:(angry || g.cfg.elite) ? C.accent : null };
+    ctx.globalAlpha = m.dead ? Math.max(0, 1 - Math.max(0, m.deadT - .74) / .36) : 1;
+    const art = { actor:m, flash:m.flash > 0 ? '#FFFDF8' : null, outline:(angry || g.cfg.elite) ? C.accent : null };
     if (!drawCharArt(g.cfg.spr, MX + lunge, m.dead ? sink : artBob(g.cfg.spr, g.time), art))
       drawSprite(SPR[g.cfg.spr], MX - 24 + lunge, 38 + sink, 3, m.flash > 0 ? C.ink3 : C.ink, C.ink2, (angry || g.cfg.elite) ? C.accent : C.bg);
     ctx.globalAlpha = 1;

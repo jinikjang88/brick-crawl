@@ -62,7 +62,7 @@ function hurtPlayer(v, icon, fromMonster){
   if (ab) pop(PX, 42, '-' + ab, C.ink2, 'shield');
   if (ab && fromMonster && rel('counter') && !G.m.dead)
     G.projs.push({ x0:PX + 10, y0:66, x1:MX, y1:62, t:0, dur:0.3, kind:'dmg', v:ab });
-  if (hit){ p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
+  if (hit){ artPose(p, 'hit'); p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
   else { burst(PX, 66, C.ink3, 6); sfx('block'); }
 }
 
@@ -111,7 +111,7 @@ function arrive(pr){
   const g = G;
   if (pr.kind === 'dmg'){
     if (g.m.dead) return;
-    const [ab, hit] = hurt(g.m, pr.v); g.m.flash = 0.1;
+    const [ab, hit] = hurt(g.m, pr.v); g.m.flash = 0.1; artPose(g.m, 'hit');
     const jx = MX + (Math.random() * 16 - 8);
     if (ab) pop(jx, 44, '-' + ab, C.ink2, 'shield');
     if (hit) pop(jx, ab ? 32 : 44, '-' + hit, C.ink);
@@ -195,6 +195,7 @@ function fire(){
   const g = G;
   // 턴 시작 직후 0.2초는 무시: 이전 턴에 연타한 입력이 새 턴을 바로 쏘지 않게
   if (mode !== 'play' || !g || g.phase !== 'aim' || g.aimT < 0.2) return;
+  artPose(g.p, 'attack');
   g.phase = 'fire'; g.fireT = 1; g.fireEl = 0; g.nextLx = null;
   const spread = orbKind(g.orb) !== 'split' ? [0] : orbUp(g.orb) ? [-0.32, -0.16, 0, 0.16, 0.32] : [-0.16, 0, 0.16];
   g.queue = spread.map(d => clamp(g.aim + d, AIM_MIN, AIM_MAX));
@@ -206,6 +207,9 @@ function fire(){
 function update(dt){
   const g = G;
   g.time += dt;
+  artAdvance(g.p, dt); artAdvance(g.m, dt);
+  if (g.p.hp <= 0 && g.p.artAction !== 'death') artPose(g.p, 'death');
+  if (g.m.dead && g.m.artAction !== 'death') artPose(g.m, 'death');
   g.m.flash = Math.max(0, g.m.flash - dt); g.p.flash = Math.max(0, g.p.flash - dt);
   g.shake = Math.max(0, g.shake - dt * 20);
   if (g.m.lunge > 0){ g.m.lunge += dt; if (g.m.lunge > 0.4) g.m.lunge = 0; }
@@ -267,7 +271,7 @@ function endPlayerTurn(){
   // 몬스터 독: 몬스터가 행동하기 직전에 방어도를 무시하고 들어간다
   if (m.poison > 0){
     const d = m.poison;
-    m.hp = Math.max(0, m.hp - d); m.poison--; m.flash = 0.15;
+    m.hp = Math.max(0, m.hp - d); m.poison--; m.flash = 0.15; artPose(m, 'hit');
     burst(MX, 62, C.accent, 8); pop(MX, 30, '-' + d, C.accent, 'skull');
     if (m.hp === 0){ killMonster(); g.phase = 'win'; g.timer = 0; return; }
     g.timer = -0.4;
@@ -281,7 +285,7 @@ function enemyUpdate(dt){
   if (g.eStep === 0){
     g.eStep = 1; g.cur = intent();
     const it = g.cur;
-    if (it.t === 'atk' || it.t === 'poison') m.lunge = 0.001;
+    if (it.t === 'atk' || it.t === 'poison'){ m.lunge = 0.001; artPose(m, 'attack'); }
     else if (it.t === 'guard'){ m.def += it.v; pop(MX, 30, '+' + it.v, C.ink, 'shield'); }
     else if (it.t === 'spore') pop(MX, 30, '', C.accent, 'brick');
     else if (it.t === 'summon') pop(MX, 30, '', C.ink, 'brick');
@@ -315,7 +319,7 @@ function enemyUpdate(dt){
     // 독 틱: 방어도를 무시하고 체력에 바로 들어간 뒤 약해진다
     if (p.poison > 0){
       const d = p.poison;
-      p.hp = Math.max(0, p.hp - d); p.poison = Math.max(0, p.poison - (rel('antidote') ? 2 : 1)); p.flash = 0.18;
+      p.hp = Math.max(0, p.hp - d); p.poison = Math.max(0, p.poison - (rel('antidote') ? 2 : 1)); p.flash = 0.18; artPose(p, 'hit');
       burst(PX, 66, C.accent, 8); pop(PX, 30, '-' + d, C.accent, 'skull');
       g.tickT = 0.45;
     }

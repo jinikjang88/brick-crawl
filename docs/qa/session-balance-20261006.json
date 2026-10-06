@@ -1,0 +1,27 @@
+{
+  "count": 200,
+  "seed": 20261006,
+  "timedOut": 0,
+  "sessions": [
+    {
+      "session": 1,
+      "entered": 200,
+      "cleared": 59,
+      "reachPct": 100,
+      "conditionalClearPct": 29.5,
+      "cumulativeClearPct": 29.5,
+      "medianBossHpPct": 25,
+      "medianBossTurns": 13
+    },
+    {
+      "session": 2,
+      "entered": 59,
+      "cleared": 0,
+      "reachPct": 29.5,
+      "conditionalClearPct": 0,
+      "cumulativeClearPct": 0,
+      "medianBossHpPct": null,
+      "medianBossTurns": null
+    }
+  ]
+}
