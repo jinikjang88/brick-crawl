@@ -1,5 +1,5 @@
 // 헤드리스 밸런스 시뮬레이터
-// 사용법: node tools/sim.mjs [원정 횟수=60]
+// 사용법: node tools/sim.mjs [원정 횟수=60] [시드=20261006] [결과.json]
 //
 // index.html이 불러오는 js/*.js를 순서대로 이어 붙여 가짜 DOM 위에서 돌리고, "조준 봇"이 원정을 끝까지 플레이한다.
 // 봇은 사람보다 약하다(목표 열을 단순하게 고르고, 지도·보상은 무작위). 절대값보다 "변경 전후 비교"에 쓴다.
@@ -42,10 +42,20 @@ function mk(){
 }
 const pickOne = a => a[Math.floor(Math.random() * a.length)];
 const N = +process.argv[2] || 60;
+const seed = Number(process.argv[3] || 20261006) >>> 0;
+const nativeRandom = Math.random;
+const sessions = [], runs = [];
+const session = i => sessions[i] || (sessions[i] = { entered:0, cleared:0, hp:[], turns:[] });
+// 실행마다 같은 원정을 재현해 작은 수치 변경과 표본 변동을 구분한다. 게임 저장 RNG와는 별개다.
+function seededRandom(value){
+  return () => { value += 0x6D2B79F5; let t = value; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
 const reach = new Array(20).fill(0), bossHp = [];
 let s1clear = 0;
 
 for (let run = 0; run < N; run++){
+  Math.random = seededRandom(seed + run);
+  const entered = new Set();
   const els = {}, L = {}, store = {};
   globalThis.document = { getElementById:id => els[id] || (els[id] = mk()), documentElement:{}, createElement:() => mk(),
     createElementNS:() => mk(), addEventListener(){}, hidden:false };
@@ -63,6 +73,7 @@ for (let run = 0; run < N; run++){
   let prog = 0, done = false, want = null, wait = -1, lastTurn = '';
   for (let f = 0; f < 60 * 60 * 120 && !done; f++){
     const { RUN, G, mode } = __h.st();
+    if (RUN && !entered.has(RUN.s)){ entered.add(RUN.s); session(RUN.s).entered++; }
     if (mode === 'map'){ __h.enterNode(pickOne(__h.reachable())); continue; }
     if (['reward','rest','shop','remove','result'].includes(mode)){
       if (mode === 'result'){ done = true; break; }
@@ -90,13 +101,14 @@ for (let run = 0; run < N; run++){
         if (wait < 0 && G.aimT > 0.2 && Math.abs(G.aim - want) < 0.03) wait = Math.floor(Math.random() * 5);
         if (wait === 0){ L.keydown({ key:' ', preventDefault(){} }); wait = -2; } else if (wait > 0) wait--;
       }
-      if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec){ G.__rec = 1; bossHp.push(G.p.hp / G.p.max); if (RUN.s === 0) s1clear++; }
+      if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec){ G.__rec = 1; bossHp.push(G.p.hp / G.p.max); const ss = session(RUN.s); ss.cleared++; ss.hp.push(G.p.hp / G.p.max); ss.turns.push(G.turn); if (RUN.s === 0) s1clear++; }
     }
     now += 16.7; raf(now);
     const st = __h.st();
     if (st.RUN && st.RUN.pos) prog = Math.max(prog, st.RUN.s * 5 + st.RUN.pos.r + 1);
   }
   reach[Math.min(prog, 19)]++;
+  runs.push({ run, completed:done, progress:prog });
 }
 
 const med = a => { a = a.slice().sort((x, y) => x - y); return a[Math.floor(a.length / 2)]; };
@@ -106,3 +118,12 @@ console.log('완료한 칸 수 분포 (5 = 1세션 보스까지 완료):', reach
 console.log(`1세션 돌파 ${s1clear}/${N} (${(s1clear / N * 100).toFixed(0)}%)`);
 console.log('보스 격파 순간 남은 체력 중앙값', bossHp.length ? (med(bossHp) * 100).toFixed(0) + '%' : '-',
             `/ 30% 이하로 이긴 비율 ${bossHp.filter(x => x <= .3).length}/${bossHp.length}`);
+
+Math.random = nativeRandom;
+console.log(`재현 시드 ${seed}; 시간 제한 도달 ${runs.filter(r => !r.completed).length}회`);
+const report = sessions.map((s, i) => ({ session:i + 1, entered:s.entered, cleared:s.cleared,
+  reachPct:100 * s.entered / N, conditionalClearPct:100 * s.cleared / s.entered,
+  cumulativeClearPct:100 * s.cleared / N, medianBossHpPct:s.hp.length ? med(s.hp) * 100 : null,
+  medianBossTurns:s.turns.length ? med(s.turns) : null }));
+console.table(report);
+if (process.argv[4]) fs.writeFileSync(process.argv[4], JSON.stringify({ count:N, seed, timedOut:runs.filter(r => !r.completed).length, sessions:report }, null, 2) + '\n');
