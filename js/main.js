@@ -3,7 +3,7 @@
 
 // ── 메뉴(일시정지)
 function openMenu(){
-  if (mode === 'main' || mode === 'pause' || mode === 'result') return;
+  if (mode === 'main' || mode === 'pause' || mode === 'result' || mode === 'tree') return;
   prevMode = mode; mode = 'pause';
   $('pMainSub').textContent = prevMode === 'play' ? '이번 전투는 처음부터 다시 시작된다' : '진행은 저장되어 있다';
   $('pGiveup').textContent = '원정 포기'; $('pGiveup').dataset.arm = '';

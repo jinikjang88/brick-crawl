@@ -178,7 +178,7 @@ function renderOrbBar(){
     if (fired) small.className = 'fired';
     const name = document.createElement('b'); name.textContent = orbName(G.orb);
     // 지금 공격력까지 더한 실제 천장 타격 피해: ⚔ 벽돌을 깰수록 이 숫자가 오르는 게 보인다
-    const dmg = document.createElement('em'); dmg.className = 'dmg'; dmg.textContent = `피해 ${orbDmg(G.orb) + G.p.atk - 1}`;
+    const dmg = document.createElement('em'); dmg.className = 'dmg'; dmg.textContent = `피해 ${hitDmg(G.orb)}`;
     name.append(dmg);
     label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
     const next = document.createElement('div'); next.className = 'orbNext';

@@ -4,7 +4,7 @@
 // ── 보상
 function rollOrbs(){
   const pool = Object.keys(ORBS).filter(k => ORBS[k].rar > 0), out = [];
-  while (out.length < 3 && pool.length){
+  while (out.length < 3 + (tree('o2') ? 1 : 0) && pool.length){
     const w = {}; pool.forEach(k => w[k] = ORBS[k].rar === 1 ? 10 : 5);
     const k = pickW(w); out.push(k); pool.splice(pool.indexOf(k), 1);
   }
@@ -72,30 +72,6 @@ function showUpgrade(done, back){
     buttons:[{ label:'취소', onClick:back }] });
 }
 
-// ── 출발 선물: 새 원정 첫 화면. 해금된 것 중 최대 3개를 보여 준다
-function showGift(){
-  const xp = META.xp || 0, open = GIFTS.filter(g => xp >= g.need);
-  const next = GIFTS.find(g => xp < g.need);
-  if (!RUN.giftStock){ RUN.giftStock = shuffle(open).slice(0, 3).map(g => g.id); saveRun(); }
-  const done = () => { RUN.gift = false; RUN.giftStock = null; saveRun(); showMap(); };
-  const apply = {
-    coins:() => { RUN.coins += 30; done(); },
-    vital:() => { RUN.maxHp += 4; RUN.hp += 4; done(); },
-    temper:() => { const i = RUN.deck.indexOf('bomb'); if (i >= 0) RUN.deck[i] = 'bomb+'; done(); },
-    relic:() => { const id = rollRelics(1)[0]; if (id) RUN.relics[id] = 1; done(); },
-    pick:() => {
-      const rare = Object.keys(ORBS).filter(k => ORBS[k].rar === 2);
-      showChoice({ mode:'gift', title:'희귀 구슬 하나를 고른다', sub:'덱에 넣고 떠난다', buttons:[{ label:'취소', onClick:showGift }],
-        cards:rare.map(k => ({ name:ORBS[k].name, orb:k, desc:orbDesc(k), rare:true, onPick:() => { RUN.deck.push(k); done(); } })) });
-    },
-  };
-  setHeader('출발', '출발 선물');
-  showChoice({ mode:'gift', title:'출발 선물',
-    sub:next ? `원정에서 칸을 더 돌파하면 새 선물이 열린다 (${xp}/${next.need})` : '모든 선물이 열렸다',
-    cards:RUN.giftStock.map(id => { const g = GIFTS.find(x => x.id === id); return { name:g.name, desc:g.desc, onPick:apply[id] }; }),
-    buttons:[{ label:'선물 없이 떠난다', onClick:done }] });
-}
-
 // ── 상점: 들어갈 때 물건을 정해 저장해 둔다(새로고침으로 물건을 바꾸지 못하게)
 function showShop(){
   if (!RUN.shop){
@@ -105,6 +81,8 @@ function showShop(){
       ...(relic ? [{ k:'relic', id:relic, price:45 }] : []),
       { k:'heal', price:15 }, { k:'upgrade', price:30 }, { k:'remove', price:25 },
     ];
+    // 흥정: 물건을 정할 때 값도 깎아 저장한다(이미 정해진 상점 값은 그대로)
+    if (tree('e2')) RUN.shop.forEach(it => it.price = Math.round(it.price * .8));
     saveRun();
   }
   setHeader(`세션 ${RUN.s + 1}`, '상점');

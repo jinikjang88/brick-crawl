@@ -6,7 +6,7 @@ function newBattle(node){
   const cfg = monCfg(node.mon, RUN.s, node.t === 'elite');
   G = {
     node, cfg, time:0, turn:1, phase:'aim', timer:0, eStep:0, cur:null, shown:false,
-    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1, def:3 * rel('armor'), poison:0, flash:0 },   // 공격·방어는 전투마다 초기화(갑옷만 시작 방어도)
+    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1, def:3 * rel('armor') + (tree('d2') ? 2 : 0), poison:0, flash:0 },   // 공격·방어는 전투마다 초기화(갑옷·방패술만 시작 방어도)
     m:{ hp:cfg.hp, max:cfg.hp, atk:cfg.atk, def:cfg.def, poison:0, pi:0, ai:0, phase:1, flash:0, lunge:0, dead:false, deadT:0 },
     bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], queue:[],
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
@@ -55,9 +55,18 @@ function resetAim(){
 const intent = () => { const pat = G.m.phase === 2 ? G.cfg.pattern2 : G.cfg.pattern; return pat[G.m.pi % pat.length]; };
 // 연속 공격에서 남은 공격 턴 수(이번 턴 포함). 머리 위 붉은 숫자가 3 → 2 → 1로 줄어든다
 const atkLeft = it => it.n - G.m.ai;
+// 천장 타격 한 번의 피해. HUD도 같은 함수를 써서 화면 숫자와 실제 피해가 어긋나지 않게 한다.
+// 덧셈(구슬 피해·공격력·날 세우기) 뒤에 곱셈(공명·파괴자): 핵심 노드는 쌓은 덧셈을 키우는 배율이다
+function hitDmg(o){
+  let v = orbDmg(o) + G.p.atk - 1 + (tree('a1') ? 1 : 0);
+  if (orbUp(o) && tree('o3')) v *= 2;
+  if (tree('a3')) v = Math.round(v * 1.5);
+  return v;
+}
 // 방어도는 체력 앞에 붙은 보호막: 피해를 먼저 흡수하고 흡수한 만큼 깎인다
 function hurt(t, v){ const ab = Math.min(t.def, v); t.def -= ab; t.hp = Math.max(0, t.hp - (v - ab)); return [ab, v - ab]; }
 function hurtPlayer(v, icon, fromMonster){
+  if (tree('d3')) v = Math.ceil(v * .75);   // 불굴: 곱연산 감쇠라 심연의 큰 피해일수록 덜어 주는 양이 크다
   const p = G.p, [ab, hit] = hurt(p, v);
   if (ab) pop(PX, 42, '-' + ab, C.ink2, 'shield');
   if (ab && fromMonster && rel('counter') && !G.m.dead)
@@ -173,7 +182,7 @@ function moveBall(b, dt){
       if (!G.m.dead && b.hits < hitCap() + (b.kind === 'basic' && b.up ? 1 : 0)){
         b.hits++;
         sfx('ceil', { orb:b.kind, n:b.hits - 1 });
-        const v = orbDmg(b.kind + (b.up ? '+' : '')) + G.p.atk - 1;
+        const v = hitDmg(b.kind + (b.up ? '+' : ''));
         G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.kind === 'venom' ? (b.up ? 2 : 1) : 0 });
         if (b.hits === 3 && rel('leech') && G.p.hp < G.p.max){ G.p.hp++; pop(PX, 30, '+1', C.ink, 'heart'); }
         G.cf.push({ x:b.x, t:0.25 });

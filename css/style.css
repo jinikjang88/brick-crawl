@@ -100,7 +100,8 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 .board.mini li{min-height:26px;padding:1px 8px}
 #ovRank{justify-content:flex-start;padding-top:24px}
 
-@media (prefers-reduced-motion: reduce){ .banner{transition:none} .node,.node.reach,
+@media (prefers-reduced-motion: reduce){ .banner{transition:none} .node,.node.reach{animation:none} .btn:active,.rCard:active,.iconBtn:active{transform:none} }
+
 /* 얇은 인쇄선과 단차로 원정 장비 같은 무게감을 준다. */
 .app{gap:8px;padding-top:16px}
 .brandStrip{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ink3);padding-bottom:8px;font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--ink2)}
@@ -185,3 +186,21 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 @keyframes nudge{50%{transform:translate(-50%,calc(-50% - 2px))}}
 @keyframes nodeIn{from{opacity:0;transform:translate(-50%,-20%) scale(.6)}}
 .orbCurrent b .dmg{font-style:normal;font-size:12px;font-weight:800;margin-left:6px;padding:0 5px;border:1px solid var(--ink3);color:var(--ink2);vertical-align:2px}
+/* 스킬 트리: 십자 갈래(위 공격·아래 방어·왼쪽 구슬·오른쪽 경제). 핵심 노드는 마름모 */
+.app[data-mode="tree"] .hud,.app[data-mode="tree"] .orbBar,.app[data-mode="tree"] .abil{display:none}
+.app[data-mode="tree"] .stage{width:clamp(240px,calc((100svh - 80px) * .5294),100%)}
+.ovTree{justify-content:flex-start;gap:6px}
+.treeBox{position:relative;width:100%;max-width:320px;aspect-ratio:1/1.05;flex:none;margin:6px 0}
+.treeBox svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.tNode{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;border:3px solid var(--line);background:var(--panel);color:var(--ink2);font-weight:900;font-size:15px;cursor:pointer;padding:0}
+.tNode.own{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.tNode.open{border-color:var(--ink);color:var(--ink);outline:3px solid var(--line);outline-offset:2px}
+.tNode.lock{opacity:.45}
+.tNode.key{border-radius:4px;transform:translate(-50%,-50%) rotate(45deg);width:46px;height:46px;border-width:4px;border-style:double}
+.tNode.key span{display:inline-block;transform:rotate(-45deg)}
+.tNode.root{width:52px;height:52px;background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tNode.pick{outline:3px solid var(--ink);outline-offset:3px}
+.treeInfo{width:100%;max-width:320px;min-height:96px;border:2px solid var(--ink);border-bottom-width:4px;background:var(--panel);padding:8px 12px;display:flex;flex-direction:column;gap:6px;text-align:left}
+.treeInfo b{font-size:17px}
+.treeInfo span,.treeInfo small{font-size:14px;color:var(--ink2)}
+.tBranch{position:absolute;transform:translate(-50%,-50%);font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--ink2);pointer-events:none}

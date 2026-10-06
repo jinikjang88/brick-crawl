@@ -71,14 +71,24 @@ const RELICS = {
   leech:    { name:'흡혈',      max:1, desc:'구슬 하나가 천장을 세 번째 칠 때 체력 +1' },
   endure:   { name:'인내',      max:1, desc:'몬스터 연속 공격의 첫 타를 막는다' },
 };
-// ── 출발 선물(메타 성장): 원정마다 도달한 칸 수를 쌓아(META.xp) 해금한다. 새 원정을 시작할 때 하나를 고른다.
-// 시작을 조금 편하게 할 뿐 원정 안의 성장 규칙(질적 성장)은 그대로다
-const GIFTS = [
-  { id:'coins',  need:0,  name:'두둑한 주머니', desc:'코인 +30' },
-  { id:'vital',  need:0,  name:'튼튼한 몸',     desc:'최대 체력 +4' },
-  { id:'temper', need:8,  name:'벼린 폭탄',     desc:'시작 폭탄 구슬이 폭탄 구슬+로' },
-  { id:'pick',   need:20, name:'고른 구슬',     desc:'희귀 구슬 하나를 골라 덱에 넣는다' },
-  { id:'relic',  need:40, name:'오래된 유물',   desc:'무작위 유물 하나를 지니고 떠난다' },
+// ── 스킬 트리(영구 성장): 원정이 끝날 때 도달 칸만큼 영혼석을 얻어 노드를 찍는다(POE2식 갈래).
+// 갈래마다 앞 노드를 찍어야 다음이 열린다. 갈래 끝 핵심 노드(key)만 곱연산이다:
+// 원정 안의 성장은 여전히 덧셈·질적 성장이고, 곱연산은 3세션 이후 심연(엔드게임)에서 버티라고 영구 성장에만 둔다
+const TREE = [
+  { id:'root', name:'원정의 서약',  cost:0, req:null, x:50, y:50, desc:'모든 갈래의 출발점' },
+  { id:'a1', name:'날 세우기',  cost:2, req:'root', x:50, y:35, desc:'모든 구슬 피해 +1' },
+  { id:'a2', name:'연타',       cost:4, req:'a1',   x:50, y:21, desc:'구슬마다 천장 타격 상한 +1' },
+  { id:'a3', name:'파괴자',     cost:8, req:'a2',   x:50, y:7,  key:true, desc:'천장 타격 피해 ×1.5' },
+  { id:'d1', name:'단련된 몸',  cost:2, req:'root', x:50, y:65, desc:'최대 체력 +4' },
+  { id:'d2', name:'방패술',     cost:4, req:'d1',   x:50, y:79, desc:'전투 시작 방어도 +2' },
+  { id:'d3', name:'불굴',       cost:8, req:'d2',   x:50, y:93, key:true, desc:'몬스터·붕괴 피해 ×0.75' },
+  { id:'o1', name:'숙련',       cost:2, req:'root', x:30, y:50, desc:'시작 폭탄 구슬이 폭탄 구슬+' },
+  { id:'o2', name:'눈썰미',     cost:4, req:'o1',   x:17, y:40, desc:'구슬 보상 후보 +1장' },
+  { id:'o3', name:'공명',       cost:8, req:'o2',   x:8,  y:26, key:true, desc:'강화(+) 구슬의 천장 타격 피해 ×2' },
+  { id:'e1', name:'두둑한 주머니', cost:2, req:'root', x:70, y:50, desc:'시작 코인 +30' },
+  { id:'e2', name:'흥정',       cost:4, req:'e1',   x:83, y:60, desc:'상점 가격 -20%' },
+  { id:'e3', name:'보물 사냥꾼', cost:8, req:'e2',  x:92, y:74, key:true, desc:'무작위 유물 하나를 지니고 출발' },
 ];
+const tree = id => !!(META.tree && META.tree[id]);
 const rel = id => (RUN && RUN.relics[id]) || 0;
-const hitCap = () => 3 + rel('combo');
+const hitCap = () => 3 + rel('combo') + (tree('a2') ? 1 : 0);

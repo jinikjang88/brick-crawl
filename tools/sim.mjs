@@ -57,6 +57,9 @@ for (let run = 0; run < N; run++){
   Math.random = seededRandom(seed + run);
   const entered = new Set();
   const els = {}, L = {}, store = {};
+  // SIM_TREE=all: 스킬 트리를 모두 찍은 계정으로 돌린다(심연·엔드게임 밸런스 확인용)
+  if (process.env.SIM_TREE === 'all') store['brickquest:meta:v2'] = JSON.stringify({ best:0, runs:0, soul:0,
+    tree:Object.fromEntries(['a1','a2','a3','d1','d2','d3','o1','o2','o3','e1','e2','e3'].map(k => [k, 1])) });
   globalThis.document = { getElementById:id => els[id] || (els[id] = mk()), documentElement:{}, createElement:() => mk(),
     createElementNS:() => mk(), addEventListener(){}, hidden:false };
   globalThis.getComputedStyle = () => ({ getPropertyValue:() => '#000' });
