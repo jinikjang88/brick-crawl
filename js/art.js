@@ -16,7 +16,11 @@ const ART_BOX = {
 };
 const ART_FOOT = 90;
 // 일러스트에는 동작 프레임이 없어 숨쉬기(위아래 흔들림)로 살아 있는 느낌만 준다. 박쥐는 날갯짓처럼 크고 빠르게
+// 동작 줄이기 설정이면 끈다: 정보가 없는 장식 움직임이고, CSS 쪽 장식 애니메이션도 같은 설정에서 끈다
+let artCalm = null;
+try { artCalm = matchMedia('(prefers-reduced-motion: reduce)'); } catch(e){}
 function artBob(name, t){
+  if (artCalm && artCalm.matches) return 0;
   const box = ART_BOX[name] || {};
   return Math.sin(t * (box.rate || 2.2) + name.length) * (box.bob || .75);
 }
