@@ -223,6 +223,11 @@ function update(dt){
   for (const f of g.cf) f.t -= dt;
   g.cf = g.cf.filter(f => f.t > 0);
 
+  // 몬스터는 구슬 말고도 반격·독 같은 간접 피해로 몬스터 턴 중에 쓰러질 수 있다.
+  // 그대로 두면 몬스터 턴이 끝까지 돌고 조준까지 넘어가 구슬을 한 번 더 쏴야 승리가 났다. 어느 경로든 여기서 바로 끝낸다.
+  // 같은 공격에 기사도 쓰러졌다면 패배: 체력 0으로 원정을 이어갈 수는 없다
+  if (g.m.dead && (g.phase === 'enemy' || g.phase === 'aim')){ g.phase = g.p.hp > 0 ? 'win' : 'lose'; g.timer = 0; }
+
   if (g.phase === 'aim'){
     // 조준선은 일정 속도로 좌우를 왕복한다(삼각파). 가장자리에서 느려지지 않아야 타이밍이 공정하다
     g.aimT += dt;
