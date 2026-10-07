@@ -3,11 +3,14 @@
 
 // ── 전투 상태
 function newBattle(node){
-  const cfg = monCfg(node.mon, RUN.s, node.t === 'elite');
+  const cfg = monCfg(node.mon, RUN.s, node.t === 'elite', RUN.abyss);
   G = {
     node, cfg, time:0, turn:1, phase:'aim', timer:0, eStep:0, cur:null, shown:false,
-    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1, def:3 * rel('armor') + (tree('d2') ? 2 : 0), poison:0, flash:0 },   // 공격·방어는 전투마다 초기화(갑옷·방패술만 시작 방어도)
-    m:{ hp:cfg.hp, max:cfg.hp, atk:cfg.atk, def:cfg.def, poison:0, pi:0, ai:0, phase:1, flash:0, lunge:0, dead:false, deadT:0 },
+    // 공격·방어는 전투마다 초기화. 기본 공격력 1(+날 세우기), 시작 방어도는 갑옷·방패술만
+    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1 + (tree('a1') ? 1 : 0), def:defGain(3 * rel('armor') + (tree('d2') ? 2 : 0)), poison:0, flash:0 },
+    m:{ hp:cfg.hp, max:cfg.hp, atk:cfg.atk, def:cfg.def, poison:0, pi:0, ai:0, phase:1, rage:false, flash:0, lunge:0, dead:false, deadT:0 },
+    // 배지 판정용: lost = 이번 전투에서 체력을 잃었는지, shot = 이번 발사의 기록(시작 때 몬스터 체력이 가득했는지·천장 타격 수·부순 벽돌)
+    lost:false, shot:null,
     bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], queue:[],
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
     draw:shuffle(RUN.deck), disc:[], orb:'basic',
@@ -52,16 +55,37 @@ function resetAim(){
   G.aimT = 0;
 }
 
-const intent = () => { const pat = G.m.phase === 2 ? G.cfg.pattern2 : G.cfg.pattern; return pat[G.m.pi % pat.length]; };
+const intent = () => { const pat = (G.m.phase >= 3 && G.cfg.pattern3) || (G.m.phase >= 2 && G.cfg.pattern2) || G.cfg.pattern; return pat[G.m.pi % pat.length]; };
+// 조준선 속도: 몬스터 기본 속도 × 가속(정예 분노·보스 페이즈) × 감속(집중 유물·정조준 노드)
+const aimRage = () => G.cfg.boss ? 1 + ENRAGE.phase * (G.m.phase - 1) : G.m.rage ? ENRAGE.elite : 1;
+const aimSpeed = () => G.cfg.sweep * aimRage() * Math.pow(0.85, rel('focus') + (tree('o5') ? 1 : 0));
+// 철벽(핵심 노드): 전투 중 얻는 방어도 ×1.5(올림)
+const defGain = v => tree('d6') ? Math.ceil(v * 1.5) : v;
 // 연속 공격에서 남은 공격 턴 수(이번 턴 포함). 머리 위 붉은 숫자가 3 → 2 → 1로 줄어든다
 const atkLeft = it => it.n - G.m.ai;
-// 천장 타격 한 번의 피해. HUD도 같은 함수를 써서 화면 숫자와 실제 피해가 어긋나지 않게 한다.
-// 덧셈(구슬 피해·공격력·날 세우기) 뒤에 곱셈(공명·파괴자): 핵심 노드는 쌓은 덧셈을 키우는 배율이다
-function hitDmg(o){
-  let v = orbDmg(o) + G.p.atk - 1 + (tree('a1') ? 1 : 0);
-  if (orbUp(o) && tree('o3')) v *= 2;
-  if (tree('a3')) v = Math.round(v * 1.5);
-  return v;
+// 천장 타격 한 번의 피해 = 기사 공격력(⚔) + 구슬 보정 (+ 연쇄) → 핵심 노드 배율.
+// HUD도 같은 함수를 써서 화면 숫자와 실제 피해가 어긋나지 않게 한다. n = 이 구슬의 몇 번째 타격인지(HUD는 생략 = 첫 타)
+// 덧셈 뒤에 곱셈: 핵심 노드는 쌓은 덧셈을 키우는 배율이다
+function hitDmg(o, n = 1){
+  let v = G.p.atk + orbBonus(o) + (n >= 3 && tree('a5') ? 1 : 0), k = 1;
+  if (orbUp(o) && tree('o4')) k *= 2;
+  if (['heavy', 'bomb'].includes(orbKind(o)) && tree('o6')) k *= 2;
+  if (tree('a6')) k *= 1.5;
+  if (tree('a4') && G.m.hp <= G.m.max / 2) k *= 1.5;
+  return Math.round(v * k);
+}
+// 배지: 처음 따면 알림을 띄우고, 다시 따면 횟수만 센다
+function earnBadge(id){
+  const b = BADGES.find(x => x.id === id); if (!b) return;
+  const first = !META.badges[id];
+  META.badges[id] = (META.badges[id] || 0) + 1; saveMeta();
+  if (RUN) (RUN.badges = RUN.badges || []).includes(id) || RUN.badges.push(id);
+  if (first){ toast(`배지 획득 · ${b.name}`); sfx('badge'); }
+}
+function toast(msg){
+  const t = $('toast'); if (!t) return;
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2200);
 }
 // 방어도는 체력 앞에 붙은 보호막: 피해를 먼저 흡수하고 흡수한 만큼 깎인다
 function hurt(t, v){ const ab = Math.min(t.def, v); t.def -= ab; t.hp = Math.max(0, t.hp - (v - ab)); return [ab, v - ab]; }
@@ -70,8 +94,8 @@ function hurtPlayer(v, icon, fromMonster){
   const p = G.p, [ab, hit] = hurt(p, v);
   if (ab) pop(PX, 42, '-' + ab, C.ink2, 'shield');
   if (ab && fromMonster && rel('counter') && !G.m.dead)
-    G.projs.push({ x0:PX + 10, y0:66, x1:MX, y1:62, t:0, dur:0.3, kind:'dmg', v:ab });
-  if (hit){ artPose(p, 'hit'); p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
+    G.projs.push({ x0:PX + 10, y0:66, x1:MX, y1:62, t:0, dur:0.3, kind:'dmg', v:ab, counter:true });
+  if (hit){ G.lost = true; artPose(p, 'hit'); p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
   else { burst(PX, 66, C.ink3, 6); sfx('block'); }
 }
 
@@ -105,14 +129,14 @@ function onBreak(b){
 }
 // 구슬 종류별 파괴 효과
 function ballBreak(b, br){
-  if (b.kind === 'guard'){ const v = b.up ? 2 : 1; G.p.def += v; pop(PX + 12, 88, '+' + v, C.ink2, 'shield'); }
+  if (b.kind === 'guard'){ const v = defGain(b.up ? 2 : 1); G.p.def += v; pop(PX + 12, 88, '+' + v, C.ink2, 'shield'); }
   if (b.kind === 'bomb' && !b.bombed){
     b.bombed = true; G.shake = Math.max(G.shake, 3); sfx('boom');
     burst(OX + br.c * CW + CW / 2, br.y + BRH / 2, C.ink, 16);
     for (const o of G.bricks){
       if (o.dead || o === br || Math.abs(o.r - br.r) > 1 || Math.abs(o.c - br.c) > 1) continue;
       o.hp -= b.up ? 2 : 1; o.flash = 0.1;
-      if (o.hp <= 0){ o.dead = true; onBreak(o); }
+      if (o.hp <= 0){ o.dead = true; onBreak(o); if (G.shot && ++G.shot.broke === 12) earnBadge('demolish'); }
     }
   }
 }
@@ -126,21 +150,50 @@ function arrive(pr){
     if (hit) pop(jx, ab ? 32 : 44, '-' + hit, C.ink);
     sfx(hit ? 'mhit' : 'block', { big:hit >= 3 });
     if (pr.venom){ g.m.poison += pr.venom; pop(MX + 20, 30, '+' + pr.venom, C.accent, 'skull'); }
-    if (g.m.hp === 0) killMonster();
+    if (pr.shot) pr.shot.landed++;
+    if (g.m.hp === 0) killMonster(pr.counter ? 'counter' : pr.shot);
+    else checkRage();
     return;
   }
   sfx('pickup', { kind:pr.kind });
-  if (pr.kind === 'atk'){ const v = 1 + rel('harvest'); g.p.atk += v; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); renderOrbBar(); }
-  else if (pr.kind === 'def'){ const v = 2 + rel('harvest'); g.p.def += v; pop(PX + 12, 88, '+' + v, C.ink, 'shield'); }
+  if (pr.kind === 'atk'){ const v = 1 + rel('harvest') + (tree('a3') ? 1 : 0); g.p.atk += v; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); renderOrbBar(); }
+  else if (pr.kind === 'def'){ const v = defGain(2 + rel('harvest') + (tree('d5') ? 1 : 0)); g.p.def += v; pop(PX + 12, 88, '+' + v, C.ink, 'shield'); }
   else if (pr.kind === 'heal'){
     const before = g.p.hp; g.p.hp = Math.min(g.p.max, g.p.hp + 4);
     pop(PX, 30, '+' + (g.p.hp - before), C.ink, 'heart');
   } else if (pr.kind === 'poison'){ g.p.poison += pr.v; pop(PX, 30, '+' + pr.v, C.accent, 'skull'); }
 }
-function killMonster(){
+// how: 쓰러뜨린 수단. 천장 타격이면 그 발사 기록(shot), 아니면 'poison'·'counter'
+function killMonster(how){
   // 결정타가 들어가면 남은 구슬을 즉시 치워 여운을 몬스터 쓰러짐에 집중시킨다
   G.m.dead = true; G.balls = []; G.queue = []; G.shake = 6; sfx('kill');
   burst(MX, 62, C.ink, 26);
+  if (how === 'poison') earnBadge('venom');
+  else if (how === 'counter') earnBadge('counter');
+  else if (how && how.full){
+    // 가득 찬 체력을 이번 발사 하나로 다 깎았다: 천장 타격 수로 일격·삼연타를 가른다
+    if (how.landed === 1) earnBadge('oneshot');
+    else if (how.landed === 3) earnBadge('triple');
+  }
+  if (G.cfg.boss){
+    if (!G.lost) earnBadge('flawless');
+    if (G.turn <= 3) earnBadge('swift');
+  }
+}
+// 몬스터 분노: 정예는 체력 절반 이하에서 한 번, 보스는 페이즈가 오를 때. 조준선이 빨라지고(aimRage) 공·방이 오른다
+function checkRage(){
+  const m = G.m, cfg = G.cfg;
+  if (m.dead) return;
+  if (cfg.boss){
+    // 일반 보스는 절반에서 2페이즈, 최종 보스는 2/3·1/3에서 2·3페이즈
+    const next = cfg.final ? (m.hp <= m.max / 3 ? 3 : m.hp <= m.max * 2 / 3 ? 2 : 1) : (m.hp <= m.max / 2 ? 2 : 1);
+    if (next <= m.phase) return;
+    m.phase = next; m.pi = 0; m.ai = 0; m.fresh = G.phase === 'enemy' && G.eStep >= 1; m.atk += 1; m.def += 2; G.shake = 8;
+    banner(next === 3 ? '군주가 마지막 힘을 끌어낸다' : '보스가 분노했다', `${next}페이즈`, true); sfx('rage');
+  } else if (cfg.elite && !m.rage && m.hp <= m.max / 2){
+    m.rage = true; G.shake = 5;
+    banner('정예가 날뛴다', '조준 가속', true); sfx('rage');
+  }
 }
 
 // ── 구슬 물리
@@ -159,6 +212,7 @@ function hitBricks(b){
     if (br.type === 'stone' && br.hp > 0) sfx('stone');
     else sfx('brick', { orb:b.kind, combo:b.combo - 1, broke:br.hp <= 0 });
     if (br.hp <= 0){ br.dead = true; onBreak(br); ballBreak(b, br); }
+    if (br.dead && G.shot && ++G.shot.broke === 12) earnBadge('demolish');
     if (drilled) return;
     const ox = Math.min(b.x - l, r - b.x), oy = Math.min(b.y - t, bo - b.y);
     if (ox < oy){ if (b.x - l < r - b.x){ b.x = l; b.vx = -Math.abs(b.vx); } else { b.x = r; b.vx = Math.abs(b.vx); } }
@@ -182,8 +236,8 @@ function moveBall(b, dt){
       if (!G.m.dead && b.hits < hitCap() + (b.kind === 'basic' && b.up ? 1 : 0)){
         b.hits++;
         sfx('ceil', { orb:b.kind, n:b.hits - 1 });
-        const v = hitDmg(b.kind + (b.up ? '+' : ''));
-        G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.kind === 'venom' ? (b.up ? 2 : 1) : 0 });
+        const v = hitDmg(b.kind + (b.up ? '+' : ''), b.hits);
+        G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.kind === 'venom' ? (b.up ? 2 : 1) : 0, shot:G.shot });
         if (b.hits === 3 && rel('leech') && G.p.hp < G.p.max){ G.p.hp++; pop(PX, 30, '+1', C.ink, 'heart'); }
         G.cf.push({ x:b.x, t:0.25 });
         burst(b.x, BT + 1, C.ink, 6);
@@ -206,6 +260,7 @@ function fire(){
   if (mode !== 'play' || !g || g.phase !== 'aim' || g.aimT < 0.2) return;
   artPose(g.p, 'attack');
   g.phase = 'fire'; g.fireT = 1; g.fireEl = 0; g.nextLx = null;
+  g.shot = { full:g.m.hp === g.m.max, landed:0, broke:0 };
   const spread = orbKind(g.orb) !== 'split' ? [0] : orbUp(g.orb) ? [-0.32, -0.16, 0, 0.16, 0.32] : [-0.16, 0, 0.16];
   g.queue = spread.map(d => clamp(g.aim + d, AIM_MIN, AIM_MAX));
   renderOrbBar();   // "발사 대기" → "발사!"
@@ -217,6 +272,11 @@ function update(dt){
   const g = G;
   g.time += dt;
   artAdvance(g.p, dt); artAdvance(g.m, dt);
+  // 불사조(핵심 노드): 원정마다 한 번, 체력 0이 되는 순간 30%로 일어난다. 쓰러짐 판정보다 먼저 본다
+  if (g.p.hp <= 0 && tree('e6') && !RUN.revived){
+    RUN.revived = true; g.p.hp = Math.ceil(g.p.max * .3); g.p.poison = 0;
+    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner('불사조', '다시 일어선다'); sfx('heal');
+  }
   if (g.p.hp <= 0 && g.p.artAction !== 'death') artPose(g.p, 'death');
   if (g.m.dead && g.m.artAction !== 'death') artPose(g.m, 'death');
   g.m.flash = Math.max(0, g.m.flash - dt); g.p.flash = Math.max(0, g.p.flash - dt);
@@ -242,7 +302,7 @@ function update(dt){
   if (g.phase === 'aim'){
     // 조준선은 일정 속도로 좌우를 왕복한다(삼각파). 가장자리에서 느려지지 않아야 타이밍이 공정하다
     g.aimT += dt;
-    g.aim += g.aimDir * g.cfg.sweep * Math.pow(0.85, rel('focus')) * dt;
+    g.aim += g.aimDir * aimSpeed() * dt;
     if (g.aim > AIM_MAX){ g.aim = 2 * AIM_MAX - g.aim; g.aimDir = -1; }
     if (g.aim < AIM_MIN){ g.aim = 2 * AIM_MIN - g.aim; g.aimDir = 1; }
   } else if (g.phase === 'fire'){
@@ -282,7 +342,8 @@ function endPlayerTurn(){
     const d = m.poison;
     m.hp = Math.max(0, m.hp - d); m.poison--; m.flash = 0.15; artPose(m, 'hit');
     burst(MX, 62, C.accent, 8); pop(MX, 30, '-' + d, C.accent, 'skull');
-    if (m.hp === 0){ killMonster(); g.phase = 'win'; g.timer = 0; return; }
+    if (m.hp === 0){ killMonster('poison'); g.phase = 'win'; g.timer = 0; return; }
+    checkRage();
     g.timer = -0.4;
   }
 }
@@ -314,7 +375,7 @@ function enemyUpdate(dt){
       for (const b of g.bricks) b.r++;
       spawnRow(0, false); sfx('wall');
     }
-    if (g.cur.t === 'summon') replaceInRow0(3, () => ({ type:'stone', hp:3 + m.phase }));
+    if (g.cur.t === 'summon') replaceInRow0(3, () => ({ type:'stone', hp:3 + Math.min(2, m.phase) }));
     if (g.cur.t === 'spore') replaceInRow0(2, () => ({ type:'poison', hp:1 }));
     // 붕괴선을 넘은 벽돌은 무너지며 기사를 덮친다
     const hits = g.bricks.filter(b => b.r >= MAXROW);
@@ -336,11 +397,9 @@ function enemyUpdate(dt){
   if (g.eStep === 4 && g.timer >= 0.95 + g.tickT){
     g.eStep = 5;
     // 연속 공격은 n번을 다 때려야 다음 행동으로 넘어간다
-    if (g.cur.t === 'atk' && ++m.ai < g.cur.n){} else { m.ai = 0; m.pi++; }
-    if (g.cfg.boss && m.phase === 1 && m.hp <= m.max / 2){
-      m.phase = 2; m.pi = 0; m.ai = 0; m.atk += 1; m.def += 2; g.shake = 8;
-      banner('보스가 분노했다', '2페이즈', true); sfx('rage');
-    }
+    // 이번 턴 도중 페이즈가 바뀌었으면(반격 등) 새 패턴을 처음부터 쓰도록 넘기지 않는다
+    if (m.fresh) m.fresh = false;
+    else if (g.cur.t === 'atk' && ++m.ai < g.cur.n){} else { m.ai = 0; m.pi++; }
     if (p.hp <= 0){ g.phase = 'lose'; g.timer = 0; return; }
     // phase를 먼저 바꾼다: drawOrb가 구슬 줄을 다시 그릴 때 "발사!"가 "발사 대기"로 돌아오게
     g.phase = 'aim'; g.turn++; g.cur = null;

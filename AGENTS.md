@@ -45,7 +45,7 @@
   | `index.html` | DOM 골격(HUD·캔버스·오버레이)과 스크립트 로드 순서 |
   | `css/style.css` | 색 토큰(`--bg` 등, 다크 모드 포함)과 레이아웃 |
   | `js/config.js` | 화면 상수(W·H·COLS…), `$`·`clamp`·`rnd`·`pickW` 등 유틸, `readColors()` |
-  | `js/data.js` | 데이터: `MON`·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS` |
+  | `js/data.js` | 데이터: `MON`·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS`·`TREE`(스킬 트리)·`BADGES`(배지) |
   | `js/sprites.js` | 도트 리소스(`SPR`·`ICON`·`FONT`)와 `drawText`·`drawIcon`·`drawSprite` |
   | `js/art.js` | 일러스트 에셋(`assets/game`) 로드와 그리기(`drawCharArt`·`drawBrickArt`·`drawBgArt`). 로드 전·실패·Node에서는 false를 돌려 도트로 폴백 |
 | `js/audio.js` | 소리 합성: 효과음(`sfx`·`SFX`), 장면별 BGM(`bgm`·`SONGS`), 켬/끔 설정(`AUDIO`·`setAudio`) |
@@ -94,7 +94,9 @@
   - 예외(2026-10 결정): 최대 체력은 보스 처치 +4와 출발 선물로만 오른다. 몬스터 공·방이 세션마다 오르는 것을 버티는 최소 보정이다. 다른 수치 성장은 넣지 않는다.
   - 구슬 성장은 강화(+)로 효과를 한 단계 올리는 방식만 쓴다(`ORBS[*].up`).
   - 예외(2026-10 결정): 곱연산은 **스킬 트리 갈래 끝 핵심 노드에만** 둔다(영구 성장, 엔드게임 심연용). 원정 안의 보상·유물·구슬에는 곱연산을 넣지 않는다.
-  - 천장 타격 피해 = 구슬 피해(`ORB_DMG`) + (공격력 − 1) + 트리 덧셈 → 트리 곱셈. 계산은 `hitDmg()` 하나로만 한다(HUD와 실제 피해가 어긋나지 않게).
+  - 천장 타격 피해 = 기사 공격력(⚔, 기본 1) + 구슬 보정(`ORB_BONUS`) + 트리 덧셈 → 트리 곱셈. 계산은 `hitDmg()` 하나로만 한다(HUD와 실제 피해가 어긋나지 않게).
+  - 덱은 최대 `DECK_MAX`(5)개. 원정은 5세션(세션 5 보스 = 최종), 그 뒤 엔드게임은 메인에서 들어가는 심연(`RUN.abyss`).
+  - 스킬 포인트는 칸 최초 돌파 +1, 보스 최초 돌파 +3만. 트리 총비용이 본편 포인트(35)의 약 3배가 되게 유지한다(다 찍히지 않게).
 
 ## 작업 방식
 - 큰 변경 전에 계획을 짧게 보여주고 진행한다.

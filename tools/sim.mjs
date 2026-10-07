@@ -1,5 +1,6 @@
 // 헤드리스 밸런스 시뮬레이터
 // 사용법: node tools/sim.mjs [원정 횟수=60] [시드=20261006] [결과.json]
+// 환경 변수: SIM_TREE=all(스킬 트리 전부 찍은 계정) · SIM_TREE=main(본편 35점으로 살 수 있는 만큼) · SIM_ABYSS=1(심연 원정)
 //
 // index.html이 불러오는 js/*.js를 순서대로 이어 붙여 가짜 DOM 위에서 돌리고, "조준 봇"이 원정을 끝까지 플레이한다.
 // 봇은 사람보다 약하다(목표 열을 단순하게 고르고, 지도·보상은 무작위). 절대값보다 "변경 전후 비교"에 쓴다.
@@ -50,16 +51,20 @@ const session = i => sessions[i] || (sessions[i] = { entered:0, cleared:0, hp:[]
 function seededRandom(value){
   return () => { value += 0x6D2B79F5; let t = value; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
-const reach = new Array(20).fill(0), bossHp = [];
+const reach = new Array(40).fill(0), bossHp = [], finals = [];
 let s1clear = 0;
 
 for (let run = 0; run < N; run++){
   Math.random = seededRandom(seed + run);
   const entered = new Set();
   const els = {}, L = {}, store = {};
-  // SIM_TREE=all: 스킬 트리를 모두 찍은 계정으로 돌린다(심연·엔드게임 밸런스 확인용)
-  if (process.env.SIM_TREE === 'all') store['brickquest:meta:v2'] = JSON.stringify({ best:0, runs:0, soul:0,
-    tree:Object.fromEntries(['a1','a2','a3','d1','d2','d3','o1','o2','o3','e1','e2','e3'].map(k => [k, 1])) });
+  // SIM_TREE: 스킬 트리를 찍은 계정으로 돌린다(심연·엔드게임 밸런스 확인용)
+  // all = 전부, main = 본편 완주 포인트(35)로 찍을 법한 조합(공격 줄기·방어 줄기·핵심 하나)
+  const TREE_SET = { all:['a1','a2','a3','a4','a5','a6','d1','d2','d3','d4','d5','d6','o1','o2','o3','o4','o5','o6','e1','e2','e3','e4','e5','e6'],
+    main:['a1','a2','a5','a6','d1','d2','d3','d4','o1'] }[process.env.SIM_TREE];
+  const abyss = !!process.env.SIM_ABYSS;
+  if (TREE_SET || abyss) store['brickquest:meta:v3'] = JSON.stringify({ best:abyss ? 25 : 0, abyssBest:0, runs:0, clears:abyss ? 1 : 0, pts:0, badges:{},
+    tree:Object.fromEntries((TREE_SET || []).map(k => [k, 1])) });
   globalThis.document = { getElementById:id => els[id] || (els[id] = mk()), documentElement:{}, createElement:() => mk(),
     createElementNS:() => mk(), addEventListener(){}, hidden:false };
   globalThis.getComputedStyle = () => ({ getPropertyValue:() => '#000' });
@@ -71,14 +76,14 @@ for (let run = 0; run < N; run++){
   globalThis.setTimeout = () => 0; globalThis.clearTimeout = () => {};
   (0, eval)(code);
   const $ = id => document.getElementById(id);
-  $('mNew').onclick({ currentTarget:$('mNew') });
+  (abyss ? $('mAbyss') : $('mNew')).onclick({ currentTarget:abyss ? $('mAbyss') : $('mNew') });
 
   let prog = 0, done = false, want = null, wait = -1, lastTurn = '';
   for (let f = 0; f < 60 * 60 * 120 && !done; f++){
     const { RUN, G, mode } = __h.st();
     if (RUN && !entered.has(RUN.s)){ entered.add(RUN.s); session(RUN.s).entered++; }
     if (mode === 'map'){ __h.enterNode(pickOne(__h.reachable())); continue; }
-    if (['reward','rest','shop','remove','upgrade','gift','result'].includes(mode)){
+    if (['reward','rest','shop','remove','upgrade','swap','gift','result'].includes(mode)){
       if (mode === 'result'){ done = true; break; }
       const cards = $('cCards').children.filter(c => !c.disabled), btns = $('cBtns').children.filter(c => !c.disabled);
       if (mode === 'shop'){ btns[btns.length - 1].onclick(); continue; }
@@ -104,13 +109,14 @@ for (let run = 0; run < N; run++){
         if (wait < 0 && G.aimT > 0.2 && Math.abs(G.aim - want) < 0.03) wait = Math.floor(Math.random() * 5);
         if (wait === 0){ L.keydown({ key:' ', preventDefault(){} }); wait = -2; } else if (wait > 0) wait--;
       }
+      if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec && G.cfg.final) finals.push(G.p.hp / G.p.max);
       if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec){ G.__rec = 1; bossHp.push(G.p.hp / G.p.max); const ss = session(RUN.s); ss.cleared++; ss.hp.push(G.p.hp / G.p.max); ss.turns.push(G.turn); if (RUN.s === 0) s1clear++; }
     }
     now += 16.7; raf(now);
     const st = __h.st();
     if (st.RUN && st.RUN.pos) prog = Math.max(prog, st.RUN.s * 5 + st.RUN.pos.r + 1);
   }
-  reach[Math.min(prog, 19)]++;
+  reach[Math.min(prog, 39)]++;
   runs.push({ run, completed:done, progress:prog });
 }
 
@@ -123,6 +129,8 @@ console.log('보스 격파 순간 남은 체력 중앙값', bossHp.length ? (med
             `/ 30% 이하로 이긴 비율 ${bossHp.filter(x => x <= .3).length}/${bossHp.length}`);
 
 Math.random = nativeRandom;
+console.log(`원정 완주(최종 보스 격파) ${finals.length}/${N} (${(finals.length / N * 100).toFixed(0)}%)`,
+            finals.length ? `/ 격파 순간 남은 체력 중앙값 ${(med(finals) * 100).toFixed(0)}%` : '');
 console.log(`재현 시드 ${seed}; 시간 제한 도달 ${runs.filter(r => !r.completed).length}회`);
 const report = sessions.map((s, i) => ({ session:i + 1, entered:s.entered, cleared:s.cleared,
   reachPct:100 * s.entered / N, conditionalClearPct:100 * s.cleared / s.entered,

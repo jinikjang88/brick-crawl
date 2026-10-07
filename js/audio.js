@@ -145,6 +145,8 @@ const SFX = {
   heal:(d, t) => arp(d, t, [64, 67, 72, 76, 79], 0.07, { wave:'sine', dur:0.25, vol:0.26 }),
   // UI: 고르기
   pick:(d, t) => tone(d, t, { f:midiHz(79), wave:'square', dur:0.05, vol:0.12 }),
+  // 배지 획득: 종소리 같은 높은 화음 두 번
+  badge:(d, t) => { arp(d, t, [84, 88, 91, 96], 0.06, { wave:'triangle', dur:0.3, vol:0.24 }); arp(d, t + 0.3, [91, 96], 0.08, { wave:'sine', dur:0.5, vol:0.18 }); },
 };
 
 // ── BGM: 16분음표 단위 시퀀서. 악보는 토큰 문자열: 음이름(A4·C#5·Bb1) = 새 음, '-' = 늘임, '.' = 쉼
@@ -183,6 +185,27 @@ const SONGS = {
     { drum:true, vol:0.5, s:score(`
       k . h . s . h . k . h k s . h .   k . h . s . h . k . h k s . h .
       k . h . s . h . k . h k s . h .   k . h . s . h . k . h k s s h s`) },
+  ]},
+  // 심연(지도): 느리고 텅 빈 반음 진행. 사인 저음 위에 삼각파가 멀리서 울린다
+  abyss:{ bpm:66, parts:[
+    { wave:'triangle', vol:0.16, s:score(`
+      E4 - - - - - F4 - - - - - . . . .   D#4 - - - - - E4 - - - - - . . . .
+      G4 - - - - - F#4 - - - F4 - - - . .   E4 - - - - - - - . . . . . . . .`) },
+    { wave:'sine', vol:0.34, s:score(`
+      E2 - - - - - - - - - - - - - - -   E2 - - - - - - - - - - - - - - -
+      C2 - - - - - - - - - - - - - - -   B1 - - - - - - - - - - - - - - -`) },
+  ]},
+  // 심연(전투): 무거운 단2도 반복 리프와 둔한 북. 본편 전투곡보다 느리고 낮다
+  deep:{ bpm:112, parts:[
+    { wave:'square', vol:0.1, s:score(`
+      E4 . F4 . E4 . . . B4 - Bb4 - A4 . G4 .   E4 . F4 . E4 . . . G4 - F4 - E4 - . .
+      E4 . F4 . E4 . . . B4 - C5 - B4 . Bb4 .   A4 - - - G4 - - - F4 - - - E4 - - -`) },
+    { wave:'sawtooth', vol:0.15, s:score(`
+      E2 . E2 . F2 . E2 . E2 . E2 . F2 . E2 .   E2 . E2 . F2 . E2 . C2 . C2 . B1 . B1 .
+      E2 . E2 . F2 . E2 . E2 . E2 . F2 . E2 .   A1 . A1 . A1 . A1 . B1 . B1 . B1 . B1 .`) },
+    { drum:true, vol:0.5, s:score(`
+      k . . . s . . k k . . . s . h .   k . . . s . . k k . . . s . h .
+      k . . . s . . k k . . . s . h .   k . k . s . k . k k . . s s s .`) },
   ]},
   boss:{ bpm:150, parts:[
     { wave:'square', vol:0.12, s:score(`
