@@ -17,7 +17,8 @@ const MON = {
   shroom: { name:'독버섯', spr:'shroom', hp:9, atk:1, def:1, sweep:1.3,
     pattern:[{t:'atk',n:1},{t:'poison',v:2},{t:'atk',n:1},{t:'spore'}],
     row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 }, poison:.2 } },
-  boss: { name:'탑의 주인', spr:'boss', hp:20, atk:1, def:1, sweep:1.4, boss:true,
+  // 체력 20 → 14(2026-10-07): 일반 전투 구슬 보상을 없애 1층 보스 전 덱이 얇아졌다. 시뮬레이터 300회 1층 돌파 18% → 32%
+  boss: { name:'탑의 주인', spr:'boss', hp:14, atk:1, def:1, sweep:1.4, boss:true,
     // 세션마다 공격력이 +1씩 오르므로 연속 턴이 길면 후반 한 묶음 피해가 최대 체력을 넘는다(3세션 2페이즈 4×6=24). 턴 수로 묶음 크기를 누른다
     pattern:[{t:'atk',n:3},{t:'summon'}],
     pattern2:[{t:'atk',n:4},{t:'summon'}],
@@ -41,7 +42,8 @@ const FINAL_S = 4, SESSIONS = FINAL_S + 1;
 // base: 심연 1층 몬스터를 본편 몇 세션 세기로 시작할지(새 덱으로 들어가므로 본편 끝보다 낮게 둔다)
 const ABYSS = { base:1, hp:1.25, atk:1 };
 const isAbyss = () => !!(RUN && RUN.abyss);
-const stageName = (s, abyss = isAbyss()) => abyss ? `심연 ${s + 1}층` : `세션 ${s + 1}`;
+// 탑을 오르는 원정이라 본편 단위는 "층", 층 안의 칸은 "방"이라 부른다(코드의 s·r은 그대로)
+const stageName = (s, abyss = isAbyss()) => abyss ? `심연 ${s + 1}층` : `${s + 1}층`;
 function monCfg(id, s, elite, abyss){
   const b = MON[id], dp = abyss ? s + 1 : 0, lv = abyss ? s + ABYSS.base : s;
   return Object.assign({}, b, {
@@ -135,7 +137,7 @@ const hitCap = () => 3 + rel('combo') + (tree('a2') ? 1 : 0);
 const BADGES = [
   { id:'oneshot',  name:'일격',       icon:'sword',   desc:'체력이 가득 찬 몬스터를 천장 타격 한 번으로 쓰러뜨린다' },
   { id:'triple',   name:'삼연타',     icon:'o_split', desc:'구슬 하나가 천장을 딱 세 번 쳐서 가득 찬 체력을 모두 깎는다' },
-  { id:'final',    name:'탑의 정복자', icon:'up',      desc:'세션 5의 최종 보스를 쓰러뜨린다' },
+  { id:'final',    name:'탑의 정복자', icon:'up',      desc:'5층의 최종 보스를 쓰러뜨린다' },
   { id:'flawless', name:'무결',       icon:'shield',  desc:'체력을 하나도 잃지 않고 보스를 쓰러뜨린다' },
   { id:'swift',    name:'속전속결',   icon:'o_drill', desc:'보스를 3턴 안에 쓰러뜨린다' },
   { id:'demolish', name:'철거반',     icon:'brick',   desc:'한 번 발사로 벽돌 12개를 부순다' },
