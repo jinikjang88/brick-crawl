@@ -35,6 +35,7 @@ function draw(){
     ctx.fillStyle = C.field; ctx.fillRect(0, BT, W, H - BT);
   }
   const g = G; if (!g) return;
+  if (isAbyss()) drawAbyssFx(g.time);
   const sx = g.shake > 0 ? Math.round((Math.random() - .5) * g.shake) : 0;
   const sy = g.shake > 0 ? Math.round((Math.random() - .5) * g.shake) : 0;
   ctx.setTransform(RES, 0, 0, RES, sx * RES, sy * RES);
@@ -114,6 +115,10 @@ function draw(){
     ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 1); ctx.fillRect(Math.round(x) - 1, Math.round(y) + 1, 3, 1);
   }
 
+  // 조준선 가속 중(정예 분노·보스 페이즈): 발사대 양옆에 붉은 화살표. 말 대신 "지금 빨라졌다"를 보여 준다
+  if (g.phase === 'aim' && aimRage() > 1 && Math.floor(g.time * 4) % 2 === 0){
+    drawIcon('up', g.lx - 17, FLOOR - 9, C.accent); drawIcon('up', g.lx + 11, FLOOR - 9, C.accent);
+  }
   // 발사대: 이번에 쏠 구슬의 아이콘을 보여준다
   if (g.phase === 'aim' || (g.phase === 'fire' && g.queue.length)){
     ctx.fillStyle = C.ink2; ctx.fillRect(g.lx - 7, FLOOR - 1, 14, 2);
@@ -159,6 +164,24 @@ function draw(){
   ctx.globalAlpha = 1;
 }
 
+// 심연: 바닥 틈에서 붉은 불씨가 올라오고, 천장 아래로 금이 간다. 위치는 시간으로만 정해 게임 무작위와 섞이지 않는다
+function drawAbyssFx(t){
+  ctx.fillStyle = '#000'; ctx.globalAlpha = .35; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+  ctx.fillStyle = C.accent;
+  for (let k = 0; k < 14; k++){
+    const sp = 9 + (k * 7) % 11, y = H - ((t * sp + k * 53) % (H + 20)), x = (k * 37 + Math.sin(t * .8 + k) * 6) % W;
+    ctx.globalAlpha = .25 + .35 * ((k * 13) % 5) / 5;
+    ctx.fillRect(Math.round(x), Math.round(y), k % 3 ? 1 : 2, k % 3 ? 1 : 2);
+  }
+  // 천장 아래 금: 고정 모양의 지그재그 몇 줄
+  ctx.globalAlpha = .55;
+  for (const x0 of [22, 71, 128]){
+    let x = x0;
+    for (let y = BT; y < BT + 18; y += 3){ ctx.fillRect(x, y, 1, 3); x += ((x0 + y) % 3) - 1; }
+  }
+  ctx.globalAlpha = 1;
+}
+
 // ── HUD
 function setHeader(stage, name){ $('hStage').textContent = stage; $('hName').textContent = name; }
 function renderCoins(){ $('hCoin').textContent = RUN && mode !== 'main' ? `코인 ${RUN.coins}` : ''; }
@@ -177,15 +200,18 @@ function renderOrbBar(){
     const small = document.createElement('small'); small.textContent = fired ? '발사!' : '발사 대기';
     if (fired) small.className = 'fired';
     const name = document.createElement('b'); name.textContent = orbName(G.orb);
-    // 지금 공격력까지 더한 실제 천장 타격 피해: ⚔ 벽돌을 깰수록 이 숫자가 오르는 게 보인다
-    const dmg = document.createElement('em'); dmg.className = 'dmg'; dmg.textContent = `피해 ${hitDmg(G.orb)}`;
+    // 피해 = 기사 ⚔ + 구슬 보정을 식으로 보여 준다. ⚔ 벽돌을 깨면 왼쪽 숫자가, 센 구슬을 쓰면 오른쪽 숫자가 오른다.
+    // 핵심 노드 배율이 붙으면 결과만 커진다(식은 덧셈 부분만)
+    const bonus = orbBonus(G.orb), dmg = document.createElement('em'); dmg.className = 'dmg';
+    dmg.textContent = `⚔${G.p.atk} + ${bonus} = ${hitDmg(G.orb)}`;
+    dmg.title = '천장 타격 피해 = 기사 공격력 + 구슬 보정';
     name.append(dmg);
     label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
     const next = document.createElement('div'); next.className = 'orbNext';
     const text = document.createElement('span'); text.textContent = '다음';
     next.append(text, orbPortrait(orbKind(nextOrb())), orbName(nextOrb()).replace(' 구슬', ''));
     el.append(current, next); el.title = orbDesc(G.orb);
-  } else el.append(`구슬 덱 ${RUN.deck.length}개: ${deckSummary()}`);
+  } else el.append(`구슬 덱 ${RUN.deck.length}/${DECK_MAX}: ${deckSummary()}`);
 }
 function renderAbil(){
   const box = $('abil'); box.textContent = '';

@@ -49,5 +49,7 @@ function ensureProfile(){
   if (!PROFILE){ PROFILE = { id:uuid(), name:makeNickname(), registered:false, queue:[] }; saveProfile(); }
   return PROFILE;
 }
-// 원정에서 끝까지 완료한 칸 수(1세션 보스까지 = 5). META.best와 같은 단위
-const runProgress = r => r ? r.s * 5 + (r.pos ? r.pos.r + 1 : 0) : 0;
+// 원정에서 끝까지 완료한 칸 수(1세션 보스까지 = 5). 랭킹 단위다.
+// 심연은 본편 25칸 위에 이어 센다: 본편을 깨야 들어갈 수 있으니 심연 기록은 언제나 본편 완주보다 높다
+const runCells = r => r ? r.s * 5 + (r.pos ? r.pos.r + 1 : 0) : 0;
+const runProgress = r => r ? (r.abyss ? MAIN_CELLS : 0) + runCells(r) : 0;
