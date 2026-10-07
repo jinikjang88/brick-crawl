@@ -29,15 +29,17 @@ function showSwap(id, done, back){
       onPick:() => { RUN.deck[RUN.deck.indexOf(o)] = id; done(); } })),
     buttons:[{ label:'취소', onClick:back }] });
 }
+// 보상 단계: 'elite'·'boss' = 유물 고르기 → 'elite-orb'·'boss-orb' = 구슬 보상. ('orb'는 예전 저장의 일반 전투 보상)
+const isOrbReward = k => typeof k === 'string' && (k === 'orb' || k.endsWith('-orb'));
 function showReward(kind){
   rerollLeft = rerollMax();
-  rewardStock = kind === 'orb' ? rollOrbs() : rollRelics(3);
+  rewardStock = isOrbReward(kind) ? rollOrbs() : rollRelics(3);
   renderReward(kind);
 }
 function renderReward(kind){
-  const isOrb = kind === 'orb';
+  const isOrb = isOrbReward(kind);
   const pts = RUN.lastPts ? ` 스킬 포인트 +${RUN.lastPts}(첫 돌파).` : '';
-  const head = (kind === 'boss' ? `${stageName(RUN.s)} 돌파! 최대 체력 +4, 체력 절반 회복, 코인 +${RUN.lastGain || 0}.`
+  const head = isOrb && kind !== 'orb' ? '유물을 챙겼다.' : (kind === 'boss' ? `${stageName(RUN.s)} 돌파! 최대 체력 +4, 체력 절반 회복, 코인 +${RUN.lastGain || 0}.`
     : `승리! 코인 +${RUN.lastGain || 0}.`) + pts;
   const cards = rewardStock.map(id => isOrb
     ? { name:ORBS[id].name, tag:deckFull() ? '교체' : '', desc:orbDesc(id), rare:ORBS[id].rar === 2,
@@ -51,12 +53,16 @@ function renderReward(kind){
                      onClick:() => { rerollLeft--; rewardStock = isOrb ? rollOrbs() : rollRelics(3); renderReward(kind); } }];
   // 구슬은 안 받는 것도 전략이다: 덱이 얇을수록 좋은 구슬이 자주 나온다
   if (isOrb || !cards.length) buttons.push({ label:'건너뛰기', onClick:() => takeReward(() => {}, kind) });
+  setHeader(stageName(RUN.s), isOrb ? '구슬 보상' : '유물 보상');
   showChoice({ mode:'reward', title:isOrb ? '구슬 보상' : '유물 하나를 고른다',
                sub:head + (isOrb ? ` 구슬을 덱에 넣거나(최대 ${DECK_MAX}개) 가진 구슬을 강화한다. 지금 덱 ${RUN.deck.length}/${DECK_MAX}: ${deckSummary()}` : ''), cards, buttons });
 }
 function takeReward(apply, kind){
-  apply(); RUN.pendingReward = null;
-  if (kind === 'boss'){ RUN.s++; RUN.map = genMap(RUN.s, RUN.abyss); RUN.pos = null; RUN.path = []; }
+  apply();
+  // 정예·보스는 유물 다음에 구슬 보상이 한 번 더 온다. 단계를 저장해 새로고침해도 이어진다
+  if (kind === 'elite' || kind === 'boss'){ RUN.pendingReward = kind + '-orb'; saveRun(); return showReward(RUN.pendingReward); }
+  RUN.pendingReward = null;
+  if (kind === 'boss-orb'){ RUN.s++; RUN.map = genMap(RUN.s, RUN.abyss); RUN.pos = null; RUN.path = []; }
   saveRun(); showMap();
 }
 
@@ -64,13 +70,9 @@ function takeReward(apply, kind){
 function showRest(){
   const amt = Math.ceil(RUN.maxHp * 0.4) + (tree('e5') ? 5 : 0);
   setHeader(`${stageName(RUN.s)}`, '휴식');
-  showChoice({ mode:'rest', scene:'rest', title:'모닥불', sub:`체력 ${RUN.hp}/${RUN.maxHp}. 하나만 할 수 있다.`, cards:[
+  showChoice({ mode:'rest', scene:'rest', title:'모닥불', sub:`체력 ${RUN.hp}/${RUN.maxHp}. 불 곁에서 쉬어 간다.`, cards:[
     { name:'쉬기', desc:`체력 ${amt} 회복`, disabled:RUN.hp >= RUN.maxHp,
       onPick:() => { RUN.hp = Math.min(RUN.maxHp, RUN.hp + amt); sfx('heal'); finishNonBattle(); } },
-    { name:'덜어내기', desc:'구슬 1개를 덱에서 뺀다. 좋은 구슬이 더 자주 나온다', disabled:RUN.deck.length <= 2,
-      onPick:() => showRemove(finishNonBattle, () => showRest()) },
-    { name:'단련', desc:'구슬 1개를 강화한다(+)', disabled:!RUN.deck.some(o => !orbUp(o)),
-      onPick:() => showUpgrade(() => { sfx('heal'); finishNonBattle(); }, () => showRest()) },
   ], buttons:[{ label:'그냥 지나간다', onClick:finishNonBattle }] });
 }
 function showRemove(done, back){

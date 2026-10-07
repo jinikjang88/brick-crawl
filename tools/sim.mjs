@@ -86,7 +86,12 @@ for (let run = 0; run < N; run++){
     if (['reward','rest','shop','remove','upgrade','swap','gift','result'].includes(mode)){
       if (mode === 'result'){ done = true; break; }
       const cards = $('cCards').children.filter(c => !c.disabled), btns = $('cBtns').children.filter(c => !c.disabled);
-      if (mode === 'shop'){ btns[btns.length - 1].onclick(); continue; }
+      // 상점: 살 수 있는 구슬을 사고 나간다. 구슬 보상이 정예·보스·상점으로 줄어 상점을 안 쓰는 봇은 실제보다 약하다
+      if (mode === 'shop'){
+        const all = $('cCards').children, i = (RUN.shop || []).findIndex(it => it.k === 'orb' && !it.sold && RUN.coins >= it.price);
+        if (i >= 0 && all[i] && !all[i].disabled){ all[i].onclick(); continue; }
+        btns[btns.length - 1].onclick(); continue;
+      }
       if (cards.length) cards[0].onclick(); else btns[btns.length - 1].onclick();
       continue;
     }

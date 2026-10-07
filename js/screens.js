@@ -75,9 +75,9 @@ function showMain(){
   nw.textContent = '새 원정'; nw.dataset.arm = '';
   // 심연은 본편을 한 번 깨야 열린다. 닫혀 있을 때도 자리를 보여 줘 "끝에 무언가 있다"는 걸 알린다
   ab.disabled = !abyssOpen(); ab.dataset.arm = '';
-  ab.textContent = abyssOpen() ? '심연으로' : '심연 · 세션 5를 깨면 열린다';
+  ab.textContent = abyssOpen() ? '심연으로' : '심연 · 5층을 깨면 열린다';
   if (abyssOpen() && META.abyssBest){ const sm = document.createElement('small'); sm.textContent = `최고 ${progLabel(MAIN_CELLS + META.abyssBest)}`; ab.append(sm); }
-  $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 칸이 없다' : '첫 원정을 떠나 보자')
+  $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 방이 없다' : '첫 원정을 떠나 보자')
     + (META.runs ? ` · 원정 ${META.runs}회` : '') + (META.clears ? ` · 완주 ${META.clears}회` : '');
   $('mTree').textContent = '스킬 트리';
   const tp = document.createElement('small'); tp.textContent = `포인트 ${META.pts}`; $('mTree').append(tp);
@@ -158,7 +158,7 @@ const TREE_TOTAL = TREE.reduce((a, n) => a + n.cost, 0);
 function showTree(back){
   treeBack = back || treeBack || showMain;
   const spent = TREE.reduce((a, n) => a + (tree(n.id) ? n.cost : 0), 0);
-  $('treeSub').textContent = `포인트 ${META.pts} · 찍음 ${spent}/${TREE_TOTAL} · 칸을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
+  $('treeSub').textContent = `포인트 ${META.pts} · 찍음 ${spent}/${TREE_TOTAL} · 방을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
   const box = $('treeBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('aria-hidden', 'true');
@@ -242,6 +242,9 @@ function resumeRun(){
   setRealm(RUN.abyss);
   // 출발 선물 시절 저장(선물 고르기 전): 선물 없이 지도로
   if (RUN.gift){ RUN.gift = false; RUN.giftStock = null; saveRun(); }
+  // 깨진 저장(문자열이 아닌 보상 단계)은 보상을 건너뛰고 지도로: 이어하기가 막히지 않게
+  const PR = ['orb', 'elite', 'boss', 'elite-orb', 'boss-orb'];
+  if (RUN.pendingReward && !PR.includes(RUN.pendingReward)){ RUN.pendingReward = null; saveRun(); }
   if (RUN.pendingReward) return showReward(RUN.pendingReward);
   if (RUN.pending) return enterNode(nodeAt(RUN.pending.r, RUN.pending.l));
   showMap();
@@ -268,13 +271,15 @@ function nodeIcon(n){
   if (src){ ic.alt = ''; ic.src = 'assets/game/' + src + '.png'; ic.onerror = () => ic.remove(); }
   return ic;
 }
-function showMap(){
+function showMap(note){
   G = null;
   setRealm(RUN.abyss);
   // 본편은 "세션 2 / 5"처럼 남은 거리를, 심연은 층만 보여 준다(끝이 없다)
   $('mapTitle').textContent = RUN.abyss ? stageName(RUN.s) : `${stageName(RUN.s)} / ${SESSIONS}`;
   $('ovMap').classList.toggle('abyss', !!RUN.abyss);
   $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  코인 ${RUN.coins}  구슬 ${RUN.deck.length}/${DECK_MAX}`;
+  // 일반 전투는 보상 화면 없이 지도로 돌아오므로, 얻은 코인을 부제 앞에 한 번 보여 준다
+  if (note) $('mapSub').textContent = `${note} · ${$('mapSub').textContent}`;
   const box = $('mapBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
@@ -303,7 +308,7 @@ function showMap(){
     b.style.setProperty('--d', (n.r * 70 + n.l * 18) + 'ms');
     const cap = document.createElement('small'); cap.textContent = n.mon === 'lord' ? '최종' : NODE_NAME[n.t];
     b.append(nodeIcon(n), cap);
-    b.setAttribute('aria-label', `${n.r + 1}번째 칸 ${NODE_NAME[n.t]}${canGo ? ', 갈 수 있음' : ''}`);
+    b.setAttribute('aria-label', `${n.r + 1}번째 방 ${NODE_NAME[n.t]}${canGo ? ', 갈 수 있음' : ''}`);
     b.disabled = !canGo;
     b.onclick = () => { if (mode === 'map' && canGo) enterNode(n); };
     box.append(b);
@@ -343,9 +348,9 @@ function finishNonBattle(){
 function startBattle(n){
   setRealm(RUN.abyss);
   newBattle(n);
-  const label = `${RUN.s + 1}-${n.r + 1}`;
+  const label = `${stageName(RUN.s)} · ${n.r + 1}번째 방`;
   // 공백 두 칸은 HTML에서 하나로 줄어 "세션 11-1"처럼 붙어 읽혔다. 구분점으로 나눈다
-  setHeader(`${stageName(RUN.s)} · ${n.r + 1}칸 ${G.cfg.final ? '최종 보스' : NODE_NAME[n.t]}`, G.cfg.name);
+  setHeader(`${stageName(RUN.s)} · ${n.r + 1}번째 방 ${G.cfg.final ? '최종 보스' : NODE_NAME[n.t]}`, G.cfg.name);
   setMode('play', null);
   banner(G.cfg.final ? '최종 보스' : n.t === 'boss' ? `${stageName(RUN.s)} 보스` : label, G.cfg.name, n.t !== 'battle');
   bgm(n.t === 'boss' ? 'boss' : RUN.abyss ? 'deep' : 'battle');
@@ -363,9 +368,11 @@ function battleEnd(win){
   // 세션 돌파: 최대 체력 +4 후 절반 회복. 몬스터는 세션마다 공·방이 오르는데 기사 체력만 고정이면 후반이 벽이 된다
   if (n.t === 'boss'){ RUN.maxHp += 4; RUN.hp = Math.min(RUN.maxHp, RUN.hp + 4 + Math.ceil(RUN.maxHp / 2)); }
   completeNode();
-  RUN.pendingReward = n.t === 'battle' ? 'orb' : n.t;
-  saveRun();
   sfx('win'); bgm(calmSong());
+  // 구슬 보상은 정예·보스(유물 다음)와 상점에서만: 매 전투마다 덱이 불면 구슬 하나하나의 무게가 가벼워진다
+  if (n.t === 'battle'){ RUN.pendingReward = null; saveRun(); if (RUN.lastPts) toast(`스킬 포인트 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 코인 +${gain}` + (RUN.lastPts ? ` · 스킬 포인트 +${RUN.lastPts}` : '')); return; }
+  RUN.pendingReward = n.t;
+  saveRun();
   showReward(RUN.pendingReward);
 }
 // 최종 보스 격파 = 원정 완주. 저장을 지우고 결과를 보여 준 뒤 메인으로 돌아간다(메인에서 심연이 열린다)
@@ -391,7 +398,7 @@ function runOver(){
   bgm(null); sfx('lose');
   showChoice({
     mode:'result', title:'원정 실패',
-    sub:`${stageName(RUN.s)} ${n.r + 1}칸, ${G.cfg.name}에게 쓰러졌다. 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개를 모았다. 이번 원정 스킬 포인트 +${RUN.pts || 0} (가진 포인트 ${META.pts})`,
+    sub:`${stageName(RUN.s)} ${n.r + 1}번째 방, ${G.cfg.name}에게 쓰러졌다. 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개를 모았다. 이번 원정 스킬 포인트 +${RUN.pts || 0} (가진 포인트 ${META.pts})`,
     cards:[], buttons:[
       // 쓰러진 곳이 심연이면 다시 심연으로(버튼이 인자 없이 부르므로 감싼다)
       { label:RUN.abyss ? '다시 심연으로' : '새 원정', primary:true, onClick:() => startNewRun(RUN.abyss) },

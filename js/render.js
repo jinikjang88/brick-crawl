@@ -203,8 +203,10 @@ function renderOrbBar(){
     // 피해 = 기사 ⚔ + 구슬 보정을 식으로 보여 준다. ⚔ 벽돌을 깨면 왼쪽 숫자가, 센 구슬을 쓰면 오른쪽 숫자가 오른다.
     // 핵심 노드 배율이 붙으면 결과만 커진다(식은 덧셈 부분만)
     const bonus = orbBonus(G.orb), dmg = document.createElement('em'); dmg.className = 'dmg';
-    dmg.textContent = `⚔${G.p.atk} + ${bonus} = ${hitDmg(G.orb)}`;
-    dmg.title = '천장 타격 피해 = 기사 공격력 + 구슬 보정';
+    const hp = hitParts(G.orb), sum = `⚔${G.p.atk} + ${bonus}`;
+    // 스킬 트리 배율이 있으면 괄호로 묶어 곱한다: (⚔2 + 3) ×1.5 = 8
+    dmg.textContent = hp.k !== 1 ? `(${sum}) ×${+hp.k.toFixed(2)} = ${hp.v}` : `${sum} = ${hp.v}`;
+    dmg.title = '천장 타격 피해 = (기사 공격력 + 구슬 보정) × 스킬 트리 배율';
     name.append(dmg);
     label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
     const next = document.createElement('div'); next.className = 'orbNext';

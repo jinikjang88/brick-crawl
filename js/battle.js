@@ -66,14 +66,18 @@ const atkLeft = it => it.n - G.m.ai;
 // 천장 타격 한 번의 피해 = 기사 공격력(⚔) + 구슬 보정 (+ 연쇄) → 핵심 노드 배율.
 // HUD도 같은 함수를 써서 화면 숫자와 실제 피해가 어긋나지 않게 한다. n = 이 구슬의 몇 번째 타격인지(HUD는 생략 = 첫 타)
 // 덧셈 뒤에 곱셈: 핵심 노드는 쌓은 덧셈을 키우는 배율이다
-function hitDmg(o, n = 1){
-  let v = G.p.atk + orbBonus(o) + (n >= 3 && tree('a5') ? 1 : 0), k = 1;
+// 덧셈 부분(base)과 곱셈 배율(k)을 나눠 돌려준다. HUD가 같은 분해를 그대로 보여 줘야
+// "⚔2 + 3 = 8"처럼 배율이 빠진 식이 나오지 않는다
+function hitParts(o, n = 1){
+  const base = G.p.atk + orbBonus(o) + (n >= 3 && tree('a5') ? 1 : 0);
+  let k = 1;
   if (orbUp(o) && tree('o4')) k *= 2;
   if (['heavy', 'bomb'].includes(orbKind(o)) && tree('o6')) k *= 2;
   if (tree('a6')) k *= 1.5;
   if (tree('a4') && G.m.hp <= G.m.max / 2) k *= 1.5;
-  return Math.round(v * k);
+  return { base, k, v:Math.round(base * k) };
 }
+const hitDmg = (o, n = 1) => hitParts(o, n).v;
 // 배지: 처음 따면 알림을 띄우고, 다시 따면 횟수만 센다
 function earnBadge(id){
   const b = BADGES.find(x => x.id === id); if (!b) return;
@@ -145,6 +149,7 @@ function arrive(pr){
   if (pr.kind === 'dmg'){
     if (g.m.dead) return;
     const [ab, hit] = hurt(g.m, pr.v); g.m.flash = 0.1; artPose(g.m, 'hit');
+    if (tree('a4')) renderOrbBar();   // 처형 배율은 몬스터 체력 절반에서 켜지므로 HUD 식도 그때 바꾼다
     const jx = MX + (Math.random() * 16 - 8);
     if (ab) pop(jx, 44, '-' + ab, C.ink2, 'shield');
     if (hit) pop(jx, ab ? 32 : 44, '-' + hit, C.ink);
