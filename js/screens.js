@@ -242,6 +242,9 @@ function resumeRun(){
   setRealm(RUN.abyss);
   // 출발 선물 시절 저장(선물 고르기 전): 선물 없이 지도로
   if (RUN.gift){ RUN.gift = false; RUN.giftStock = null; saveRun(); }
+  // 깨진 저장(문자열이 아닌 보상 단계)은 보상을 건너뛰고 지도로: 이어하기가 막히지 않게
+  const PR = ['orb', 'elite', 'boss', 'elite-orb', 'boss-orb'];
+  if (RUN.pendingReward && !PR.includes(RUN.pendingReward)){ RUN.pendingReward = null; saveRun(); }
   if (RUN.pendingReward) return showReward(RUN.pendingReward);
   if (RUN.pending) return enterNode(nodeAt(RUN.pending.r, RUN.pending.l));
   showMap();
@@ -367,7 +370,7 @@ function battleEnd(win){
   completeNode();
   sfx('win'); bgm(calmSong());
   // 구슬 보상은 정예·보스(유물 다음)와 상점에서만: 매 전투마다 덱이 불면 구슬 하나하나의 무게가 가벼워진다
-  if (n.t === 'battle'){ RUN.pendingReward = null; saveRun(); showMap(`승리! 코인 +${gain}`); return; }
+  if (n.t === 'battle'){ RUN.pendingReward = null; saveRun(); if (RUN.lastPts) toast(`스킬 포인트 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 코인 +${gain}` + (RUN.lastPts ? ` · 스킬 포인트 +${RUN.lastPts}` : '')); return; }
   RUN.pendingReward = n.t;
   saveRun();
   showReward(RUN.pendingReward);

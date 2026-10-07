@@ -30,7 +30,7 @@ function showSwap(id, done, back){
     buttons:[{ label:'취소', onClick:back }] });
 }
 // 보상 단계: 'elite'·'boss' = 유물 고르기 → 'elite-orb'·'boss-orb' = 구슬 보상. ('orb'는 예전 저장의 일반 전투 보상)
-const isOrbReward = k => k === 'orb' || k.endsWith('-orb');
+const isOrbReward = k => typeof k === 'string' && (k === 'orb' || k.endsWith('-orb'));
 function showReward(kind){
   rerollLeft = rerollMax();
   rewardStock = isOrbReward(kind) ? rollOrbs() : rollRelics(3);
