@@ -18,24 +18,25 @@ function genMap(s, abyss){
   // 심연은 첫 칸부터 아무 몬스터나 나온다(본편처럼 슬라임으로 몸을 풀 틈을 주지 않는다)
   const pools = abyss ? [['slime','bat','golem'], ['bat','golem','shroom'], ['golem','shroom','bat'], ['shroom','golem','bat']]
     : [['slime'], ['bat','golem'], ['golem','shroom'], ['shroom','golem','bat']];
+  // 길을 먼저 잇고 칸 종류를 정한다: 이어진 앞 칸이 휴식이면 휴식, 상점이면 상점이 다시 나오지 않게(연속 휴식·상점 금지)
   const rows = [];
   for (let r = 0; r < 4; r++){
     const row = [];
-    for (let l = 0; l < LANES; l++){
-      let t = 'battle';
-      if (r > 0){
-        const w = { battle:45, elite:r === 1 ? 10 : 16, shop:17, rest:r === 3 ? 34 : 18 };
-        t = pickW(w);
-      }
-      const mon = t === 'elite' ? pickOne(['bat','golem','shroom']) : t === 'battle' ? pickOne(pools[r]) : null;
-      row.push({ r, l, t, mon, to:[] });
-    }
+    for (let l = 0; l < LANES; l++) row.push({ r, l, t:'battle', mon:null, to:[] });
     rows.push(row);
   }
   for (let r = 0; r < 3; r++) for (const n of rows[r]){
     n.to = [n.l];
     if (n.l > 0 && Math.random() < .4) n.to.push(n.l - 1);
     if (n.l < LANES - 1 && Math.random() < .4) n.to.push(n.l + 1);
+  }
+  for (let r = 0; r < 4; r++) for (const n of rows[r]){
+    if (r > 0){
+      const w = { battle:45, elite:r === 1 ? 10 : 16, shop:17, rest:r === 3 ? 34 : 18 };
+      for (const p of rows[r - 1]) if (p.to.includes(n.l) && (p.t === 'rest' || p.t === 'shop')) delete w[p.t];
+      n.t = pickW(w);
+    }
+    n.mon = n.t === 'elite' ? pickOne(['bat','golem','shroom']) : n.t === 'battle' ? pickOne(pools[r]) : null;
   }
   for (const n of rows[3]) n.to = [BOSS_L];
   rows.push([{ r:4, l:BOSS_L, t:'boss', mon:!abyss && s === FINAL_S ? 'lord' : 'boss', to:[] }]);
