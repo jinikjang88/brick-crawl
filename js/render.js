@@ -228,6 +228,7 @@ function renderAbil(){
   for (const id of ids){
     const c = document.createElement('span');
     c.textContent = RELICS[id].name + (RUN.relics[id] > 1 ? ' ' + RUN.relics[id] : '');
+    c.append(relicPortrait(id, 'relicMini'));
     c.title = RELICS[id].desc;
     box.append(c);
   }

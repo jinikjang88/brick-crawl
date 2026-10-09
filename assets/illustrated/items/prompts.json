@@ -1,0 +1,234 @@
+{
+  "tool": "built-in image_gen",
+  "reference": "assets/illustrated/collection.png",
+  "prompts": [
+    {
+      "id": "orb_bounce",
+      "prompt": "Use case: stylized-concept. Create ONE game item asset: bounce orb, a round ivory pearl sphere clasped by a dark steel and aged brass spring coil, clearly springy elastic construction. Input image is STYLE REFERENCE ONLY, match its detailed illustrated pixel art, chunky pixel clusters, warm ivory highlights, charcoal outlines and weathered muted brass, upper-left lighting. Center a single orb within square canvas with 12% transparent margin. Actual transparent alpha background. No ground shadow, text, labels, frames, extra objects, purple, green, blue, gradient backdrop or glow. Intended to downscale to 96x96 PNG alongside reference orbs. Save the generated image."
+    },
+    {
+      "id": "orb_herb",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory pearl orb with an engraved medicinal herb sprig in muted brass. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_thorn",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: dark iron sphere with six short ivory thorn spikes. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_weaken",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory sphere bearing a broken downward chevron emblem. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_disarm",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory sphere bearing a snapped sword emblem. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_rust",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: weathered iron sphere with crumbling cracked shield emblem. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_magnet",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory sphere wrapped by horseshoe shaped dark iron magnet. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_hammer",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: iron sphere with a large embossed smith hammer emblem. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_chain",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory orb tightly wrapped in two chunky iron chain loops. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_stun",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: dark orb with three ivory stars embossed around a central impact dent. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_vamp",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory orb with two fangs and a small muted crimson blood droplet. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_toxin",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: dark orb with a crimson skull emblem and three poison droplets, stronger poison than reference. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_mirror",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: spherical polished silver mirror with ornate aged brass rim. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_wreck",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: spherical heavy wrecking ball with thick iron studs and short chain. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_comet",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory spherical meteor with sculpted brass comet tail. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_time",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory orb encasing a small brass hourglass. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "orb_crown",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory pearl sphere wearing a small regal aged brass crown. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. Round spherical main body like reference orbs."
+    },
+    {
+      "id": "relic_whetstone",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: rectangular worn gray whetstone in a tiny brass cradle. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_buckler",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: round leather buckler with an iron center boss. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_wallet",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: thick closed leather folding wallet with a brass clasp. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_bandage",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: rolled ivory linen bandage with a loose trailing end. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_luckycoin",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: single aged brass lucky coin with a four leaf clover relief. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_callus",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: tough fingerless leather work glove with reinforced palm. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_mason",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: stone mason trowel resting across one small stone brick. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_lantern",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: small medieval brass oil lantern with ivory light. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_medkit",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: closed ivory wooden first aid box with dark embossed medical cross. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_focus",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: small brass aiming sight with concentric rings. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_combo",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory talisman with three ascending brass impact marks. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_harvest",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: small curved iron sickle with leather wrapped handle. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_armor",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory steel breastplate with worn brass trim. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_brace",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: stout wooden triangular support brace with iron bolts. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_antidote",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: small clear apothecary antidote bottle with ivory liquid and herb stopper. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_rebound",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: compact coiled iron spring mounted on a round brass foot. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_sting",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: slender poison dart with muted crimson drop on tip. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_thorns",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: dark iron breastplate with short ivory spikes. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_breath",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: small ivory ceramic breathing whistle on a leather cord. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_scout",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: short brass scout spyglass with dark leather grip. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_counter",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: small iron shield with curved returning arrow embossed in ivory. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_leech",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: two ivory vampire fangs pendant surrounding a small crimson drop. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_endure",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: scarred tower shield with a thick reinforced center. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_wrath",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: cracked dark iron mask with muted crimson glowing eye slits. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_heart",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: mechanical second heart of brass with a crimson central inset. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_alchemy",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: small alchemy retort flask with a brass coin enclosed. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_twin",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: paired ivory pearls held side by side in a single brass launcher. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_smith",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: heavy blacksmith hammer with square iron head and wooden handle. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_charm",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ivory protective rune charm in a brass frame on cord. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_pouch",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: deep open leather drawstring pouch with ivory pearl peeking out. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_kingsword",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: regal short sword with ivory blade and ornate brass crown pommel. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_hourglass",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: standing aged brass hourglass containing ivory sand. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_ring",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: ornate immortality ring of aged brass with ivory infinity inset. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_crusher",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: compact medieval iron wall breaking ram head shaped like a wedge. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_plague",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: dark brass poison crown with crimson skull central inset. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_giant",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: oversized articulated iron gauntlet with brass knuckles. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_warp",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: warped circular brass pocket watch with bent ivory clock face no numbers. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_greed",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: small overflowing brass treasure cup holding coins. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_pact",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: rolled ivory parchment blood contract bound with crimson wax seal no writing. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    },
+    {
+      "id": "relic_collector",
+      "prompt": "Use case: stylized-concept. ONE isolated medieval dungeon inventory asset: small open wooden display case holding three different ivory orbs. Reference image is STYLE ONLY. Match detailed illustrated pixel art, crisp chunky pixels, ivory highlights, charcoal outlines, weathered muted brass, upper-left light. Single centered item, 12% margin, actual transparent alpha. No text, labels, ground shadow, frame, other objects, purple, green, blue or backdrop. Readable at 96x96. "
+    }
+  ]
+}

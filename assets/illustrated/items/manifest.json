@@ -1,0 +1,899 @@
+[
+  {
+    "id": "orb_basic",
+    "name": "기본 구슬",
+    "game": "assets\\game\\orb_basic.png",
+    "sha256": "7ec258b4760365c4111026216e01b1b0b8a1aa12c1b0cb792201566222837e49"
+  },
+  {
+    "id": "orb_bomb",
+    "name": "폭탄 구슬",
+    "game": "assets\\game\\orb_bomb.png",
+    "sha256": "6dae1eb1d77c6d30f4b2744529ce661fa7c8142c69dc3681a63a91732d3d8b6f"
+  },
+  {
+    "id": "orb_drill",
+    "name": "송곳 구슬",
+    "game": "assets\\game\\orb_drill.png",
+    "sha256": "8536cb8ca18fe664cecef88f5df1db056598fa43d970b28e653e0da70dedeecd"
+  },
+  {
+    "id": "orb_guard",
+    "name": "방패 구슬",
+    "game": "assets\\game\\orb_guard.png",
+    "sha256": "23cccddd94c791f5f7a01ea0403398be44bb7d452471bf27f9fe72a57af80cf1"
+  },
+  {
+    "id": "orb_bounce",
+    "name": "탄력 구슬",
+    "game": "assets\\game\\orb_bounce.png",
+    "sha256": "753a3081d45b06d59cc706b3429a231cce312daf88762638108951a97c0d7356",
+    "source": "assets\\illustrated\\items\\orb_bounce.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_herb",
+    "name": "약초 구슬",
+    "game": "assets\\game\\orb_herb.png",
+    "sha256": "4c241a93092998704f41e839d921bf07ca0d1e90b2e708a331df316b71b35bfa",
+    "source": "assets\\illustrated\\items\\orb_herb.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_thorn",
+    "name": "가시 구슬",
+    "game": "assets\\game\\orb_thorn.png",
+    "sha256": "bf0282c1a9110f932fbf841e49518258374ff0283110b953dd54d5582a53e24e",
+    "source": "assets\\illustrated\\items\\orb_thorn.png",
+    "size": [
+      1402,
+      1122
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_weaken",
+    "name": "약화 구슬",
+    "game": "assets\\game\\orb_weaken.png",
+    "sha256": "62b924510590277b8f99c99a5dfec784573182848ca93fb50ddaddaff155bfd3",
+    "source": "assets\\illustrated\\items\\orb_weaken.png",
+    "size": [
+      1297,
+      1213
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_disarm",
+    "name": "무장해제 구슬",
+    "game": "assets\\game\\orb_disarm.png",
+    "sha256": "07f1f8031f9d3d97adbea6926d0d031953dafc783675b3dedcb92b70438e53a3",
+    "source": "assets\\illustrated\\items\\orb_disarm.png",
+    "size": [
+      1312,
+      1199
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_rust",
+    "name": "부식 구슬",
+    "game": "assets\\game\\orb_rust.png",
+    "sha256": "3ea413b71d20867493475f5d2391c6ff76aacf6044b5c7f6c3546b36979e339c",
+    "source": "assets\\illustrated\\items\\orb_rust.png",
+    "size": [
+      1275,
+      1233
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_magnet",
+    "name": "자석 구슬",
+    "game": "assets\\game\\orb_magnet.png",
+    "sha256": "39f47939d4cad40924d881dee4b9474d77f88504d56bad4f84cbbf2f1799ad90",
+    "source": "assets\\illustrated\\items\\orb_magnet.png",
+    "size": [
+      1302,
+      1208
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_hammer",
+    "name": "망치 구슬",
+    "game": "assets\\game\\orb_hammer.png",
+    "sha256": "448245784217aa981ec4294592a95e48498f6108328da064f7e5bcbbac2e1da2",
+    "source": "assets\\illustrated\\items\\orb_hammer.png",
+    "size": [
+      1299,
+      1211
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_split",
+    "name": "분열 구슬",
+    "game": "assets\\game\\orb_split.png",
+    "sha256": "31badc94e1cd18a969fad5658b49c7624a59e8eed85e014f10177aece0606d14"
+  },
+  {
+    "id": "orb_venom",
+    "name": "독 구슬",
+    "game": "assets\\game\\orb_venom.png",
+    "sha256": "d051f7722622c49aca8a39608b60d3c6998b7e3f252d4071cd729d87464b9cc0"
+  },
+  {
+    "id": "orb_heavy",
+    "name": "묵직한 구슬",
+    "game": "assets\\game\\orb_heavy.png",
+    "sha256": "9ab9d34bb4c9e3298fde90dbcbc74985b3c82edabfd8aae380fefd634cfebc2d"
+  },
+  {
+    "id": "orb_chain",
+    "name": "사슬 구슬",
+    "game": "assets\\game\\orb_chain.png",
+    "sha256": "c46ecf30fa245dc10e22904df08bb5f0cebbb62d48eb576c1ff1aaf765ae6d7c",
+    "source": "assets\\illustrated\\items\\orb_chain.png",
+    "size": [
+      1269,
+      1239
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_stun",
+    "name": "기절 구슬",
+    "game": "assets\\game\\orb_stun.png",
+    "sha256": "182f377d78386b583d1fd84bc162ded54fdde9765cf526ee594f5f23c2bde293",
+    "source": "assets\\illustrated\\items\\orb_stun.png",
+    "size": [
+      1304,
+      1206
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_vamp",
+    "name": "흡혈 구슬",
+    "game": "assets\\game\\orb_vamp.png",
+    "sha256": "33235ecee1b891a5068b51c6cae2a119709266fbff01ae574e21e15be8994ff4",
+    "source": "assets\\illustrated\\items\\orb_vamp.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_toxin",
+    "name": "맹독 구슬",
+    "game": "assets\\game\\orb_toxin.png",
+    "sha256": "fc737c387ace033ae2920cd15212b95513bd1ab6a790007d22b3ac815f203aea",
+    "source": "assets\\illustrated\\items\\orb_toxin.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_mirror",
+    "name": "거울 구슬",
+    "game": "assets\\game\\orb_mirror.png",
+    "sha256": "37b2a54dc1428bdcd66a320d954b774bc31d1f1e038d8fcfb359fbaa99b8a704",
+    "source": "assets\\illustrated\\items\\orb_mirror.png",
+    "size": [
+      1286,
+      1223
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_wreck",
+    "name": "철거 구슬",
+    "game": "assets\\game\\orb_wreck.png",
+    "sha256": "8027a7f5c2cbaf83e119cc846d5fe4c321c435db093d06cc4619342cc3af8dd1",
+    "source": "assets\\illustrated\\items\\orb_wreck.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_comet",
+    "name": "혜성 구슬",
+    "game": "assets\\game\\orb_comet.png",
+    "sha256": "f85c2844173bd10963f9453eb5641b8173bd24c562632707f36b2b226f837d05",
+    "source": "assets\\illustrated\\items\\orb_comet.png",
+    "size": [
+      1374,
+      1145
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_time",
+    "name": "시간 구슬",
+    "game": "assets\\game\\orb_time.png",
+    "sha256": "29c2533b176931419d305ebb645098b82f7867f0620cfa84c115e35b5da083f6",
+    "source": "assets\\illustrated\\items\\orb_time.png",
+    "size": [
+      1278,
+      1230
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "orb_crown",
+    "name": "왕관 구슬",
+    "game": "assets\\game\\orb_crown.png",
+    "sha256": "ce3ad209d670caf74c73fcc46fd43b4fc43599817e3164e23044834e404bd7f8",
+    "source": "assets\\illustrated\\items\\orb_crown.png",
+    "size": [
+      1278,
+      1230
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_whetstone",
+    "name": "숫돌",
+    "game": "assets\\game\\relic_whetstone.png",
+    "sha256": "ba71b6669a935e396d450b62ffe2db9cead2b2fe516e8bdbe1d51d1b8a129e0f",
+    "source": "assets\\illustrated\\items\\relic_whetstone.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alpha": [
+      0,
+      254
+    ]
+  },
+  {
+    "id": "relic_buckler",
+    "name": "가죽 방패",
+    "game": "assets\\game\\relic_buckler.png",
+    "sha256": "5d0298ea26c25cb276705ab451454fa22cabf372a8b37a96e8159e53f24de33b",
+    "source": "assets\\illustrated\\items\\relic_buckler.png",
+    "size": [
+      1263,
+      1246
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_wallet",
+    "name": "두꺼운 지갑",
+    "game": "assets\\game\\relic_wallet.png",
+    "sha256": "c53d7418b3f381ce7de4818a7c5f86a76e362cca8ba213a4d2849ebf13bda0b7",
+    "source": "assets\\illustrated\\items\\relic_wallet.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alpha": [
+      0,
+      254
+    ]
+  },
+  {
+    "id": "relic_bandage",
+    "name": "붕대",
+    "game": "assets\\game\\relic_bandage.png",
+    "sha256": "d839747285eb90e40b10cabe6cba1ec9aee939d282125156deacfa0249d3c4e8",
+    "source": "assets\\illustrated\\items\\relic_bandage.png",
+    "size": [
+      1390,
+      1132
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_luckycoin",
+    "name": "행운 동전",
+    "game": "assets\\game\\relic_luckycoin.png",
+    "sha256": "130654b30a7874df831bce5ea3660c18313155a7e39ee8b81bce2daf10a5d592",
+    "source": "assets\\illustrated\\items\\relic_luckycoin.png",
+    "size": [
+      1341,
+      1173
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_callus",
+    "name": "굳은살",
+    "game": "assets\\game\\relic_callus.png",
+    "sha256": "ce1f94bc939973bc204c24f9015e8c4cda46d02639c29978a52c1a261a533663",
+    "source": "assets\\illustrated\\items\\relic_callus.png",
+    "size": [
+      1315,
+      1197
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_mason",
+    "name": "벽돌공",
+    "game": "assets\\game\\relic_mason.png",
+    "sha256": "e6369c4017c0318a5fb0368fa1197895558a34ce30a2e68ba18860e06491201f",
+    "source": "assets\\illustrated\\items\\relic_mason.png",
+    "size": [
+      1402,
+      1122
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_lantern",
+    "name": "등잔",
+    "game": "assets\\game\\relic_lantern.png",
+    "sha256": "949a11d60784c3cec5570ec6de6b476f7f7ad732c29450da810bcbd03b9ffb38",
+    "source": "assets\\illustrated\\items\\relic_lantern.png",
+    "size": [
+      1264,
+      1244
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_medkit",
+    "name": "구급상자",
+    "game": "assets\\game\\relic_medkit.png",
+    "sha256": "e20911a6992807806281235fb6e5f089257df9bb065ddf7ea3096c7c8a4d12c9",
+    "source": "assets\\illustrated\\items\\relic_medkit.png",
+    "size": [
+      1402,
+      1122
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_focus",
+    "name": "집중",
+    "game": "assets\\game\\relic_focus.png",
+    "sha256": "cfc5055b7697475d08e398501c10ca088be632ebc713e153d6a0ad1875c3208e",
+    "source": "assets\\illustrated\\items\\relic_focus.png",
+    "size": [
+      1263,
+      1245
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_combo",
+    "name": "천장 연타",
+    "game": "assets\\game\\relic_combo.png",
+    "sha256": "3f97b0465761bfad1988dfd25c4c47ee63575ffbb649b80f884409ea8f624a50",
+    "source": "assets\\illustrated\\items\\relic_combo.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_harvest",
+    "name": "수확",
+    "game": "assets\\game\\relic_harvest.png",
+    "sha256": "17cb74ea3c21846d4efcdc438aed140c96f7fc96d4ebfa3d11399d10d3324549",
+    "source": "assets\\illustrated\\items\\relic_harvest.png",
+    "size": [
+      1374,
+      1145
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_armor",
+    "name": "갑옷",
+    "game": "assets\\game\\relic_armor.png",
+    "sha256": "46292c050ce0386d9782d9dda22b8fb3bd47a4c6a6b4a52afb8484ecb21163a2",
+    "source": "assets\\illustrated\\items\\relic_armor.png",
+    "size": [
+      1402,
+      1122
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_brace",
+    "name": "지지대",
+    "game": "assets\\game\\relic_brace.png",
+    "sha256": "b2ba029fdaa6e33ca91330b633cbf52662d631b35c6884fccf7bbac22b58ed9a",
+    "source": "assets\\illustrated\\items\\relic_brace.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_antidote",
+    "name": "해독",
+    "game": "assets\\game\\relic_antidote.png",
+    "sha256": "bbef09e0f23955e26a168adae8f5e1b3770c5d5547a957ba121f2f4686af52d6",
+    "source": "assets\\illustrated\\items\\relic_antidote.png",
+    "size": [
+      1300,
+      1210
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_rebound",
+    "name": "반동",
+    "game": "assets\\game\\relic_rebound.png",
+    "sha256": "b720993497e69520eb271b9473b40e0223739c15e37c291562d2c73783f935bd",
+    "source": "assets\\illustrated\\items\\relic_rebound.png",
+    "size": [
+      1312,
+      1199
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_sting",
+    "name": "독침",
+    "game": "assets\\game\\relic_sting.png",
+    "sha256": "b47808191160a32e04d10cc18cb877ea6ea69a3f5e4a6282c2f487ef07cde8ff",
+    "source": "assets\\illustrated\\items\\relic_sting.png",
+    "size": [
+      1774,
+      887
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_thorns",
+    "name": "가시 갑옷",
+    "game": "assets\\game\\relic_thorns.png",
+    "sha256": "ba697807f3e33b8d5d9dcdd43b1410ba0a830f60969e3ba5a5bd9ae3f31b9b50",
+    "source": "assets\\illustrated\\items\\relic_thorns.png",
+    "size": [
+      1303,
+      1207
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_breath",
+    "name": "숨 고르기",
+    "game": "assets\\game\\relic_breath.png",
+    "sha256": "a27605b174ea589245aa57d2f2d50022e2fae07f445f0a0b302d7ea94929ed56",
+    "source": "assets\\illustrated\\items\\relic_breath.png",
+    "size": [
+      1361,
+      1156
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_scout",
+    "name": "정찰병",
+    "game": "assets\\game\\relic_scout.png",
+    "sha256": "7ec6157adfea22013cc8964d2af45c7c974eeb65da8f139e24072c801b1030a6",
+    "source": "assets\\illustrated\\items\\relic_scout.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alpha": [
+      0,
+      254
+    ]
+  },
+  {
+    "id": "relic_counter",
+    "name": "반격",
+    "game": "assets\\game\\relic_counter.png",
+    "sha256": "01dc1cdfe2c0e65050946633c659bfdc1015a74caa3c2d8cf5aba9051ffbccb8",
+    "source": "assets\\illustrated\\items\\relic_counter.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_leech",
+    "name": "흡혈",
+    "game": "assets\\game\\relic_leech.png",
+    "sha256": "e142108f2121ece30998449626d17eb37ec8570d54535df15289dcee784e981e",
+    "source": "assets\\illustrated\\items\\relic_leech.png",
+    "size": [
+      1304,
+      1206
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_endure",
+    "name": "인내",
+    "game": "assets\\game\\relic_endure.png",
+    "sha256": "c65e300d8f76ef295e2770a762926291997b857b51b6d1d754e8178ceb00b1d4",
+    "source": "assets\\illustrated\\items\\relic_endure.png",
+    "size": [
+      1199,
+      1312
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_wrath",
+    "name": "분노",
+    "game": "assets\\game\\relic_wrath.png",
+    "sha256": "8bdf13f1bbf34515ff32716728c9fd84afe763d1b2023eeccf2526855348cc33",
+    "source": "assets\\illustrated\\items\\relic_wrath.png",
+    "size": [
+      1374,
+      1145
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_heart",
+    "name": "두 번째 심장",
+    "game": "assets\\game\\relic_heart.png",
+    "sha256": "6591bd7ba64734a590178c803a8528c33c7876129c59e895fa7c13dd75178839",
+    "source": "assets\\illustrated\\items\\relic_heart.png",
+    "size": [
+      1329,
+      1183
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_alchemy",
+    "name": "연금술",
+    "game": "assets\\game\\relic_alchemy.png",
+    "sha256": "02b37af3b30ae91ddfa6e57e56e3f4a557182730cd2646bfe4d201e7c674bbcb",
+    "source": "assets\\illustrated\\items\\relic_alchemy.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_twin",
+    "name": "쌍발",
+    "game": "assets\\game\\relic_twin.png",
+    "sha256": "b850899f12065f3720aed27fa0d33fd5df015d23c9f1b8f04761459905ce85bd",
+    "source": "assets\\illustrated\\items\\relic_twin.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alpha": [
+      0,
+      254
+    ]
+  },
+  {
+    "id": "relic_smith",
+    "name": "대장장이 망치",
+    "game": "assets\\game\\relic_smith.png",
+    "sha256": "4ae11305768f13782bb78ab6d3098ff4058bcbcb51e7541558a9546dd725021e",
+    "source": "assets\\illustrated\\items\\relic_smith.png",
+    "size": [
+      1278,
+      1230
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_charm",
+    "name": "보호 부적",
+    "game": "assets\\game\\relic_charm.png",
+    "sha256": "99eaa4524a3407e5a6fa62a0add5659663e28cb8de70d982074b8bfc98ecb958",
+    "source": "assets\\illustrated\\items\\relic_charm.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_pouch",
+    "name": "깊은 주머니",
+    "game": "assets\\game\\relic_pouch.png",
+    "sha256": "ca9334daec25202a176bbfe78e44a60d13b0c4c0fe19fca5b78d7e2bd6324c4a",
+    "source": "assets\\illustrated\\items\\relic_pouch.png",
+    "size": [
+      1305,
+      1205
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_kingsword",
+    "name": "왕의 검",
+    "game": "assets\\game\\relic_kingsword.png",
+    "sha256": "e4d9c6eea7e82c6851e853850f94c5078f33ee43ece934e5be9a5a70fc970069",
+    "source": "assets\\illustrated\\items\\relic_kingsword.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alpha": [
+      0,
+      254
+    ]
+  },
+  {
+    "id": "relic_hourglass",
+    "name": "모래시계",
+    "game": "assets\\game\\relic_hourglass.png",
+    "sha256": "6cc9695b6245e101fd75f4e14ff22e709f00cdf539657f2ed13ac05e1ea96c12",
+    "source": "assets\\illustrated\\items\\relic_hourglass.png",
+    "size": [
+      1265,
+      1244
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_ring",
+    "name": "불멸의 반지",
+    "game": "assets\\game\\relic_ring.png",
+    "sha256": "1b831701007e5e45fa7d9eef28be9487bc3c63cc42ac5094ee28c9ca68e36c55",
+    "source": "assets\\illustrated\\items\\relic_ring.png",
+    "size": [
+      1333,
+      1180
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_crusher",
+    "name": "성벽 파쇄기",
+    "game": "assets\\game\\relic_crusher.png",
+    "sha256": "594bf3b494928179a275c64ff50a4ea37ede85e0a97066b0eb38af45061bd042",
+    "source": "assets\\illustrated\\items\\relic_crusher.png",
+    "size": [
+      1497,
+      1051
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_plague",
+    "name": "독의 왕관",
+    "game": "assets\\game\\relic_plague.png",
+    "sha256": "ff203ef470b77033fe39109ac8a475636c6ddc712f34a7ca450bd8693b523e65",
+    "source": "assets\\illustrated\\items\\relic_plague.png",
+    "size": [
+      1374,
+      1145
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_giant",
+    "name": "거인의 손",
+    "game": "assets\\game\\relic_giant.png",
+    "sha256": "f9362269a2c7af13560146be79e12808e3a729e4bf3cbf29a3aa7ca03258fc65",
+    "source": "assets\\illustrated\\items\\relic_giant.png",
+    "size": [
+      1304,
+      1206
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_warp",
+    "name": "시간 왜곡",
+    "game": "assets\\game\\relic_warp.png",
+    "sha256": "060b5bfe4f942b49806d24d71c79902b434bf26d6d06d1181a4c7edb0ddde75d",
+    "source": "assets\\illustrated\\items\\relic_warp.png",
+    "size": [
+      1322,
+      1190
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_greed",
+    "name": "탐욕",
+    "game": "assets\\game\\relic_greed.png",
+    "sha256": "d4e37f1a1790ac9091fe62a0ffc67a1386921ca0ff6c20e568a38af59e2c555f",
+    "source": "assets\\illustrated\\items\\relic_greed.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  },
+  {
+    "id": "relic_pact",
+    "name": "피의 계약",
+    "game": "assets\\game\\relic_pact.png",
+    "sha256": "c6de55fe9dfaeeaf4c1ab99c585088a9943b487c0e3030b1c541a1dad6e36633",
+    "source": "assets\\illustrated\\items\\relic_pact.png",
+    "size": [
+      1536,
+      1024
+    ],
+    "alpha": [
+      0,
+      254
+    ]
+  },
+  {
+    "id": "relic_collector",
+    "name": "컬렉터",
+    "game": "assets\\game\\relic_collector.png",
+    "sha256": "0e9b963344f9d94ecabbf85601d204b435812ddbb168628e6e497f908b8bc811",
+    "source": "assets\\illustrated\\items\\relic_collector.png",
+    "size": [
+      1417,
+      1110
+    ],
+    "alpha": [
+      0,
+      255
+    ]
+  }
+]

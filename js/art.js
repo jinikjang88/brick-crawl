@@ -6,7 +6,8 @@
 const ART = { img:{}, tint:{} };
 const ART_CHARS = ['knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
 const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS, ...ART_CHARS.map(n => n + '_actions'),
-  ...['basic', 'bomb', 'drill', 'guard', 'split', 'venom', 'heavy'].map(k => 'orb_' + k),
+  ...Object.keys(ORBS).map(k => 'orb_' + k),
+  ...Object.keys(RELICS).map(k => 'relic_' + k),
   ...['n', 'stone', 'atk', 'def', 'heal', 'poison'].map(k => 'brick_' + k)];
 // 캐릭터 화면 상자(논리 px). 원본 크기가 제각각이라 발밑을 같은 바닥선에 맞추고 상자 안에 비율대로 넣는다.
 // 위로는 의도 아이콘(y 25~35), 아래로는 공·방 숫자(y 93)를 가리지 않는 높이로 정했다
