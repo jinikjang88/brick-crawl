@@ -5,7 +5,8 @@
 // 메타 v3: 스킬 포인트가 "원정 끝날 때 도달 칸만큼"에서 "칸 최초 돌파마다"로 바뀌고 트리 노드도 새로 짜였다.
 // 같은 id(a1 등)가 다른 효과를 뜻하게 됐으므로 찍은 노드는 비우고, 지금까지의 최고 기록으로 받을 포인트를 다시 계산해 돌려준다
 const SAVE_KEY = 'brickquest:run:v2', META_KEY = 'brickquest:meta:v3', META_KEY_V2 = 'brickquest:meta:v2';
-const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{} });
+// seen = 도감: 한 번이라도 손에 넣은 구슬·유물. 필드만 늘었고 예전 메타도 빈 도감으로 그대로 읽히므로 키 버전은 올리지 않는다
+const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{}, seen:{ orb:{}, relic:{} } });
 // p칸까지 처음 돌파하며 받는 포인트 합계(본편·심연 모두 5칸째가 보스)
 const ptsUpTo = p => { let t = 0; for (let i = 1; i <= p; i++) t += i % 5 === 0 ? PTS.boss : PTS.cell; return t; };
 let META = META_BASE();
@@ -26,6 +27,11 @@ let META = META_BASE();
 })();
 if (!META.tree || typeof META.tree !== 'object') META.tree = {};
 if (!META.badges || typeof META.badges !== 'object') META.badges = {};
+if (!META.seen || typeof META.seen !== 'object') META.seen = {};
+for (const k of ['orb', 'relic']) if (!META.seen[k] || typeof META.seen[k] !== 'object') META.seen[k] = {};
+function markSeen(kind, id){ if (META.seen[kind][id]) return; META.seen[kind][id] = 1; saveMeta(); }
+// 데이터에서 빠진 옛 id는 세지 않는다
+const seenCount = kind => Object.keys(META.seen[kind]).filter(k => (kind === 'orb' ? ORBS : RELICS)[k]).length;
 function saveMeta(){ try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch(e){} }
 function saveRun(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(RUN)); } catch(e){} }
 function loadRun(){

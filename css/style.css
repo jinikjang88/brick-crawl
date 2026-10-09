@@ -285,6 +285,8 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .bCard span{display:block;font-size:13px;color:var(--ink2);line-height:1.4}
 .bCard > div{flex:1;min-width:0}
 .bIc{width:44px;height:44px;flex:none;image-rendering:pixelated}
+/* 도감 구역 제목: 구슬·유물·배지 */
+.bHead{margin-top:10px;font-size:15px;font-weight:800;color:var(--ink);border-bottom:2px solid var(--line);padding-bottom:2px}
 #ovBadge{isolation:isolate}
 #ovBadge::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:url('../assets/game/dungeon.png') center/cover no-repeat;opacity:.22}
 #ovBadge .big{padding-bottom:4px;border-bottom:2px solid var(--line)}

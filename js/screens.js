@@ -81,8 +81,11 @@ function showMain(){
     + (META.runs ? ` · 원정 ${META.runs}회` : '') + (META.clears ? ` · 완주 ${META.clears}회` : '');
   $('mTree').textContent = '스킬 트리';
   const tp = document.createElement('small'); tp.textContent = `포인트 ${META.pts}`; $('mTree').append(tp);
-  $('mBadge').textContent = '배지';
-  const bp = document.createElement('small'); bp.textContent = `${BADGES.filter(b => META.badges[b.id]).length} / ${BADGES.length}`; $('mBadge').append(bp);
+  // 도감: 구슬·유물·배지를 한 화면에서 모은다. 버튼에는 모은 총수만
+  $('mBadge').textContent = '도감';
+  const total = Object.keys(ORBS).length + Object.keys(RELICS).length + BADGES.length;
+  const got = seenCount('orb') + seenCount('relic') + BADGES.filter(b => META.badges[b.id]).length;
+  const bp = document.createElement('small'); bp.textContent = `${got} / ${total}`; $('mBadge').append(bp);
   ensureProfile(); $('mName').textContent = PROFILE.name;
   drawLogo($('logoCv'));
   const display = $('orbShowcase'); display.textContent = '';
@@ -105,13 +108,13 @@ $('mNew').onclick = e => confirmStart(e, false);
 $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 // 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); }); } catch(e){}
-function startNewRun(abyss){ RUN = freshRun(abyss); applyTreeStart(RUN); META.runs++; saveMeta(); saveRun(); showMap(); }
+function startNewRun(abyss){ RUN = freshRun(abyss); applyTreeStart(RUN); RUN.deck.forEach(o => markSeen('orb', orbKind(o))); META.runs++; saveMeta(); saveRun(); showMap(); }
 // 스킬 트리 중 원정 시작 때 한 번 정해지는 효과
 function applyTreeStart(r){
   if (tree('d1')){ r.maxHp += 4; r.hp += 4; }
   if (tree('o1')){ const i = r.deck.indexOf('bomb'); if (i >= 0) r.deck[i] = 'bomb+'; }
   if (tree('e1')) r.coins += 30;
-  if (tree('e4')){ const id = shuffle(Object.keys(RELICS))[0]; r.relics[id] = 1; }
+  if (tree('e4')) gainRelic(rollRelics(1)[0]);
 }
 // 끝난 원정을 기록 서버 대기열에 올린다(쓰러짐·포기·덮어쓰기·완주). 스킬 포인트는 칸을 처음 돌파할 때 이미 받았다
 function endRun(r){ recordRun(r); }
@@ -216,10 +219,37 @@ function badgeIcon(b, owned){
   for (let r = 0; r < 7; r++) for (let k = 0; k < 7; k++) if (m[r][k] === '#') g.fillRect(2 + k, 2 + r, 1, 1);
   return c;
 }
+// 도감 한 칸: 모은 것은 그림·이름·설명, 못 모은 것은 흐린 ?와 등급만(잠긴 구슬은 해금 조건을 보여 줘 목표가 되게)
+function bookRow(icon, name, tag, desc, own){
+  const li = document.createElement('li'); li.className = 'bCard' + (own ? ' own' : '');
+  const t = document.createElement('b'); t.textContent = name;
+  if (tag){ const em = document.createElement('em'); em.textContent = tag; t.append(em); }
+  const d = document.createElement('span'); d.textContent = desc;
+  const body = document.createElement('div'); body.append(t, d);
+  li.append(icon, body); li.setAttribute('aria-label', `${name}, ${tag}: ${desc}`);
+  return li;
+}
+function bookHead(text){ const li = document.createElement('li'); li.className = 'bHead'; li.textContent = text; return li; }
+const UNKNOWN = { icon:'dots' };
 function showBadges(){
   const box = $('badgeBox'); box.textContent = '';
-  const got = BADGES.filter(b => META.badges[b.id]).length;
-  $('badgeSub').textContent = `모은 배지 ${got} / ${BADGES.length}`;
+  const orbs = Object.keys(ORBS), relics = Object.keys(RELICS);
+  const gotB = BADGES.filter(b => META.badges[b.id]).length;
+  $('badgeSub').textContent = `구슬 ${seenCount('orb')}/${orbs.length} · 유물 ${seenCount('relic')}/${relics.length} · 배지 ${gotB}/${BADGES.length}`;
+  // 등급 순(기본 → 전설)으로 늘어놓는다: 아래로 갈수록 귀한 것
+  box.append(bookHead('구슬'));
+  for (const k of orbs.slice().sort((a, b) => ORBS[a].rar - ORBS[b].rar)){
+    const o = ORBS[k], own = !!META.seen.orb[k], open = orbOpen(k);
+    const icon = own ? orbPortrait(k, 'bIc') : badgeIcon(UNKNOWN, false);
+    box.append(bookRow(icon, own ? o.name : '???', RARITY[o.rar].name + (open ? '' : ' · 잠김'),
+      own ? o.desc : open ? '보상이나 상점에서 만날 수 있다' : lockText(o.lock), own));
+  }
+  box.append(bookHead('유물'));
+  for (const k of relics.slice().sort((a, b) => RELICS[a].t - RELICS[b].t)){
+    const r = RELICS[k], own = !!META.seen.relic[k];
+    box.append(bookRow(badgeIcon({ icon:'up' }, own), own ? r.name : '???', RARITY[r.t].name, own ? r.desc : '아직 손에 넣지 못했다', own));
+  }
+  box.append(bookHead('배지'));
   for (const b of BADGES){
     const n = META.badges[b.id] || 0, li = document.createElement('li');
     li.className = 'bCard' + (n ? ' own' : '');
@@ -257,6 +287,11 @@ const nodeX = n => n.t === 'boss' ? 50 : (n.l + .5) / RUN.map[0].length * 100;
 // 칸 메달 그림: 휴식은 모닥불, 상점은 상인, 보스는 탑의 주인.
 // 전투·정예는 어떤 몬스터인지 들어가기 전까지 모르게 도트 아이콘(칼·해골)만 보여 준다(긴장감·선택의 불확실성)
 function nodeIcon(n){
+  // 정찰병 유물: 전투 칸에 어떤 몬스터인지 그림을 보여 준다
+  if (n.t === 'battle' && RUN && rel('scout') && n.mon){
+    const im = document.createElement('img'); im.className = 'nIc'; im.alt = ''; im.setAttribute('aria-hidden', 'true');
+    im.src = 'assets/game/' + n.mon + '.png'; im.onerror = () => im.remove(); return im;
+  }
   if (n.t === 'battle' || n.t === 'elite'){
     const m = ICON[n.t === 'elite' ? 'skull' : 'sword'], c = document.createElement('canvas');
     c.width = 7; c.height = 7; c.className = 'nIc dot'; c.setAttribute('aria-hidden', 'true');
@@ -277,7 +312,7 @@ function showMap(note){
   // 본편은 "세션 2 / 5"처럼 남은 거리를, 심연은 층만 보여 준다(끝이 없다)
   $('mapTitle').textContent = RUN.abyss ? stageName(RUN.s) : `${stageName(RUN.s)} / ${SESSIONS}`;
   $('ovMap').classList.toggle('abyss', !!RUN.abyss);
-  $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  코인 ${RUN.coins}  구슬 ${RUN.deck.length}/${DECK_MAX}`;
+  $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  코인 ${RUN.coins}  구슬 ${RUN.deck.length}/${deckMax()}`;
   // 일반 전투는 보상 화면 없이 지도로 돌아오므로, 얻은 코인을 부제 앞에 한 번 보여 준다
   if (note) $('mapSub').textContent = `${note} · ${$('mapSub').textContent}`;
   const box = $('mapBox'); box.textContent = '';
@@ -360,7 +395,8 @@ function battleEnd(win){
   const n = G.node;
   if (!win) return runOver();
   RUN.hp = Math.min(RUN.maxHp, G.p.hp + 2 * rel('medkit') + (tree('d3') ? 2 : 0));
-  const gain = (n.t === 'boss' ? 40 : n.t === 'elite' ? 22 + rnd(7) : 10 + rnd(5)) + (tree('e3') ? 5 : 0);
+  const gain = (n.t === 'boss' ? 40 : n.t === 'elite' ? 22 + rnd(7) : 10 + rnd(5)) + (tree('e3') ? 5 : 0)
+    + (rel('wallet') ? 3 : 0) + (rel('greed') ? 12 : 0) + (n.t === 'elite' && rel('lantern') ? 10 : 0) + (rel('alchemy') ? G.m.poison : 0);
   RUN.coins += gain; RUN.lastGain = gain;
   if (RUN.coins >= 200) earnBadge('rich');
   if (n.t === 'boss' && RUN.abyss && RUN.s === 4) earnBadge('abyss5');

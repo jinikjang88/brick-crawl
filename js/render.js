@@ -61,7 +61,8 @@ function draw(){
   // 몬스터의 다음 행동 예고: 이것만 보고 이번 턴에 무엇을 노릴지 정한다
   // 공격: 붉은 숫자 = 남은 연속 공격 턴 수. 한 번의 피해는 언제나 아래 ⚔ 숫자다
   if (!m.dead && (g.phase === 'aim' || g.phase === 'fire')){
-    const it = intent();
+    // 기절한 몬스터는 이번 턴 쉰다(예고가 바로 바뀌어 기절이 먹힌 걸 보여 준다)
+    const it = m.stun ? { t:'wait' } : intent();
     if (it.t === 'atk'){ drawIcon('sword', MX - 14, 27, C.accent); drawText(String(atkLeft(it)), MX - 4, 25, C.accent, 2); }
     else if (it.t === 'guard'){ drawIcon('shield', MX - 14, 27, C.ink); drawText('+' + it.v, MX - 4, 25, C.ink, 2); }
     else if (it.t === 'spore') drawIcon('brick', MX - 4, 27, C.accent);
@@ -217,7 +218,7 @@ function renderOrbBar(){
     const text = document.createElement('span'); text.textContent = '다음';
     next.append(text, orbPortrait(orbKind(nextOrb())), orbName(nextOrb()).replace(' 구슬', ''));
     el.append(current, next); el.title = orbDesc(G.orb);
-  } else el.append(`구슬 덱 ${RUN.deck.length}/${DECK_MAX}: ${deckSummary()}`);
+  } else el.append(`구슬 덱 ${RUN.deck.length}/${deckMax()}: ${deckSummary()}`);
 }
 function renderAbil(){
   const box = $('abil'); box.textContent = '';

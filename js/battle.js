@@ -7,10 +7,12 @@ function newBattle(node){
   G = {
     node, cfg, time:0, turn:1, phase:'aim', timer:0, eStep:0, cur:null, shown:false,
     // 공격·방어는 전투마다 초기화. 기본 공격력 1(+날 세우기), 시작 방어도는 갑옷·방패술만
-    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1 + (tree('a1') ? 1 : 0), def:defGain(3 * rel('armor') + (tree('d2') ? 2 : 0)), poison:0, flash:0 },
+    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1 + (tree('a1') ? 1 : 0) + rel('whetstone') + (rel('collector') ? Math.floor(seenCount('orb') / 5) : 0), def:defGain(3 * rel('armor') + (tree('d2') ? 2 : 0)), poison:0, flash:0 },
     m:{ hp:cfg.hp, max:cfg.hp, atk:cfg.atk, def:cfg.def, poison:0, pi:0, ai:0, phase:1, rage:false, flash:0, lunge:0, dead:false, deadT:0 },
     // 배지 판정용: lost = 이번 전투에서 체력을 잃었는지, shot = 이번 발사의 기록(시작 때 몬스터 체력이 가득했는지·천장 타격 수·부순 벽돌)
     lost:false, shot:null,
+    // 전투마다 횟수가 정해진 효과들: 두 번째 심장·굳은살·무장해제·기절·시간 구슬. mirror = 이번 턴 되돌릴 비율(거울 구슬), toxic = 몬스터 독이 줄지 않음(맹독)
+    heart:false, callus:false, disarm:0, stunUsed:false, timeUsed:0, mirror:0, toxic:false,
     bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], queue:[],
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
     draw:shuffle(RUN.deck), disc:[], orb:'basic',
@@ -25,7 +27,7 @@ function spawnRow(r, instant){
   if (!cells.length) cells.push(rnd(COLS));
   // 특수 벽돌은 한 줄에 최대 1개(독은 별도 1개): 드물어야 노려서 맞힐 가치가 생긴다
   const order = shuffle(cells);
-  const statCell = Math.random() < rc.stat ? order[0] : -1;
+  const statCell = Math.random() < rc.stat + (rel('mason') ? .1 : 0) ? order[0] : -1;
   const poisonCell = rc.poison && order.length > 1 && Math.random() < rc.poison ? order[1] : -1;
   for (const c of cells){
     const type = c === statCell ? pickW(rc.w) : c === poisonCell ? 'poison' : 'n';
@@ -62,7 +64,9 @@ const aimSpeed = () => G.cfg.sweep * aimRage() * Math.pow(0.85, rel('focus') + (
 // 철벽(핵심 노드): 전투 중 얻는 방어도 ×1.5(올림)
 const defGain = v => tree('d6') ? Math.ceil(v * 1.5) : v;
 // 연속 공격에서 남은 공격 턴 수(이번 턴 포함). 머리 위 붉은 숫자가 3 → 2 → 1로 줄어든다
-const atkLeft = it => it.n - G.m.ai;
+// 모래시계: 연속 공격 턴 수 -1(최소 1). 예고 숫자와 실제 진행이 같은 함수를 쓴다
+const atkN = it => rel('hourglass') ? Math.max(1, it.n - 1) : it.n;
+const atkLeft = it => atkN(it) - G.m.ai;
 // 독 행동의 독 양: v가 없으면 몬스터 ⚔ 공격력(화면 숫자와 실제 독이 같다)
 const poisonAmt = it => it.v !== undefined ? it.v : G.m.atk;
 // 보스 벽돌 낙하: 패턴과 별개로 짝수 턴마다(분노 페이즈부터는 매 턴) 아무 칸에나 벽돌을 떨어뜨린다.
@@ -84,8 +88,13 @@ function bossDrop(){
 // 덧셈 뒤에 곱셈: 핵심 노드는 쌓은 덧셈을 키우는 배율이다
 // 덧셈 부분(base)과 곱셈 배율(k)을 나눠 돌려준다. HUD가 같은 분해를 그대로 보여 줘야
 // "⚔2 + 3 = 8"처럼 배율이 빠진 식이 나오지 않는다
-function hitParts(o, n = 1){
-  const base = G.p.atk + orbBonus(o) + (n >= 3 && tree('a5') ? 1 : 0);
+// ball: 구슬마다 쌓이는 보정(사슬 = 몇 번째 타격인지, 철거 = 이 구슬이 부순 벽돌 수). HUD는 첫 타 기준으로 생략한다
+function hitParts(o, n = 1, ball){
+  const k0 = orbKind(o), up = orbUp(o);
+  const base = G.p.atk + orbBonus(o) + (n >= 3 && tree('a5') ? 1 : 0) + rel('pact')
+    + (rel('wrath') && G.p.hp <= G.p.max * .3 ? 2 : 0)
+    + (k0 === 'chain' ? (n - 1) * (up ? 2 : 1) : 0)
+    + (k0 === 'wreck' && ball ? Math.floor((ball.broke || 0) / (up ? 2 : 3)) : 0);
   let k = 1;
   if (orbUp(o) && tree('o4')) k *= 2;
   if (['heavy', 'bomb'].includes(orbKind(o)) && tree('o6')) k *= 2;
@@ -95,7 +104,9 @@ function hitParts(o, n = 1){
   const div = splitWays(o);
   return { base, k, div, v:Math.max(1, Math.ceil(Math.round(base * k) / div)) };
 }
-const hitDmg = (o, n = 1) => hitParts(o, n).v;
+const hitDmg = (o, n = 1, ball) => hitParts(o, n, ball).v;
+// 몬스터에게 바로 날아가는 피해(반격·가시·거울). counter = 반격 계열로 쓰러뜨렸는지(배지)
+const strike = (x, y, v) => G.projs.push({ x0:x, y0:y, x1:MX, y1:62, t:0, dur:0.3, kind:'dmg', v, counter:true });
 // 배지: 처음 따면 알림을 띄우고, 다시 따면 횟수만 센다
 function earnBadge(id){
   const b = BADGES.find(x => x.id === id); if (!b) return;
@@ -115,8 +126,11 @@ function hurtPlayer(v, icon, fromMonster){
   if (tree('d3')) v = Math.ceil(v * .75);   // 불굴: 곱연산 감쇠라 심연의 큰 피해일수록 덜어 주는 양이 크다
   const p = G.p, [ab, hit] = hurt(p, v);
   if (ab) pop(PX, 42, '-' + ab, C.ink2, 'shield');
-  if (ab && fromMonster && rel('counter') && !G.m.dead)
-    G.projs.push({ x0:PX + 10, y0:66, x1:MX, y1:62, t:0, dur:0.3, kind:'dmg', v:Math.ceil(ab / 2), counter:true });
+  if (ab && fromMonster && rel('counter') && !G.m.dead) strike(PX + 10, 66, Math.ceil(ab / 2));
+  if (fromMonster && !G.m.dead){
+    if (rel('thorns')) strike(PX + 6, 60, 1);
+    if (G.mirror) strike(PX + 14, 70, Math.ceil(v * G.mirror));
+  }
   if (hit){ G.lost = true; artPose(p, 'hit'); p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
   else { burst(PX, 66, C.ink3, 6); sfx('block'); }
 }
@@ -172,14 +186,14 @@ function arrive(pr){
     if (ab) pop(jx, 44, '-' + ab, C.ink2, 'shield');
     if (hit) pop(jx, ab ? 32 : 44, '-' + hit, C.ink);
     sfx(hit ? 'mhit' : 'block', { big:hit >= 3 });
-    if (pr.venom){ g.m.poison += pr.venom; pop(MX + 20, 30, '+' + pr.venom, C.accent, 'skull'); }
+    if (pr.venom){ pr.venom += rel('sting'); g.m.poison += pr.venom; pop(MX + 20, 30, '+' + pr.venom, C.accent, 'skull'); }
     if (pr.shot) pr.shot.landed++;
     if (g.m.hp === 0) killMonster(pr.counter ? 'counter' : pr.shot);
     else checkRage();
     return;
   }
   sfx('pickup', { kind:pr.kind });
-  if (pr.kind === 'atk'){ const v = 1 + rel('harvest') + (tree('a3') ? 1 : 0); g.p.atk += v; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); renderOrbBar(); }
+  if (pr.kind === 'atk'){ const v = 1 + rel('harvest') + (tree('a3') ? 1 : 0) + (rel('kingsword') ? 2 : 0); g.p.atk += v; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); renderOrbBar(); }
   else if (pr.kind === 'def'){ const v = defGain(2 + rel('harvest') + (tree('d5') ? 1 : 0)); g.p.def += v; pop(PX + 12, 88, '+' + v, C.ink, 'shield'); }
   else if (pr.kind === 'heal'){
     const before = g.p.hp; g.p.hp = Math.min(g.p.max, g.p.hp + 4);
@@ -228,13 +242,17 @@ function hitBricks(b){
     if (b.x < l || b.x > r || b.y < t || b.y > bo) continue;
     // 송곳 구슬만 뚫고 지나간다. 나머지는 부숴도 튕긴다(한 줄씩 깎아 길을 내야 천장에 닿는다)
     const drilled = b.drill > 0;
-    if (drilled){ b.drill--; br.hp = 0; } else br.hp--;
+    if (drilled){ b.drill--; br.hp = 0; } else br.hp -= b.kind === 'hammer' && br.type === 'stone' ? (b.up ? 5 : 3) : 1;
     br.flash = 0.07; b.impact = .12;
     // 같은 구슬이 연달아 맞힐수록 소리가 올라간다(콤보를 귀로 느끼게)
     b.combo = (b.combo || 0) + 1;
     if (br.type === 'stone' && br.hp > 0) sfx('stone');
     else sfx('brick', { orb:b.kind, combo:b.combo - 1, broke:br.hp <= 0 });
     if (br.hp <= 0){ br.dead = true; onBreak(br); ballBreak(b, br); }
+    if (br.hp <= 0){
+      b.broke++;
+      if (b.kind === 'thorn' && b.broke % (b.up ? 2 : 3) === 0 && !G.m.dead) strike(OX + br.c * CW + CW / 2, br.y, 1);
+    }
     if (br.dead && G.shot && ++G.shot.broke === 12) earnBadge('demolish');
     if (drilled) return;
     const ox = Math.min(b.x - l, r - b.x), oy = Math.min(b.y - t, bo - b.y);
@@ -256,12 +274,13 @@ function moveBall(b, dt){
     if (b.y < BT + 1.5){
       b.y = BT + 1.5; b.vy = Math.abs(b.vy);
       // 천장 타격: 성벽을 뚫고 올라온 구슬만 몬스터를 친다
-      if (!G.m.dead && b.hits < hitCap() + (b.kind === 'basic' && b.up ? 1 : 0)){
+      if (!G.m.dead && b.hits < ballCap(b)){
         b.hits++;
         sfx('ceil', { orb:b.kind, n:b.hits - 1 });
-        const v = hitDmg(b.orb, b.hits);
-        G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.kind === 'venom' ? (b.up ? 2 : 1) : 0, shot:G.shot });
-        if (b.hits === 3 && rel('leech') && G.p.hp < G.p.max){ G.p.hp++; pop(PX, 30, '+1', C.ink, 'heart'); }
+        const v = hitDmg(b.orb, b.hits, b);
+        G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:['venom', 'toxin'].includes(b.kind) ? (b.up ? 2 : 1) : 0, shot:G.shot });
+        if (b.hits === 3 && rel('leech')) heal(1);
+        orbCeil(b);
         G.cf.push({ x:b.x, t:0.25 });
         burst(b.x, BT + 1, C.ink, 6);
       }
@@ -269,12 +288,41 @@ function moveBall(b, dt){
     if (Math.abs(b.vy) < BALL_SPEED * 0.12) b.vy = (b.vy < 0 ? -1 : 1) * BALL_SPEED * 0.12;
     hitBricks(b);
     if (b.vy > 0 && b.y >= FLOOR - 2){
+      // 자석 구슬·반동 유물: 바닥에서 한 번 더 튀어 오른다(천장까지 다시 갈 기회)
+      if (b.bounces > 0 || (rel('rebound') && !b.rebounded && Math.random() < .25)){
+        if (b.bounces > 0) b.bounces--; else b.rebounded = true;
+        b.y = FLOOR - 2; b.vy = -Math.abs(b.vy); burst(b.x, FLOOR - 2, C.ink3, 4); continue;
+      }
       b.done = true;
       if (G.nextLx === null) G.nextLx = clamp(b.x, OX + 4, RIGHT - 4);
       return;
     }
   }
   const v = Math.hypot(b.vx, b.vy) || 1; b.vx = b.vx / v * BALL_SPEED; b.vy = b.vy / v * BALL_SPEED;
+}
+
+// 구슬마다 천장 타격 상한: 기본 + 기본 구슬 강화 1 + 탄력 구슬. 혜성은 모든 벽돌을 뚫는 대신 한 번만 친다
+const ballCap = b => b.kind === 'comet' ? 1 : hitCap() + (b.kind === 'basic' && b.up ? 1 : 0) + (b.kind === 'bounce' ? (b.up ? 2 : 1) : 0);
+function heal(v){ const p = G.p, before = p.hp; p.hp = Math.min(p.max, p.hp + v); if (p.hp > before) pop(PX, 30, '+' + (p.hp - before), C.ink, 'heart'); }
+// 천장 타격 때 구슬별 효과. 디버프는 맞는 즉시 몬스터 예고(머리 위 숫자)가 바뀌어 효과가 눈으로 보인다
+function orbCeil(b){
+  const m = G.m, up = b.up, it = intent();
+  if (b.kind === 'herb' && b.hits === 1) heal(up ? 2 : 1);
+  else if (b.kind === 'vamp' && (up || b.hits % 2 === 0)) heal(1);
+  else if (b.kind === 'weaken' && G.shot.weak < (up ? 2 : 1) && it.t === 'atk' && atkLeft(it) > 1){
+    G.shot.weak++; m.ai++; pop(MX, 20, '-1', C.ink, 'sword');
+  } else if (b.kind === 'disarm' && G.disarm < (up ? 3 : 2) && m.atk > 1){
+    G.disarm++; m.atk--; pop(MX + 16, 88, '-1', C.ink, 'sword');
+  } else if (b.kind === 'rust'){
+    if (m.def) pop(MX + 16, 76, '0', C.ink, 'shield');
+    m.def = 0; if (up) m.noGuard = true;
+  } else if (b.kind === 'stun' && !G.stunUsed && b.hits === (up ? 2 : 3)){
+    G.stunUsed = true; m.stun = true; pop(MX, 20, '', C.ink, 'dots'); sfx('block');
+  } else if (b.kind === 'time' && G.timeUsed < (up ? 2 : 1)){
+    G.timeUsed++; m.pi = 0; m.ai = 0;
+    const first = intent(); if (first.t === 'atk') m.ai = Math.min(atkN(first) - 1, 2);
+    pop(MX, 20, '', C.ink, 'up');
+  } else if (b.kind === 'toxin') G.toxic = true;
 }
 
 function fire(){
@@ -284,8 +332,12 @@ function fire(){
   artPose(g.p, 'attack');
   g.phase = 'fire'; g.fireT = 1; g.fireEl = 0; g.nextLx = null;
   g.shot = { full:g.m.hp === g.m.max, landed:0, broke:0 };
-  const spread = { 1:[0], 3:[-0.16, 0, 0.16], 5:[-0.32, -0.16, 0, 0.16, 0.32] }[splitWays(g.orb)];
+  const spread = { 1:[0], 3:[-0.16, 0, 0.16], 5:[-0.32, -0.16, 0, 0.16, 0.32] }[splitN(g.orb)];
   g.queue = spread.map(d => clamp(g.aim + d, AIM_MIN, AIM_MAX));
+  // 쌍발: 3턴마다 같은 구슬을 한 번 더(같은 방향)
+  if (rel('twin') && g.turn % 3 === 0) g.queue = g.queue.concat(g.queue);
+  g.shot.weak = 0;
+  g.mirror = orbKind(g.orb) === 'mirror' ? (orbUp(g.orb) ? 1 : .5) : 0;
   renderOrbBar();   // "발사 대기" → "발사!"
   sfx('fire', { orb:orbKind(g.orb) });
 }
@@ -296,6 +348,14 @@ function update(dt){
   g.time += dt;
   artAdvance(g.p, dt); artAdvance(g.m, dt);
   // 불사조(핵심 노드): 원정마다 한 번, 체력 0이 되는 순간 30%로 일어난다. 쓰러짐 판정보다 먼저 본다
+  // 두 번째 심장(전투마다) → 불사조(트리) → 불멸의 반지(원정마다) 순서로 쓴다: 싼 것부터 소모되게
+  if (g.p.hp <= 0 && rel('heart') && !g.heart){
+    g.heart = true; g.p.hp = 1; g.p.poison = 0; pop(PX, 30, '1', C.ink, 'heart'); banner('두 번째 심장', '버텨 낸다'); sfx('heal');
+  }
+  if (g.p.hp <= 0 && rel('ring') && !RUN.ringUsed && (!tree('e6') || RUN.revived)){
+    RUN.ringUsed = true; g.p.hp = Math.ceil(g.p.max * .5); g.p.poison = 0;
+    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner('불멸의 반지', '다시 일어선다'); sfx('heal');
+  }
   if (g.p.hp <= 0 && tree('e6') && !RUN.revived){
     RUN.revived = true; g.p.hp = Math.ceil(g.p.max * .3); g.p.poison = 0;
     burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner('불사조', '다시 일어선다'); sfx('heal');
@@ -325,7 +385,8 @@ function update(dt){
   if (g.phase === 'aim'){
     // 조준선은 일정 속도로 좌우를 왕복한다(삼각파). 가장자리에서 느려지지 않아야 타이밍이 공정하다
     g.aimT += dt;
-    g.aim += g.aimDir * aimSpeed() * dt;
+    // 시간 왜곡: 턴 처음 0.5초는 조준선이 멈춰 있다(노릴 곳을 먼저 정할 여유)
+    if (!(rel('warp') && g.aimT < 0.5)) g.aim += g.aimDir * aimSpeed() * dt;
     if (g.aim > AIM_MAX){ g.aim = 2 * AIM_MAX - g.aim; g.aimDir = -1; }
     if (g.aim < AIM_MIN){ g.aim = 2 * AIM_MIN - g.aim; g.aimDir = 1; }
   } else if (g.phase === 'fire'){
@@ -334,7 +395,9 @@ function update(dt){
       g.fireT = 0;
       const a = g.queue.shift();
       g.balls.push({ x:g.lx, y:FLOOR - 2, vx:Math.cos(a) * BALL_SPEED, vy:Math.sin(a) * BALL_SPEED,
-                     hits:0, orb:g.orb, kind:orbKind(g.orb), up:orbUp(g.orb), drill:orbKind(g.orb) === 'drill' ? (orbUp(g.orb) ? 5 : 3) : 0, bombed:false });
+                     hits:0, orb:g.orb, kind:orbKind(g.orb), up:orbUp(g.orb), broke:0, bombed:false,
+                     drill:orbKind(g.orb) === 'comet' ? 99 : orbKind(g.orb) === 'drill' ? (orbUp(g.orb) ? 5 : 3) : 0,
+                     bounces:orbKind(g.orb) === 'magnet' ? (orbUp(g.orb) ? 2 : 1) : 0 });
     }
     // 오래 도는 구슬은 점점 빨리 감고, 25초가 넘으면 갇힌 것으로 보고 회수한다
     const ts = g.fireEl > 10 ? 3 : g.fireEl > 5 ? 2 : 1;
@@ -360,10 +423,14 @@ function endPlayerTurn(){
   if (m.dead){ g.phase = 'win'; g.timer = 0; return; }
   if (g.p.hp <= 0){ g.phase = 'lose'; g.timer = 0; return; }
   g.phase = 'enemy'; g.timer = 0; g.eStep = 0;
+  if (g.turn === 1 && rel('buckler')){ const v = defGain(3); g.p.def += v; pop(PX + 12, 88, '+' + v, C.ink, 'shield'); }
   // 몬스터 독: 몬스터가 행동하기 직전에 방어도를 무시하고 들어간다
   if (m.poison > 0){
     const d = m.poison;
-    m.hp = Math.max(0, m.hp - d); m.poison--; m.flash = 0.15; artPose(m, 'hit');
+    m.hp = Math.max(0, m.hp - d); m.flash = 0.15; artPose(m, 'hit');
+    // 맹독 구슬·독의 왕관: 독이 줄지 않는다. 독의 왕관은 방어도도 함께 깎는다
+    if (!g.toxic && !rel('plague')) m.poison--;
+    if (rel('plague')) m.def = Math.max(0, m.def - d);
     burst(MX, 62, C.accent, 8); pop(MX, 30, '-' + d, C.accent, 'skull');
     if (m.hp === 0){ killMonster('poison'); g.phase = 'win'; g.timer = 0; return; }
     checkRage();
@@ -379,6 +446,11 @@ function enemyUpdate(dt){
   if (g.timer < 0) return;
   if (g.eStep === 0){
     g.eStep = 1; g.cur = intent();
+    // 기절: 이번 행동을 통째로 건너뛰고 패턴도 넘기지 않는다
+    if (m.stun){ m.stun = false; g.cur = { t:'stun' }; }
+    // 부식 구슬+: 이번 수비 행동이 헛돈다
+    if (g.cur.t === 'guard' && m.noGuard){ m.noGuard = false; g.cur = { t:'stun' }; pop(MX, 30, '0', C.ink3, 'shield'); }
+    if (g.cur.t === 'wait' && rel('breath')) heal(2);
     const it = g.cur;
     if (it.t === 'atk' || it.t === 'poison'){ m.lunge = 0.001; artPose(m, 'attack'); }
     else if (it.t === 'guard'){ m.def += it.v; pop(MX, 30, '+' + it.v, C.ink, 'shield'); }
@@ -403,11 +475,18 @@ function enemyUpdate(dt){
     if (g.cur.t === 'summon') replaceInRow0(3, () => ({ type:'stone', hp:3 + Math.min(2, m.phase) }));
     if (g.cur.t === 'spore') replaceInRow0(2, () => ({ type:'poison', hp:1 }));
     if (bossDropsNow()) bossDrop();
+    // 성벽 파쇄기: 가장 아래 줄 벽돌 하나를 부숴 붕괴를 늦춘다
+    if (rel('crusher')){
+      const low = g.bricks.filter(b => !b.dead).sort((a, b) => b.r - a.r)[0];
+      if (low){ low.dead = true; onBreak(low); }
+    }
     // 붕괴선을 넘은 벽돌은 무너지며 기사를 덮친다
     const hits = g.bricks.filter(b => b.r >= MAXROW);
     if (hits.length){
       for (const b of hits){ b.dead = true; burst(OX + b.c * CW + CW / 2, rowY(b.r) + 6, C.accent, 6); }
-      sfx('crumble'); hurtPlayer(hits.length * (rel('brace') ? 1 : 2), 'brick'); g.shake = 6;
+      sfx('crumble'); g.shake = 6;
+      if (rel('callus') && !g.callus){ g.callus = true; pop(PX, 42, '0', C.ink2, 'shield'); }
+      else hurtPlayer(hits.length * (rel('brace') ? 1 : 2), 'brick');
     }
   }
   if (g.eStep === 3 && g.timer >= 0.95){
@@ -425,7 +504,9 @@ function enemyUpdate(dt){
     // 연속 공격은 n번을 다 때려야 다음 행동으로 넘어간다
     // 이번 턴 도중 페이즈가 바뀌었으면(반격 등) 새 패턴을 처음부터 쓰도록 넘기지 않는다
     if (m.fresh) m.fresh = false;
-    else if (g.cur.t === 'atk' && ++m.ai < g.cur.n){} else { m.ai = 0; m.pi++; }
+    else if (g.cur.t === 'stun'){}
+    else if (g.cur.t === 'atk' && ++m.ai < atkN(g.cur)){} else { m.ai = 0; m.pi++; }
+    g.mirror = 0;
     if (p.hp <= 0){ g.phase = 'lose'; g.timer = 0; return; }
     // phase를 먼저 바꾼다: drawOrb가 구슬 줄을 다시 그릴 때 "발사!"가 "발사 대기"로 돌아오게
     g.phase = 'aim'; g.turn++; g.cur = null;
