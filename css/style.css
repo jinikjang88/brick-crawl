@@ -28,6 +28,9 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 .abil{display:flex;flex-wrap:wrap;gap:4px;min-height:24px;font-size:13px}
 .abil span{border:2px solid var(--ink3);background:var(--panel);padding:0 7px;border-radius:0;font-weight:700;line-height:20px}
 .abil .none{border:0;background:none;color:var(--ink3);font-weight:500}
+.abil span:not(.none){display:inline-flex;align-items:center;gap:4px}
+.relicMini{width:22px;height:22px;object-fit:contain;order:-1}
+img.bIc{object-fit:contain;image-rendering:auto}
 
 .stageWrap{display:flex;justify-content:center}
 .stage{position:relative;aspect-ratio:9/17;width:clamp(240px,calc((100vh - 160px) * .5294),100%);width:clamp(240px,calc((100svh - 160px) * .5294),100%)}

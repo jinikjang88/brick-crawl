@@ -63,7 +63,7 @@ function renderReward(kind){
   const cards = rewardStock.map(id => isOrb
     ? { name:ORBS[id].name, tag:tierTag(orbTier(id)) + (deckFull() ? ' · 교체' : ''), desc:orbDesc(id), rare:orbTier(id) >= 3,
         onPick:() => addOrb(id, () => takeReward(() => {}, kind), () => renderReward(kind)) }
-    : { name:RELICS[id].name + (rel(id) ? ` ${rel(id) + 1}단계` : ''), tag:tierTag(relicTier(id)), desc:RELICS[id].desc, rare:relicTier(id) >= 3,
+    : { relic:id, name:RELICS[id].name + (rel(id) ? ` ${rel(id) + 1}단계` : ''), tag:tierTag(relicTier(id)), desc:RELICS[id].desc, rare:relicTier(id) >= 3,
         onPick:() => takeReward(() => gainRelic(id), kind) });
   // 구슬 보상은 "덱을 늘릴지, 가진 구슬을 키울지"를 고르게 한다. 덱이 얇을수록 좋은 구슬이 자주 나오므로 둘 다 의미가 있다
   if (isOrb && RUN.deck.some(o => orbLv(o) < UP_MAX))
@@ -143,7 +143,7 @@ function showShop(){
     // 덱이 가득 차면 바꿀 구슬을 고른 뒤에야 값을 치른다(취소하면 돈이 그대로)
     if (it.k === 'orb') return { name:ORBS[it.id].name, tag:tierTag(orbTier(it.id)) + ' · ' + (it.sold || !deckFull() ? tag : tag + ' · 교체'), desc:orbDesc(it.id), rare:orbTier(it.id) >= 3,
       disabled:it.sold || poor, onPick:() => addOrb(it.id, () => buy(() => {}), showShop) };
-    if (it.k === 'relic') return { name:RELICS[it.id].name, tag:tierTag(relicTier(it.id)) + ' · ' + tag, desc:RELICS[it.id].desc, rare:relicTier(it.id) >= 3,
+    if (it.k === 'relic') return { relic:it.id, name:RELICS[it.id].name, tag:tierTag(relicTier(it.id)) + ' · ' + tag, desc:RELICS[it.id].desc, rare:relicTier(it.id) >= 3,
       disabled:it.sold || poor, onPick:() => buy(() => gainRelic(it.id)) };
     const herb = 8 + (tree('e5') ? 5 : 0);
     if (it.k === 'heal') return { name:'약초', tag, desc:`체력 ${herb} 회복 (지금 ${RUN.hp}/${RUN.maxHp})`,

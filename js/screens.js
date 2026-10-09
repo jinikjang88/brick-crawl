@@ -37,6 +37,7 @@ function showChoice(o){
     const d = document.createElement('span'); d.textContent = c.desc;
     const kind = c.orb ? orbKind(c.orb) : Object.keys(ORBS).find(k => ORBS[k].name === c.name);
     if (kind){ b.classList.add('orbCard'); b.append(orbPortrait(kind)); }
+    if (c.relic){ b.classList.add('orbCard'); b.append(relicPortrait(c.relic)); }
     const body = document.createElement('div'); body.className = 'cardBody'; body.append(t, d);
     b.append(body);
     b.onclick = () => { if (mode !== o.mode) return; sfx('pick'); c.onPick(); };
@@ -247,7 +248,7 @@ function showBadges(){
   box.append(bookHead('유물'));
   for (const k of relics.slice().sort((a, b) => RELICS[a].t - RELICS[b].t)){
     const r = RELICS[k], own = !!META.seen.relic[k];
-    box.append(bookRow(badgeIcon({ icon:'up' }, own), own ? r.name : '???', RARITY[r.t].name, own ? r.desc : '아직 손에 넣지 못했다', own));
+    box.append(bookRow(own ? relicPortrait(k, 'bIc') : badgeIcon(UNKNOWN, false), own ? r.name : '???', RARITY[r.t].name, own ? r.desc : '아직 손에 넣지 못했다', own));
   }
   box.append(bookHead('배지'));
   for (const b of BADGES){

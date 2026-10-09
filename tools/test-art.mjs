@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const calls = [], media = { matches:false };
-const context = vm.createContext({ matchMedia:()=>media,
+const context = vm.createContext({ ORBS:{}, RELICS:{}, matchMedia:()=>media,
   ctx:{globalAlpha:1,drawImage:(...args)=>calls.push(args)},
 });
 vm.runInContext(fs.readFileSync(new URL('../js/art.js', import.meta.url),'utf8'), context);

@@ -135,6 +135,16 @@ def build_bg():
     save(img.quantize(colors=128, method=Image.MEDIANCUT, dither=Image.NONE), 'dungeon')
 
 
+def build_items():
+    # 새 수집품도 원본에서 재생성해서 수작업 축소본과 런타임 그림이 어긋나지 않게 한다.
+    for source in sorted((SRC / 'items').glob('*.png')):
+        img = Image.open(source).convert('RGBA')
+        bounds = img.getbbox()
+        if not bounds:
+            raise ValueError(f'빈 에셋: {source}')
+        save(fit(img.crop(bounds), (96, 96)), source.stem)
+
+
 def save(img, name):
     OUT.mkdir(parents=True, exist_ok=True)
     p = OUT / f'{name}.png'
@@ -146,3 +156,4 @@ if __name__ == '__main__':
     build_sheet()
     build_chars()
     build_bg()
+    build_items()

@@ -217,6 +217,24 @@ function drawOrbSprite(kind, x, y, size = 9, target = ctx){
   }
   g.restore();
 }
+function relicPortrait(kind, className = 'orbPortrait'){
+  // 유물 이름은 옆에 항상 남겨서 그림 로드 실패에도 선택 정보를 잃지 않는다.
+  const fallback = () => {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 32;
+    c.className = className; c.setAttribute('aria-hidden', 'true');
+    const g = c.getContext('2d'); g.fillStyle = C.ink;
+    ICON.up.forEach((row, y) => [...row].forEach((v, x) => {
+      if (v !== '.') g.fillRect(9 + x * 2, 9 + y * 2, 2, 2);
+    }));
+    return c;
+  };
+  if (typeof Image === 'undefined' || !ART.img['relic_' + kind]) return fallback();
+  const im = document.createElement('img');
+  im.alt = ''; im.className = className; im.setAttribute('aria-hidden', 'true');
+  im.onerror = () => { im.replaceWith(fallback()); };
+  im.src = ART.img['relic_' + kind].src;
+  return im;
+}
 function orbPortrait(kind, className = 'orbPortrait'){
   // 일러스트 구슬은 <img>로 둔다: 아직 로드 전이어도 브라우저가 도착하면 알아서 그리고, 실패하면 도트 캔버스로 바꾼다
   if (typeof Image !== 'undefined' && ART.img['orb_' + kind]){
