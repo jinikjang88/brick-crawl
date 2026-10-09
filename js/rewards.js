@@ -14,7 +14,6 @@ function rollRelics(n){
   const pool = Object.keys(RELICS).filter(k => rel(k) < RELICS[k].max);
   return shuffle(pool).slice(0, n);
 }
-let rerollLeft = 1, rewardStock = null;
 const rerollMax = () => 1 + (tree('o3') ? 1 : 0);
 // 구슬 넣기: 덱이 DECK_MAX개면 바꿀 구슬을 고르는 화면으로 넘어간다. 취소하면 back
 const deckFull = () => RUN.deck.length >= DECK_MAX;
@@ -31,13 +30,14 @@ function showSwap(id, done, back){
 }
 // 보상 단계: 'elite'·'boss' = 유물 고르기 → 'elite-orb'·'boss-orb' = 구슬 보상. ('orb'는 예전 저장의 일반 전투 보상)
 const isOrbReward = k => typeof k === 'string' && (k === 'orb' || k.endsWith('-orb'));
+// 뽑은 보상은 원정에 저장한다: 메인으로 나갔다 이어하면 카드·다시 뽑기가 새로 나오는 걸 막는다(상점과 같은 이유)
+const rollReward = kind => isOrbReward(kind) ? rollOrbs() : rollRelics(3);
 function showReward(kind){
-  rerollLeft = rerollMax();
-  rewardStock = isOrbReward(kind) ? rollOrbs() : rollRelics(3);
+  if (!RUN.reward || RUN.reward.kind !== kind){ RUN.reward = { kind, stock:rollReward(kind), reroll:rerollMax() }; saveRun(); }
   renderReward(kind);
 }
 function renderReward(kind){
-  const isOrb = isOrbReward(kind);
+  const isOrb = isOrbReward(kind), rerollLeft = RUN.reward.reroll, rewardStock = RUN.reward.stock;
   const pts = RUN.lastPts ? ` 스킬 포인트 +${RUN.lastPts}(첫 돌파).` : '';
   const head = isOrb && kind !== 'orb' ? '유물을 챙겼다.' : (kind === 'boss' ? `${stageName(RUN.s)} 돌파! 최대 체력 +4, 체력 절반 회복, 코인 +${RUN.lastGain || 0}.`
     : `승리! 코인 +${RUN.lastGain || 0}.`) + pts;
@@ -46,11 +46,11 @@ function renderReward(kind){
         onPick:() => addOrb(id, () => takeReward(() => {}, kind), () => renderReward(kind)) }
     : { name:RELICS[id].name + (rel(id) ? ` ${rel(id) + 1}단계` : ''), desc:RELICS[id].desc, onPick:() => takeReward(() => RUN.relics[id] = rel(id) + 1, kind) });
   // 구슬 보상은 "덱을 늘릴지, 가진 구슬을 키울지"를 고르게 한다. 덱이 얇을수록 좋은 구슬이 자주 나오므로 둘 다 의미가 있다
-  if (isOrb && RUN.deck.some(o => !orbUp(o)))
+  if (isOrb && RUN.deck.some(o => orbLv(o) < UP_MAX))
     cards.push({ name:'구슬 강화', tag:'덱 그대로', desc:'가진 구슬 하나를 강화한다(+)',
       onPick:() => showUpgrade(() => takeReward(() => {}, kind), () => renderReward(kind)) });
   const buttons = [{ label:rerollLeft ? `다시 뽑기 (${rerollLeft}회)` : '다시 뽑기 (사용함)', disabled:!rerollLeft || !cards.length,
-                     onClick:() => { rerollLeft--; rewardStock = isOrb ? rollOrbs() : rollRelics(3); renderReward(kind); } }];
+                     onClick:() => { RUN.reward.reroll--; RUN.reward.stock = rollReward(kind); saveRun(); renderReward(kind); } }];
   // 구슬은 안 받는 것도 전략이다: 덱이 얇을수록 좋은 구슬이 자주 나온다
   if (isOrb || !cards.length) buttons.push({ label:'건너뛰기', onClick:() => takeReward(() => {}, kind) });
   setHeader(stageName(RUN.s), isOrb ? '구슬 보상' : '유물 보상');
@@ -58,7 +58,7 @@ function renderReward(kind){
                sub:head + (isOrb ? ` 구슬을 덱에 넣거나(최대 ${DECK_MAX}개) 가진 구슬을 강화한다. 지금 덱 ${RUN.deck.length}/${DECK_MAX}: ${deckSummary()}` : ''), cards, buttons });
 }
 function takeReward(apply, kind){
-  apply();
+  apply(); RUN.reward = null;
   // 정예·보스는 유물 다음에 구슬 보상이 한 번 더 온다. 단계를 저장해 새로고침해도 이어진다
   if (kind === 'elite' || kind === 'boss'){ RUN.pendingReward = kind + '-orb'; saveRun(); return showReward(RUN.pendingReward); }
   RUN.pendingReward = null;
@@ -82,12 +82,22 @@ function showRemove(done, back){
       onPick:() => { RUN.deck.splice(RUN.deck.indexOf(o), 1); done(); } })),
     buttons:[{ label:'취소', onClick:back }] });
 }
-// 강화: 같은 종류는 한 장만 바꾼다. 카드에는 강화 후 효과를 보여 줘 무엇이 달라지는지 고르기 전에 알게 한다
+// 강화: 같은 구슬은 한 장만 바꾼다. 카드에 성공률과 강화 후 효과를 보여 줘, 고르기 전에 위험과 보상을 안다.
+// 확률 강화: 단계가 오를수록 성공률이 떨어지고, +3 이상에서 실패하면 한 단계 내려간다
 function showUpgrade(done, back){
-  const kinds = [...new Set(RUN.deck.filter(o => !orbUp(o)))];
+  const kinds = [...new Set(RUN.deck.filter(o => orbLv(o) < UP_MAX))];
   showChoice({ mode:'upgrade', title:'강화할 구슬을 고른다', sub:`지금 덱: ${deckSummary()}`,
-    cards:kinds.map(o => ({ name:orbName(o) + ' → +', orb:o, desc:orbDesc(o + '+'),
-      onPick:() => { RUN.deck[RUN.deck.indexOf(o)] = o + '+'; done(); } })),
+    cards:kinds.map(o => {
+      const lv = orbLv(o), rate = UP_RATE[lv], risky = lv >= UP_DROP_FROM;
+      return { name:`${orbName(o)} → +${lv + 1}`, orb:o, tag:`성공 ${rate}%` + (risky ? ' · 실패 시 하락' : ''), desc:orbDesc(orbAt(orbKind(o), lv + 1)),
+        rare:risky, onPick:() => {
+          const ok = Math.random() * 100 < rate, i = RUN.deck.indexOf(o);
+          if (ok){ RUN.deck[i] = orbAt(orbKind(o), lv + 1); toast(`강화 성공 · ${orbName(RUN.deck[i])}`); sfx('badge'); }
+          else if (risky){ RUN.deck[i] = orbAt(orbKind(o), lv - 1); toast(`강화 실패 · ${orbName(RUN.deck[i])}로 내려갔다`); sfx('hurt'); }
+          else { toast('강화 실패 · 그대로'); sfx('block'); }
+          done();
+        } };
+    }),
     buttons:[{ label:'취소', onClick:back }] });
 }
 
@@ -117,7 +127,7 @@ function showShop(){
     if (it.k === 'heal') return { name:'약초', tag, desc:`체력 ${herb} 회복 (지금 ${RUN.hp}/${RUN.maxHp})`,
       disabled:it.sold || poor || RUN.hp >= RUN.maxHp, onPick:() => buy(() => RUN.hp = Math.min(RUN.maxHp, RUN.hp + herb)) };
     if (it.k === 'upgrade') return { name:'구슬 강화', tag, desc:'구슬 1개를 강화한다(+)',
-      disabled:it.sold || poor || !RUN.deck.some(o => !orbUp(o)),
+      disabled:it.sold || poor || !RUN.deck.some(o => orbLv(o) < UP_MAX),
       onPick:() => showUpgrade(() => { RUN.coins -= it.price; it.sold = true; sfx('coin'); saveRun(); showShop(); }, showShop) };
     return { name:'구슬 덜어내기', tag, desc:'구슬 1개를 덱에서 뺀다',
       disabled:it.sold || poor || RUN.deck.length <= 2,

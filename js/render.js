@@ -65,9 +65,11 @@ function draw(){
     if (it.t === 'atk'){ drawIcon('sword', MX - 14, 27, C.accent); drawText(String(atkLeft(it)), MX - 4, 25, C.accent, 2); }
     else if (it.t === 'guard'){ drawIcon('shield', MX - 14, 27, C.ink); drawText('+' + it.v, MX - 4, 25, C.ink, 2); }
     else if (it.t === 'spore') drawIcon('brick', MX - 4, 27, C.accent);
-    else if (it.t === 'poison'){ drawIcon('skull', MX - 14, 27, C.accent); drawText('+' + it.v, MX - 4, 25, C.accent, 2); }
+    else if (it.t === 'poison'){ drawIcon('skull', MX - 14, 27, C.accent); drawText('+' + poisonAmt(it), MX - 4, 25, C.accent, 2); }
     else if (it.t === 'summon') drawIcon('brick', MX - 4, 27, C.ink);
     else drawIcon('dots', MX - 4, 27, C.ink3);
+    // 보스가 이번 턴 끝에 벽돌을 떨어뜨린다: 붉은 벽돌 + 개수(위험 = 화색)
+    if (bossDropsNow()){ drawIcon('brick', MX + 14, 27, C.accent); drawText(String(bossDropN()), MX + 23, 25, C.accent, 2); }
   }
 
   // 천장: 이 선에 닿아야 몬스터를 친다
@@ -124,7 +126,7 @@ function draw(){
     ctx.fillStyle = C.ink2; ctx.fillRect(g.lx - 7, FLOOR - 1, 14, 2);
     drawOrbSprite(orbKind(g.orb), g.lx, FLOOR - 7, 9);
     // 강화 구슬은 발사대 옆에 +를 붙여, HUD를 안 봐도 이번 구슬이 센 구슬인 걸 알게 한다
-    if (orbUp(g.orb)) drawText('+', g.lx + 6, FLOOR - 14, C.ink);
+    if (orbUp(g.orb)) drawText('+' + orbLv(g.orb), g.lx + 6, FLOOR - 14, C.ink);
   }
   if (g.nextLx !== null){ ctx.fillStyle = C.ink2; ctx.fillRect(Math.round(g.nextLx) - 1, FLOOR - 3, 3, 3); }
   for (const b of g.balls){
@@ -205,8 +207,10 @@ function renderOrbBar(){
     const bonus = orbBonus(G.orb), dmg = document.createElement('em'); dmg.className = 'dmg';
     const hp = hitParts(G.orb), sum = `⚔${G.p.atk} + ${bonus}`;
     // 스킬 트리 배율이 있으면 괄호로 묶어 곱한다: (⚔2 + 3) ×1.5 = 8
-    dmg.textContent = hp.k !== 1 ? `(${sum}) ×${+hp.k.toFixed(2)} = ${hp.v}` : `${sum} = ${hp.v}`;
-    dmg.title = '천장 타격 피해 = (기사 공격력 + 구슬 보정) × 스킬 트리 배율';
+    // 분열은 갈래 수로 나눈 값이 갈래 하나의 피해다: (⚔2 + 0) ÷3 = 1
+    const expr = hp.k !== 1 ? `(${sum}) ×${+hp.k.toFixed(2)}` : sum;
+    dmg.textContent = hp.div > 1 ? `(${expr}) ÷${hp.div} = ${hp.v}` : `${expr} = ${hp.v}`;
+    dmg.title = '천장 타격 피해 = (기사 공격력 + 구슬 보정) × 스킬 트리 배율' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
     name.append(dmg);
     label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
     const next = document.createElement('div'); next.className = 'orbNext';

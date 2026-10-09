@@ -15,7 +15,8 @@ const MON = {
     pattern:[{t:'atk',n:2},{t:'guard',v:2}],
     row:{ d:.6, hard:.25, stat:.4, w:{ atk:2, def:1 } } },
   shroom: { name:'독버섯', spr:'shroom', hp:9, atk:1, def:1, sweep:1.3,
-    pattern:[{t:'atk',n:1},{t:'poison',v:2},{t:'atk',n:1},{t:'spore'}],
+    // 독 행동의 v를 비워 두면 독 양 = 몬스터 ⚔ 공격력: 머리 위 숫자 그대로 독이 쌓이고, 층이 깊어질수록 함께 세진다
+    pattern:[{t:'atk',n:2},{t:'poison'},{t:'atk',n:2},{t:'spore'}],
     row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 }, poison:.2 } },
   // 체력 20 → 14(2026-10-07): 일반 전투 구슬 보상을 없애 1층 보스 전 덱이 얇아졌다. 시뮬레이터 300회 1층 돌파 18% → 32%
   boss: { name:'탑의 주인', spr:'boss', hp:14, atk:1, def:1, sweep:1.4, boss:true,
@@ -72,15 +73,24 @@ const ORB_BONUS_UP = { heavy:3 };
 // 덱 상한: 구슬은 최대 5개. 가득 차면 새 구슬은 가진 구슬과 바꿔야 한다(덱이 무한히 커지는 조합을 막는다)
 const DECK_MAX = 5;
 // 강화 구슬은 덱에 'bomb+'처럼 끝에 +를 붙여 담는다. 숫자를 키우는 대신 구슬 고유 효과를 한 단계 올린다(질적 성장)
-const orbKind = o => o.replace('+', '');
-const orbUp = o => o.endsWith('+');
-const orbName = o => ORBS[orbKind(o)].name + (orbUp(o) ? '+' : '');
-const orbBonus = o => orbUp(o) && ORB_BONUS_UP[orbKind(o)] !== undefined ? ORB_BONUS_UP[orbKind(o)] : ORB_BONUS[orbKind(o)];
+// 강화는 +1~+5 다회. +1은 고유 효과가 한 단계 오르고(up), +2부터는 단계마다 피해 보정 +1.
+// 저장 형식: 'bomb+'(=+1, 예전 저장과 같다), 'bomb+2' … 'bomb+5'
+const orbKind = o => o.replace(/\+\d*$/, '');
+const orbLv = o => { const m = /\+(\d*)$/.exec(o); return m ? (+m[1] || 1) : 0; };
+const orbUp = o => orbLv(o) > 0;
+const orbAt = (kind, lv) => lv > 0 ? kind + '+' + (lv > 1 ? lv : '') : kind;
+const orbName = o => ORBS[orbKind(o)].name + (orbUp(o) ? '+' + orbLv(o) : '');
+const orbBonus = o => (orbUp(o) && ORB_BONUS_UP[orbKind(o)] !== undefined ? ORB_BONUS_UP[orbKind(o)] : ORB_BONUS[orbKind(o)]) + Math.max(0, orbLv(o) - 1);
+// 강화 성공률(%): 지금 단계 → 다음 단계. 높을수록 어렵고, +3 이상에서 실패하면 한 단계 내려간다(긴장감)
+const UP_MAX = 5, UP_RATE = [90, 70, 50, 35, 20], UP_DROP_FROM = 3;
+// 분열 구슬은 갈래 수만큼 피해를 나눈다(최소 1): 갈래마다 전체 피해가 들어가면 강화 5갈래가 5배가 된다.
+// 대신 넓게 부숴 길을 여는 "청소용" 구슬이 된다
+const splitWays = o => orbKind(o) !== 'split' ? 1 : orbUp(o) ? 5 : 3;
 const orbDesc = o => (orbBonus(o) ? `피해 ⚔+${orbBonus(o)} · ` : '') + (orbUp(o) ? ORBS[orbKind(o)].up : ORBS[orbKind(o)].desc);
 // ── 유물: 원정 내내 유지되는 패시브
 const RELICS = {
   combo:    { name:'천장 연타', max:2, desc:'구슬 하나가 천장을 칠 수 있는 횟수 +1 (기본 3회)' },
-  counter:  { name:'반격',      max:1, desc:'몬스터 공격을 방어도로 막은 만큼 되돌려준다' },
+  counter:  { name:'반격',      max:1, desc:'몬스터 공격을 방어도로 막은 양의 절반(올림)을 되돌려준다' },
   antidote: { name:'해독',      max:1, desc:'독 피해를 받을 때마다 독이 2씩 줄어든다' },
   focus:    { name:'집중',      max:2, desc:'조준선이 15% 느려진다' },
   brace:    { name:'지지대',    max:1, desc:'무너지는 벽돌 피해가 1개당 2에서 1로' },
