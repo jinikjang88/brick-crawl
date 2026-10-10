@@ -2,29 +2,31 @@
 'use strict';
 
 // ── 보상
-// 등급 가중치(RARITY). 보스 보상은 전설 ×3, 심연은 층마다 희귀·전설 ×1.1: 깊이 내려갈 이유를 준다
-function tierW(t, boss){
-  return RARITY[t].w * (boss && t === 4 ? 3 : 1) * (isAbyss() && t >= 3 ? Math.pow(1.1, RUN.s + 1) : 1);
+// 등급 가중치(RARITY). 심연은 층마다 희귀·전설 ×1.1: 깊이 내려갈 이유를 준다
+// 보스라고 전설을 더 주지 않는다: 희귀 이상 보장 칸과 겹쳐 보스 보상마다 전설이 40% 넘게 나와 귀하지 않았다
+function tierW(t){
+  return RARITY[t].w * (isAbyss() && t >= 3 ? Math.pow(1.1, RUN.s + 1) : 1);
 }
 // 가중치 뽑기(중복 없이)
-function drawTier(pool, n, tierOf, boss){
+function drawTier(pool, n, tierOf){
   pool = pool.slice(); const out = [];
   while (out.length < n && pool.length){
-    const w = {}; pool.forEach(k => w[k] = tierW(tierOf(k), boss));
+    const w = {}; pool.forEach(k => w[k] = tierW(tierOf(k)));
     const k = pickW(w); out.push(k); pool.splice(pool.indexOf(k), 1);
   }
   return out;
 }
 const orbTier = k => ORBS[k].rar, relicTier = k => RELICS[k].t;
 // 해금되지 않은 구슬은 보상·상점에 나오지 않는다
-function rollOrbs(boss){
-  return drawTier(Object.keys(ORBS).filter(k => ORBS[k].rar > 0 && orbOpen(k)), 3 + (tree('o2') ? 1 : 0), orbTier, boss);
+function rollOrbs(){
+  return drawTier(Object.keys(ORBS).filter(k => ORBS[k].rar > 0 && orbOpen(k)), 3 + (tree('o2') ? 1 : 0), orbTier);
 }
 function rollRelics(n, boss){
   const pool = Object.keys(RELICS).filter(k => rel(k) < RELICS[k].max);
-  // 보스 보상은 희귀 이상을 한 장 보장한다(보스를 넘은 보람)
-  const hi = boss ? drawTier(pool.filter(k => relicTier(k) >= 3), 1, relicTier, boss) : [];
-  return shuffle(hi.concat(drawTier(pool.filter(k => !hi.includes(k)), n - hi.length, relicTier, boss)));
+  // 보스 보상은 희귀를 한 장 보장한다(보스를 넘은 보람). 전설까지 보장 칸에 넣으면 전설이 흔해진다
+  const rare = pool.filter(k => relicTier(k) === 3);
+  const hi = boss ? drawTier(rare.length ? rare : pool.filter(k => relicTier(k) >= 3), 1, relicTier) : [];
+  return shuffle(hi.concat(drawTier(pool.filter(k => !hi.includes(k)), n - hi.length, relicTier)));
 }
 // 유물 얻기는 한곳으로: 도감 기록과 피의 계약(즉시 최대 체력 -8)을 빠뜨리지 않게
 function gainRelic(id){
@@ -50,7 +52,7 @@ function showSwap(id, done, back){
 // 보상 단계: 'elite'·'boss' = 유물 고르기 → 'elite-orb'·'boss-orb' = 구슬 보상. ('orb'는 예전 저장의 일반 전투 보상)
 const isOrbReward = k => typeof k === 'string' && (k === 'orb' || k.endsWith('-orb'));
 // 뽑은 보상은 원정에 저장한다: 메인으로 나갔다 이어하면 카드·다시 뽑기가 새로 나오는 걸 막는다(상점과 같은 이유)
-const rollReward = kind => isOrbReward(kind) ? rollOrbs(kind.startsWith('boss')) : rollRelics(3, kind === 'boss');
+const rollReward = kind => isOrbReward(kind) ? rollOrbs() : rollRelics(3, kind === 'boss');
 function showReward(kind){
   if (!RUN.reward || RUN.reward.kind !== kind){ RUN.reward = { kind, stock:rollReward(kind), reroll:rerollMax() }; saveRun(); }
   renderReward(kind);
