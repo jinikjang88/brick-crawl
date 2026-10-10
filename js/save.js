@@ -42,11 +42,12 @@ function saveRun(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(RUN)); }
 function loadRun(){
   try { const r = fixRun(JSON.parse(localStorage.getItem(SAVE_KEY))); if (r) return r; } catch(e){}
   // v2 → v3: 옮긴 뒤 새 키에 쓰고 옛 키는 지운다(두 저장이 엇갈려 남지 않게)
-  try {
-    const r = fixRun(JSON.parse(localStorage.getItem(SAVE_KEY_V2)));
-    if (r){ localStorage.setItem(SAVE_KEY, JSON.stringify(r)); localStorage.removeItem(SAVE_KEY_V2); return r; }
-  } catch(e){}
-  return null;
+  let r = null;
+  try { r = fixRun(JSON.parse(localStorage.getItem(SAVE_KEY_V2))); } catch(e){}
+  if (!r) return null;
+  // 새 키 쓰기가 실패해도(용량 초과 등) 읽은 원정은 돌려주고 옛 키를 남긴다: 이어하기·덮어쓰기 확인이 사라지지 않게
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(r)); localStorage.removeItem(SAVE_KEY_V2); } catch(e){}
+  return r;
 }
 // 원정 저장 검사: JSON이 읽혔다고 쓸 수 있는 저장은 아니다. 메인 화면도 이 저장으로 배경 전투를 그리므로
 // 깨진 값이 하나라도 지나가면 이어하기 전에 메인부터 멈춘다.

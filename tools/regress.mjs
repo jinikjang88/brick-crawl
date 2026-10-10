@@ -221,4 +221,14 @@ function seeded(mathSeed, seed = 777){
   ok('R06 v2 저장 이전: 이어하기, v3 키에 시드 저장, v2 키 삭제', t.mode === 'map' && s3 && s3.v === 3 && Number.isInteger(s3.seed)
     && typeof s3.rng.reward === 'number' && !('brickquest:run:v2' in store) && JSON.stringify(s3.map) === JSON.stringify(v2.map)); }
 
+{ // v2 → v3 옮기기에서 새 키 쓰기만 실패해도 원정은 이어하고 옛 키는 남긴다
+  const v2 = JSON.parse(JSON.stringify(goodRun)); v2.v = 2; delete v2.seed; delete v2.rng;
+  const store = { 'brickquest:run:v2':JSON.stringify(v2) }; const t = boot(store);
+  // 메인 화면이 띄워지며 이미 옮겼으니 v2 상태로 되돌리고 새 키 쓰기를 막은 뒤 이어하기
+  store['brickquest:run:v2'] = JSON.stringify(v2); delete store[RUN_KEY];
+  const ls = globalThis.localStorage, set = ls.setItem;
+  ls.setItem = (k, v) => { if (k === RUN_KEY) throw new Error('용량 초과'); return set(k, v); };
+  click('mContinue'); ls.setItem = set;
+  ok('R06 v2 이전 쓰기 실패: 이어하기 유지, v2 키 보존', t.mode === 'map' && 'brickquest:run:v2' in store && !(RUN_KEY in store)); }
+
 process.exit(fail ? 1 : 0);
