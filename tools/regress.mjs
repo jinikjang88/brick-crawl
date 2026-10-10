@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun};';
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,trimQueue};';
 const code = '(() => {' + srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n' + EXPOSE + '})();';
 
 function mk(){
@@ -16,8 +16,17 @@ function mk(){
     getBoundingClientRect(){ return { left:0, top:0, width:180, height:340 }; } };
 }
 // 저장소 내용(store)을 정해 게임을 새로 띄운다. broken = localStorage 접근이 모두 예외를 던지는 환경
+// net = 기록 서버 흉내(path, body) → { status, data } | null(통신 실패). 없으면 시뮬레이터처럼 통신이 꺼진다
 let els;
-function boot(store = {}, broken = false){
+function boot(store = {}, broken = false, net = null){
+  if (net){
+    globalThis.location = { protocol:'http:', origin:'http://test' };
+    globalThis.fetch = async (url, o) => {
+      const r = net(url.split('/api/')[1], JSON.parse(o.body));
+      if (!r) throw new Error('오프라인');
+      return { ok:r.status < 300, status:r.status, json:async () => r.data || {} };
+    };
+  } else { delete globalThis.location; delete globalThis.fetch; }
   els = {};
   globalThis.document = { getElementById:id => els[id] || (els[id] = mk()), documentElement:{}, createElement:mk, createElementNS:mk, addEventListener(){}, hidden:false };
   globalThis.getComputedStyle = () => ({ getPropertyValue:() => '#000' });
@@ -127,5 +136,40 @@ for (const [name, data] of Object.entries(cases)){
   let err = null, t;
   try { t = boot({ [PROF_KEY]:JSON.stringify({ id:'x', name:'y', queue:null }), [RUN_KEY]:JSON.stringify(goodRun) }); click('mNew'); click('mNew'); } catch(e){ err = e; }
   ok('R02 프로필 queue:null: 덮어쓰기 기록 후 새 원정' + (err ? ' (' + err.message + ')' : ''), !err && t.mode === 'map' && t.PROFILE.queue.length === 1); }
+
+// ── R05: 미전송 기록은 일시 실패에 남고, 성공하면 한 번만 빠진다
+const PROF = (queue, registered = true) => ({ [PROF_KEY]:JSON.stringify({ id:'00000000-0000-4000-8000-000000000000', name:'가나다 라마바 사아자', registered, queue }) });
+const Q = (n, at = 0) => ({ rid:'r' + n, progress:n, at });
+async function flushWith(queue, reply, registered = true){
+  const sent = [];
+  const t = boot(PROF(queue, registered), false, (path, body) => { sent.push(path + ':' + (body.rid || '')); return reply(path, body, sent); });
+  await t.flushRecords(); await t.flushRecords();
+  return { t, sent, left:t.PROFILE.queue.map(q => q.rid).join() };
+}
+for (const [name, st] of [['통신 실패', null], ['500', 500], ['503', 503], ['429', 429], ['408', 408]]){
+  const { left } = await flushWith([Q(1), Q(2)], p => p === 'board' ? { status:200 } : st === null ? null : { status:st, data:{ error:'x' } });
+  ok('R05 ' + name + ': 대기열 유지', left === 'r1,r2');
+}
+{ const { left, sent } = await flushWith([Q(1), Q(2)], () => ({ status:200, data:{ ok:true } }));
+  ok('R05 성공: 각각 한 번만 보내고 비움', left === '' && sent.filter(s => s.startsWith('record')).length === 2); }
+{ const { left } = await flushWith([Q(1), Q(2)], (p, b) => b.rid === 'r1' ? { status:400, data:{ error:'progress' } } : { status:200, data:{ ok:true } });
+  ok('R05 형식 오류(400): 그 기록만 빼고 다음 기록 전송', left === ''); }
+{ // 서버에서 플레이어가 사라짐 → 다시 등록하고 같은 기록을 재전송
+  let known = false;
+  const { left, sent } = await flushWith([Q(1)], p => {
+    if (p === 'player'){ known = true; return { status:200, data:{ ok:true } }; }
+    if (p === 'record') return known ? { status:200, data:{ ok:true } } : { status:404, data:{ error:'player' } };
+    return { status:200 };
+  });
+  ok('R05 플레이어 없음(404): 재등록 후 재전송', left === '' && sent.filter(s => !s.startsWith('board')).join() === 'record:r1,player:,record:r1'); }
+{ // 재등록해도 계속 404면 한 번만 시도하고 기록은 남긴다(무한 반복 금지)
+  const { left, sent } = await flushWith([Q(1)], p => p === 'record' ? { status:404, data:{ error:'player' } } : { status:200, data:{ ok:true } });
+  ok('R05 계속 404: 반복 없이 대기열 유지', left === 'r1' && sent.filter(s => s.startsWith('player')).length <= 2); }
+{ // 50개를 넘으면 오래된 것부터 버리되 최고 기록은 남긴다
+  const t = boot(); const q = [Q(40, 0)]; for (let i = 1; i <= 60; i++) q.push(Q(i % 30, i)); t.trimQueue(q);
+  ok('R05 대기열 50개 제한: 가장 오래된 최고 기록 유지', q.length === 50 && q[0].rid === 'r40' && q[1].at === 12); }
+{ // 서버가 없어도 원정 종료와 새 원정은 그대로
+  let err = null, t; try { t = boot({ [RUN_KEY]:JSON.stringify(goodRun) }, false, () => null); click('mNew'); click('mNew'); } catch(e){ err = e; }
+  ok('R05 서버 없음: 원정 덮어쓰기·새 원정' + (err ? ' (' + err.message + ')' : ''), !err && t.mode === 'map' && t.PROFILE.queue.length === 1); }
 
 process.exit(fail ? 1 : 0);
