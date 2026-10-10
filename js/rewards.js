@@ -12,7 +12,7 @@ function drawTier(pool, n, tierOf){
   pool = pool.slice(); const out = [];
   while (out.length < n && pool.length){
     const w = {}; pool.forEach(k => w[k] = tierW(tierOf(k)));
-    const k = pickW(w); out.push(k); pool.splice(pool.indexOf(k), 1);
+    const k = pickW(w, 'reward'); out.push(k); pool.splice(pool.indexOf(k), 1);
   }
   return out;
 }
@@ -26,7 +26,7 @@ function rollRelics(n, boss){
   // 보스 보상은 희귀를 한 장 보장한다(보스를 넘은 보람). 전설까지 보장 칸에 넣으면 전설이 흔해진다
   const rare = pool.filter(k => relicTier(k) === 3);
   const hi = boss ? drawTier(rare.length ? rare : pool.filter(k => relicTier(k) >= 3), 1, relicTier) : [];
-  return shuffle(hi.concat(drawTier(pool.filter(k => !hi.includes(k)), n - hi.length, relicTier)));
+  return shuffle(hi.concat(drawTier(pool.filter(k => !hi.includes(k)), n - hi.length, relicTier)), 'reward');
 }
 // 유물 얻기는 한곳으로: 도감 기록과 피의 계약(즉시 최대 체력 -8)을 빠뜨리지 않게
 function gainRelic(id){
@@ -84,7 +84,7 @@ function takeReward(apply, kind){
   // 정예·보스는 유물 다음에 구슬 보상이 한 번 더 온다. 단계를 저장해 새로고침해도 이어진다
   if (kind === 'elite' || kind === 'boss'){ RUN.pendingReward = kind + '-orb'; saveRun(); return showReward(RUN.pendingReward); }
   RUN.pendingReward = null;
-  if (kind === 'boss-orb'){ RUN.s++; RUN.map = genMap(RUN.s, RUN.abyss); RUN.pos = null; RUN.path = []; }
+  if (kind === 'boss-orb'){ RUN.s++; RUN.map = genMap(RUN.s, RUN.abyss, RUN.seed); RUN.pos = null; RUN.path = []; }
   saveRun(); showMap();
 }
 
@@ -114,11 +114,12 @@ function showUpgrade(done, back){
       const lv = orbLv(o), rate = upRate(lv), risky = lv >= UP_DROP_FROM && !rel('charm');
       return { name:`${orbName(o)} → +${lv + 1}`, orb:o, tag:`성공 ${rate}%` + (risky ? ' · 실패 시 하락' : ''), desc:orbDesc(orbAt(orbKind(o), lv + 1)),
         rare:risky, onPick:() => {
-          const ok = Math.random() * 100 < rate, i = RUN.deck.indexOf(o);
+          // 보상 흐름에서 뽑고 바로 저장한다: 새로고침으로 실패를 무르지 못하게
+          const ok = rand('reward') * 100 < rate, i = RUN.deck.indexOf(o);
           if (ok){ RUN.deck[i] = orbAt(orbKind(o), lv + 1); toast(`강화 성공 · ${orbName(RUN.deck[i])}`); sfx('badge'); }
           else if (risky){ RUN.deck[i] = orbAt(orbKind(o), lv - 1); toast(`강화 실패 · ${orbName(RUN.deck[i])}로 내려갔다`); sfx('hurt'); }
           else { toast('강화 실패 · 그대로'); sfx('block'); }
-          done();
+          saveRun(); done();
         } };
     }),
     buttons:[{ label:'취소', onClick:back }] });

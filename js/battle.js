@@ -15,45 +15,48 @@ function newBattle(node){
     heart:false, callus:false, disarm:0, stunUsed:false, timeUsed:0, mirror:0, toxic:false,
     bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], queue:[],
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
-    draw:shuffle(RUN.deck), disc:[], orb:'basic',
+    draw:[], disc:[], orb:'basic',
+    // 전투 난수 흐름: 시드·세션·칸으로 정한다. 같은 칸에 다시 들어오면(새로고침) 같은 벽돌·덱 순서·첫 조준
+    rs:seedOf(RUN.seed, 'battle', RUN.abyss ? 1 : 0, RUN.s, node.r, node.l),
   };
+  G.draw = shuffle(RUN.deck, 'battle');
   for (let r = WALL.init - 1; r >= 0; r--) spawnRow(r, true);
   drawOrb(); resetAim();
 }
 
 function spawnRow(r, instant){
   const rc = G.cfg.row, cells = [];
-  for (let c = 0; c < COLS; c++) if (Math.random() < rc.d * WALL.dens) cells.push(c);
-  if (!cells.length) cells.push(rnd(COLS));
+  for (let c = 0; c < COLS; c++) if (rand('battle') < rc.d * WALL.dens) cells.push(c);
+  if (!cells.length) cells.push(rnd(COLS, 'battle'));
   // 특수 벽돌은 한 줄에 최대 1개(독은 별도 1개): 드물어야 노려서 맞힐 가치가 생긴다
-  const order = shuffle(cells);
-  const statCell = Math.random() < rc.stat + (rel('mason') ? .1 : 0) ? order[0] : -1;
-  const poisonCell = rc.poison && order.length > 1 && Math.random() < rc.poison ? order[1] : -1;
+  const order = shuffle(cells, 'battle');
+  const statCell = rand('battle') < rc.stat + (rel('mason') ? .1 : 0) ? order[0] : -1;
+  const poisonCell = rc.poison && order.length > 1 && rand('battle') < rc.poison ? order[1] : -1;
   for (const c of cells){
-    const type = c === statCell ? pickW(rc.w) : c === poisonCell ? 'poison' : 'n';
-    const hp = type === 'n' && Math.random() < rc.hard ? 2 : 1;
+    const type = c === statCell ? pickW(rc.w, 'battle') : c === poisonCell ? 'poison' : 'n';
+    const hp = type === 'n' && rand('battle') < rc.hard ? 2 : 1;
     G.bricks.push({ r, c, y: instant ? rowY(r) : rowY(r) - ROWH, hp, type, flash:0, dead:false });
   }
 }
 function replaceInRow0(n, make){
-  const cols = shuffle([...Array(COLS).keys()]).slice(0, n);
+  const cols = shuffle([...Array(COLS).keys()], 'battle').slice(0, n);
   G.bricks = G.bricks.filter(b => !(b.r === 0 && cols.includes(b.c)));
   for (const c of cols) G.bricks.push(Object.assign({ r:0, c, y:rowY(0) - ROWH, flash:0, dead:false }, make()));
 }
 
 // 구슬 뽑기: 뽑을 더미가 비면 버린 더미를 섞어 채운다. 다음 구슬을 미리 보여주려고 바로 채워 둔다
 function drawOrb(){
-  if (!G.draw.length){ G.draw = shuffle(G.disc); G.disc = []; }
+  if (!G.draw.length){ G.draw = shuffle(G.disc, 'battle'); G.disc = []; }
   G.orb = G.draw.pop() || 'basic';
-  if (!G.draw.length && G.disc.length){ G.draw = shuffle(G.disc); G.disc = []; }
+  if (!G.draw.length && G.disc.length){ G.draw = shuffle(G.disc, 'battle'); G.disc = []; }
   renderOrbBar();
 }
 const nextOrb = () => G.draw.length ? G.draw[G.draw.length - 1] : G.orb;
 
 function resetAim(){
   // 매 턴 시작 위치·방향을 무작위로: 같은 타이밍을 외워서 누르는 걸 막는다
-  G.aim = AIM_MIN + Math.random() * (AIM_MAX - AIM_MIN);
-  G.aimDir = Math.random() < 0.5 ? -1 : 1;
+  G.aim = AIM_MIN + rand('battle') * (AIM_MAX - AIM_MIN);
+  G.aimDir = rand('battle') < 0.5 ? -1 : 1;
   G.aimT = 0;
 }
 
@@ -76,7 +79,7 @@ const bossDropsNow = () => !!G.cfg.boss && !G.m.dead && G.turn % (G.m.phase >= 2
 function bossDrop(){
   for (let k = 0; k < bossDropN(); k++){
     // 붕괴선 바로 위 두 줄은 비운다: 떨어지자마자 무너져 피할 수 없는 피해가 되지 않게
-    const r = rnd(MAXROW - 2), c = rnd(COLS);
+    const r = rnd(MAXROW - 2, 'battle'), c = rnd(COLS, 'battle');
     const b = G.bricks.find(o => !o.dead && o.r === r && o.c === c);
     if (b){ b.hp++; b.flash = 0.15; pop(OX + c * CW + CW / 2, rowY(r) - 2, '+1', C.accent); }
     else G.bricks.push({ r, c, y:BT, hp:1, type:'n', flash:0.15, dead:false });
@@ -289,7 +292,7 @@ function moveBall(b, dt){
     hitBricks(b);
     if (b.vy > 0 && b.y >= FLOOR - 2){
       // 자석 구슬·반동 유물: 바닥에서 한 번 더 튀어 오른다(천장까지 다시 갈 기회)
-      if (b.bounces > 0 || (rel('rebound') && !b.rebounded && Math.random() < .25)){
+      if (b.bounces > 0 || (rel('rebound') && !b.rebounded && rand('battle') < .25)){
         if (b.bounces > 0) b.bounces--; else b.rebounded = true;
         b.y = FLOOR - 2; b.vy = -Math.abs(b.vy); burst(b.x, FLOOR - 2, C.ink3, 4); continue;
       }

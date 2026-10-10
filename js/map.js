@@ -6,15 +6,18 @@ let RUN = null, G = null, mode = 'main', prevMode = null;
 function freshRun(abyss){
   // rid: 기록 서버에서 같은 원정을 두 번 세지 않게 하는 원정 식별자
   // abyss: 심연 원정(본편과 같은 규칙, 몬스터만 더 세고 끝이 없다). revived: 불사조(트리)를 이미 썼는지
-  return { v:2, rid:uuid(), abyss:!!abyss, s:0, hp:24, maxHp:24, coins:0, deck:['basic','basic','bomb'], relics:{},
-           map:genMap(0, abyss), pos:null, pending:null, path:[], pendingReward:null, shop:null, revived:false, pts:0 };
+  // seed: 원정 시드(지도·보상·전투 난수의 뿌리). rng.reward: 저장되는 보상 흐름 상태
+  const seed = Math.floor(Math.random() * 4294967296) >>> 0;
+  return { v:3, seed, rng:{ reward:seedOf(seed, 'reward') }, rid:uuid(), abyss:!!abyss, s:0, hp:24, maxHp:24, coins:0, deck:['basic','basic','bomb'], relics:{},
+           map:genMap(0, abyss, seed), pos:null, pending:null, path:[], pendingReward:null, shop:null, revived:false, pts:0 };
 }
 
 // ── 갈림길 지도: 5갈래 × 4칸 + 보스. 같은 칸으로는 항상, 옆 칸으로는 40% 확률로 이어진다
 // 갈래를 3 → 5로 늘려 고를 길이 많아졌다(같은 갈래만 따라가도 되고, 옆으로 갈아탈 기회도 늘었다)
 const LANES = 5, BOSS_L = 2;
 const NODE_NAME = { battle:'전투', elite:'정예', rest:'휴식', shop:'상점', boss:'보스' };
-function genMap(s, abyss){
+function genMap(s, abyss, seed){
+  RNG.map = seedOf(seed, 'map', s, abyss ? 1 : 0);
   // 심연은 첫 칸부터 아무 몬스터나 나온다(본편처럼 슬라임으로 몸을 풀 틈을 주지 않는다)
   const pools = abyss ? [['slime','bat','golem'], ['bat','golem','shroom'], ['golem','shroom','bat'], ['shroom','golem','bat']]
     : [['slime'], ['bat','golem'], ['golem','shroom'], ['shroom','golem','bat']];
@@ -27,19 +30,20 @@ function genMap(s, abyss){
   }
   for (let r = 0; r < 3; r++) for (const n of rows[r]){
     n.to = [n.l];
-    if (n.l > 0 && Math.random() < .4) n.to.push(n.l - 1);
-    if (n.l < LANES - 1 && Math.random() < .4) n.to.push(n.l + 1);
+    if (n.l > 0 && rand('map') < .4) n.to.push(n.l - 1);
+    if (n.l < LANES - 1 && rand('map') < .4) n.to.push(n.l + 1);
   }
   for (let r = 0; r < 4; r++) for (const n of rows[r]){
     if (r > 0){
       const w = { battle:45, elite:r === 1 ? 10 : 16, shop:17, rest:r === 3 ? 34 : 18 };
       for (const p of rows[r - 1]) if (p.to.includes(n.l) && (p.t === 'rest' || p.t === 'shop')) delete w[p.t];
-      n.t = pickW(w);
+      n.t = pickW(w, 'map');
     }
-    n.mon = n.t === 'elite' ? pickOne(['bat','golem','shroom']) : n.t === 'battle' ? pickOne(pools[r]) : null;
+    n.mon = n.t === 'elite' ? pickOne(['bat','golem','shroom'], 'map') : n.t === 'battle' ? pickOne(pools[r], 'map') : null;
   }
   for (const n of rows[3]) n.to = [BOSS_L];
   rows.push([{ r:4, l:BOSS_L, t:'boss', mon:!abyss && s === FINAL_S ? 'lord' : 'boss', to:[] }]);
+  RNG.map = null;
   return rows;
 }
 const nodeAt = (r, l) => RUN.map[r].find(n => n.l === l);
