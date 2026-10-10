@@ -123,7 +123,7 @@ function toast(msg){
 // 방어도는 체력 앞에 붙은 보호막: 피해를 먼저 흡수하고 흡수한 만큼 깎인다
 function hurt(t, v){ const ab = Math.min(t.def, v); t.def -= ab; t.hp = Math.max(0, t.hp - (v - ab)); return [ab, v - ab]; }
 function hurtPlayer(v, icon, fromMonster){
-  if (tree('d3')) v = Math.ceil(v * .75);   // 불굴: 곱연산 감쇠라 심연의 큰 피해일수록 덜어 주는 양이 크다
+  if (tree('d4')) v = Math.ceil(v * .75);   // 불굴: 곱연산 감쇠라 심연의 큰 피해일수록 덜어 주는 양이 크다
   const p = G.p, [ab, hit] = hurt(p, v);
   if (ab) pop(PX, 42, '-' + ab, C.ink2, 'shield');
   if (ab && fromMonster && rel('counter') && !G.m.dead) strike(PX + 10, 66, Math.ceil(ab / 2));
@@ -481,7 +481,7 @@ function enemyUpdate(dt){
       if (low){ low.dead = true; onBreak(low); }
     }
     // 붕괴선을 넘은 벽돌은 무너지며 기사를 덮친다
-    const hits = g.bricks.filter(b => b.r >= MAXROW);
+    const hits = g.bricks.filter(b => !b.dead && b.r >= MAXROW);   // 파쇄기 등으로 이번 턴에 이미 부서진 벽돌은 덮치지 않는다
     if (hits.length){
       for (const b of hits){ b.dead = true; burst(OX + b.c * CW + CW / 2, rowY(b.r) + 6, C.accent, 6); }
       sfx('crumble'); g.shake = 6;

@@ -38,7 +38,11 @@ let PROFILE = null;
 function loadProfile(){
   try {
     const p = JSON.parse(localStorage.getItem(PROFILE_KEY));
-    if (p && typeof p.id === 'string' && typeof p.name === 'string') return Object.assign({ registered:false, queue:[] }, p);
+    if (p && typeof p.id === 'string' && typeof p.name === 'string'){
+      // queue:null 같은 값이 기본값을 덮으면 원정 종료 처리(recordRun)가 멈춘다. 형식이 맞는 기록만 남긴다
+      const queue = Array.isArray(p.queue) ? p.queue.filter(q => q && typeof q.rid === 'string' && typeof q.progress === 'number') : [];
+      return Object.assign({}, p, { registered:p.registered === true, queue });
+    }
   } catch(e){}
   return null;
 }
