@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,WALL,reachable,enterNode,saveRun};';
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun};';
 const code = '(() => {' + srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n' + EXPOSE + '})();';
 
 function mk(){
@@ -27,6 +27,8 @@ function boot(store = {}, broken = false){
     : { getItem:k => k in store ? store[k] : null, setItem:(k, v) => store[k] = v, removeItem:k => delete store[k] };
   globalThis.addEventListener = () => {}; globalThis.requestAnimationFrame = () => {};
   globalThis.performance = { now:() => 0 }; globalThis.setTimeout = () => 0;
+  // 지도·보상이 실행마다 달라지면 검사가 들쭉날쭉해진다: 띄울 때마다 같은 시드로
+  let seed = 20261010; Math.random = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };
   (0, eval)(code);
   return globalThis.__t;
 }
@@ -35,8 +37,10 @@ let fail = 0;
 const ok = (name, c) => { console.log((c ? '통과' : '실패') + ' ' + name); if (!c) fail++; };
 
 // ── R01: 불굴(d4)만 피해를 줄이고, 재생(d3)은 승리 회복만 준다. 방어도 0, 체력 24, 피해 8
+// 전투 검사는 지도와 무관하게 슬라임 전투 하나를 직접 연다
+const BATTLE = { r:0, l:0, t:'battle', mon:'slime' };
 let T = boot(), M = T.META();
-click('mNew'); T.enterNode(T.reachable()[0]);
+click('mNew'); T.newBattle(BATTLE);
 if (!T.G) throw new Error('전투 시작 실패');
 function hit(tr, v = 8){ M.tree = Object.fromEntries(tr.map(k => [k, 1])); T.G.p.def = 0; T.G.p.hp = 24; T.hurtPlayer(v); return 24 - T.G.p.hp; }
 ok('R01 트리 없음 피해 8', hit([]) === 8);
@@ -47,7 +51,7 @@ M.tree = { d1:1, d2:1, d3:1, d4:1 }; T.G.p.def = 2; T.G.p.hp = 24; T.hurtPlayer(
 ok('R01 불굴 감소 후 방어도 흡수(8→6, 방어 2 → 체력 -4)', 24 - T.G.p.hp === 4);
 M.tree = { d1:1, d2:1, d3:1 }; T.RUN.maxHp = 40; T.RUN.relics.medkit = 0; T.G.p.hp = 20; T.battleEnd(true);
 ok('R01 재생: 승리 회복 +2', T.RUN.hp === 22);
-M.tree = {}; T.enterNode(T.reachable()[0]);
+M.tree = {}; T.newBattle(BATTLE);
 
 // ── R04: 다음 하강으로 붕괴선을 넘는 벽돌을 놓고 몬스터 턴의 하강 단계만 실행한다
 function descend(rows, crusher, o = {}){
@@ -87,6 +91,8 @@ const cases = {
   '잘못된 위치·대기 칸': mut(r => { r.pos = { r:9, l:0 }; r.pending = { r:1, l:99 }; r.path = 'x'; }),
   '잘못된 보상 단계': mut(r => { r.pendingReward = {}; r.reward = { kind:'orb', stock:['nope'] }; }),
   '잘못된 상점': mut(r => r.shop = [{ k:'orb', id:'nope', price:10 }]),
+  '유물 보상에 구슬 후보': mut(r => { r.pendingReward = 'boss'; r.reward = { kind:'boss', stock:['bomb'], reroll:0 }; }),
+  '대기 전투 칸의 몬스터 없음': mut(r => { const n = r.map[0][0]; n.t = 'battle'; n.mon = 'nope'; r.pending = { r:0, l:n.l }; }),
 };
 for (const [name, data] of Object.entries(cases)){
   let t, err = null;
@@ -111,6 +117,10 @@ for (const [name, data] of Object.entries(cases)){
   const t = boot({ [META_KEY]:JSON.stringify({ best:7, pts:'x', runs:null, tree:null, badges:{ oneshot:1 }, seen:{ orb:null } }) }), m = t.META();
   ok('R02 메타 보정: 최고 기록·배지 유지, 깨진 칸 기본값', t.mode === 'main' && m.best === 7 && m.pts === 0 && m.runs === 0
     && m.badges.oneshot === 1 && typeof m.seen.orb === 'object'); }
+{ // best 하나만 깨져도 나머지 메타를 지킨다(다음 저장 때 덮어쓰지 않게)
+  const store = { [META_KEY]:JSON.stringify({ best:'x', pts:9, tree:{ a1:1 }, badges:{ rich:1 }, seen:{ orb:{ bomb:1 }, relic:{} } }) };
+  const t = boot(store); click('mNew'); const m = JSON.parse(store[META_KEY]);
+  ok('R02 메타 best 손상: 포인트·트리·배지 유지', t.META().best === 0 && m.pts === 9 && m.tree.a1 === 1 && m.badges.rich === 1); }
 { let err = null, t; try { t = boot({}, true); click('mNew'); } catch(e){ err = e; }
   ok('R02 localStorage 예외: 새 원정 시작' + (err ? ' (' + err.message + ')' : ''), !err && t.mode === 'map'); }
 { // 프로필 대기열이 깨져도 원정 종료 기록(덮어쓰기)이 멈추지 않는다

@@ -13,7 +13,8 @@ let META = META_BASE();
 (function loadMeta(){
   try {
     const m = JSON.parse(localStorage.getItem(META_KEY));
-    if (m && typeof m.best === 'number'){ META = Object.assign(META_BASE(), m); return; }
+    // best 하나가 깨졌다고 통째로 버리면 다음 saveMeta()가 정상 포인트·트리·배지까지 덮어쓴다. 칸별 보정은 아래에서
+    if (m && typeof m === 'object' && !Array.isArray(m)){ META = Object.assign(META_BASE(), m); return; }
   } catch(e){}
   try {
     const o = JSON.parse(localStorage.getItem(META_KEY_V2));
@@ -54,6 +55,8 @@ function fixMap(map){
     if (!Array.isArray(row) || !row.length) return false;
     for (const n of row){
       if (!isObj(n) || n.r !== r || !isInt(n.l, 0, LANES - 1) || !NODE_NAME[n.t] || !Array.isArray(n.to)) return false;
+      // 싸우는 칸은 몬스터가 있어야 이어하기에서 전투를 만들 수 있다
+      if ((n.t === 'battle' || n.t === 'elite' || n.t === 'boss') && !(typeof n.mon === 'string' && MON[n.mon])) return false;
       // 다음 줄에 없는 칸으로 이어지면 지도에서 길이 끊긴다
       if (r < 4 && (!n.to.length || n.to.some(l => !map[r + 1].some(m => m && m.l === l)))) return false;
     }
@@ -83,8 +86,9 @@ function fixRun(r){
   if (typeof r.pendingReward !== 'string') r.pendingReward = null;
   // 보상 후보·상점 진열은 다시 뽑으면 된다: 하나라도 이상하면 통째로 비운다
   const idOk = (k, id) => k === 'orb' ? !!ORBS[id] : k === 'relic' ? !!RELICS[id] : ['heal', 'upgrade', 'remove'].includes(k);
+  // 구슬 보상엔 구슬만, 유물 보상엔 유물만: 엇갈리면 보상 화면이 다른 표에서 이름을 찾다 멈춘다
   if (!(isObj(r.reward) && typeof r.reward.kind === 'string' && Array.isArray(r.reward.stock)
-    && r.reward.stock.every(id => ORBS[id] || RELICS[id]))) r.reward = null;
+    && r.reward.stock.every(id => (isOrbReward(r.reward.kind) ? ORBS : RELICS)[id]))) r.reward = null;
   else r.reward.reroll = Math.floor(numOr(r.reward.reroll, 0));
   if (!(Array.isArray(r.shop) && r.shop.every(it => isObj(it) && idOk(it.k, it.id) && numOr(it.price, -1) >= 0))) r.shop = null;
   return r;
