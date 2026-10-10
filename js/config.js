@@ -23,11 +23,29 @@ function fitCanvas(){
 }
 cv.width = W * RES; cv.height = H * RES;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const rnd = n => Math.floor(Math.random() * n);
-const pickOne = a => a[rnd(a.length)];
-const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// ── 난수. 게임 결과를 바꾸는 뽑기는 원정 시드에서 나온 흐름(s)을 쓴다:
+//   'map'    세션 지도(genMap 안에서만, 시드·세션으로 정해진다)
+//   'reward' 보상·상점·강화·코인(원정 내내 이어지고 RUN.rng에 저장된다. 새로고침으로 다시 뽑지 못하게)
+//   'battle' 전투(전투마다 시드·세션·칸으로 새로 정한다. 새로고침해도 같은 판, 앞 전투의 구슬 물리가 다음 판을 바꾸지 않게)
+// s를 주지 않으면 Math.random: 파티클·흔들림 같은 연출용. 연출을 바꿔도 지도·보상·전투 결과가 그대로여야 한다
+const RNG = { map:null };
+function mulberry(o, k){
+  let t = o[k] = (o[k] + 0x6D2B79F5) >>> 0;
+  t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+  return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+function rand(s){
+  // 흐름 상태가 없으면(시드 없는 원정이 될 수 없는 경로의 방어) Math.random으로 대신한다
+  const o = s === 'reward' ? RUN && RUN.rng : s === 'battle' ? G : s === 'map' ? RNG : null, k = s === 'battle' ? 'rs' : s;
+  return o && typeof o[k] === 'number' ? mulberry(o, k) : Math.random();
+}
+// 시드와 위치(흐름 이름·세션·칸)를 섞어 흐름의 시작값을 만든다(FNV-1a)
+const seedOf = (...xs) => { let h = 0x811C9DC5; for (const ch of xs.join(':')) h = Math.imul(h ^ ch.charCodeAt(0), 0x01000193) >>> 0; return h; };
+const rnd = (n, s) => Math.floor(rand(s) * n);
+const pickOne = (a, s) => a[rnd(a.length, s)];
+const shuffle = (a, s) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = rnd(i + 1, s); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const rowY = r => BT + 4 + r * ROWH;
-function pickW(w){ let x = Math.random() * Object.values(w).reduce((a, b) => a + b, 0); for (const k in w){ x -= w[k]; if (x < 0) return k; } return Object.keys(w)[0]; }
+function pickW(w, s){ let x = rand(s) * Object.values(w).reduce((a, b) => a + b, 0); for (const k in w){ x -= w[k]; if (x < 0) return k; } return Object.keys(w)[0]; }
 
 // 화면 테마: 자동(기기 설정)·밝게·어둡게. CSS는 html[data-theme]로 토큰을 바꾸므로, 색을 읽기 전에 먼저 붙인다
 const THEME_KEY = 'brickquest:theme:v1', THEMES = ['auto', 'light', 'dark'];

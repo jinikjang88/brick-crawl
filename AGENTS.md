@@ -61,7 +61,7 @@
   | `js/main.js` | 메뉴(일시정지), 입력, 메인 루프 시작 — 항상 마지막 |
   | `functions/api/[[path]].js` | (서버) 기록 API: `player`·`record`·`board` |
   | `db/schema.sql` | (서버) D1 테이블: `players`·`runs` |
-- 연출용 무작위(파티클 등)와 게임 결과에 영향을 주는 무작위를 구분한다. 후자는 시드 RNG를 쓴다(작업 01에서 도입).
+- 연출용 무작위(파티클 등)와 게임 결과에 영향을 주는 무작위를 구분한다. 후자는 원정 시드에서 나온 흐름 `rand(s)`(`js/config.js`, `'map'`·`'reward'`·`'battle'`)를 쓰고, 전자는 흐름 없이 `Math.random`을 쓴다.
 
 ## UI·시각 규칙
 - 테마: 자동(기기 설정)·밝게·어둡게를 메뉴에서 고른다(`html[data-theme]`). 패널 그림은 라이트 = 양피지(`ui_panel`), 다크 = 석판(`ui_bar`).

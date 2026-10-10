@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,trimQueue};';
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,catchChoice:()=>{ const got = []; showChoice = o => got.push(o); return got; }};';
 const code = '(() => {' + srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n' + EXPOSE + '})();';
 
 function mk(){
@@ -18,7 +18,7 @@ function mk(){
 // 저장소 내용(store)을 정해 게임을 새로 띄운다. broken = localStorage 접근이 모두 예외를 던지는 환경
 // net = 기록 서버 흉내(path, body) → { status, data } | null(통신 실패). 없으면 시뮬레이터처럼 통신이 꺼진다
 let els;
-function boot(store = {}, broken = false, net = null){
+function boot(store = {}, broken = false, net = null, mathSeed = 20261010){
   if (net){
     globalThis.location = { protocol:'http:', origin:'http://test' };
     globalThis.fetch = async (url, o) => {
@@ -37,7 +37,7 @@ function boot(store = {}, broken = false, net = null){
   globalThis.addEventListener = () => {}; globalThis.requestAnimationFrame = () => {};
   globalThis.performance = { now:() => 0 }; globalThis.setTimeout = () => 0;
   // 지도·보상이 실행마다 달라지면 검사가 들쭉날쭉해진다: 띄울 때마다 같은 시드로
-  let seed = 20261010; Math.random = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };
+  let seed = mathSeed; Math.random = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };
   (0, eval)(code);
   return globalThis.__t;
 }
@@ -82,7 +82,7 @@ ok('R04+굳은살: 남은 벽돌 붕괴는 굳은살이 막는다', descend([[10
 M.tree = {};
 
 // ── R02: 깨진 저장으로도 메인이 뜨고, 이어하기·새 원정이 막히지 않는다
-const RUN_KEY = 'brickquest:run:v2', META_KEY = 'brickquest:meta:v3', PROF_KEY = 'brickquest:profile:v1';
+const RUN_KEY = 'brickquest:run:v3', META_KEY = 'brickquest:meta:v3', PROF_KEY = 'brickquest:profile:v1';
 const goodRun = (() => { const t = boot(); click('mNew'); return JSON.parse(JSON.stringify(t.RUN)); })();
 const mut = f => { const r = JSON.parse(JSON.stringify(goodRun)); f(r); return JSON.stringify(r); };
 const cases = {
@@ -171,5 +171,64 @@ for (const [name, st] of [['통신 실패', null], ['500', 500], ['503', 503], [
 { // 서버가 없어도 원정 종료와 새 원정은 그대로
   let err = null, t; try { t = boot({ [RUN_KEY]:JSON.stringify(goodRun) }, false, () => null); click('mNew'); click('mNew'); } catch(e){ err = e; }
   ok('R05 서버 없음: 원정 덮어쓰기·새 원정' + (err ? ' (' + err.message + ')' : ''), !err && t.mode === 'map' && t.PROFILE.queue.length === 1); }
+
+// ── R06: 게임 결과 난수는 원정 시드에서, 연출 난수는 Math.random에서
+const snap = t => ({ map:JSON.stringify(t.RUN.map), bricks:JSON.stringify(t.G.bricks.map(b => [b.r, b.c, b.type, b.hp])), draw:t.G.draw.join(), aim:t.G.aim.toFixed(6) });
+function seeded(mathSeed, seed = 777){
+  // Math.random 시드가 달라도(=연출·닉네임·uuid 소비가 달라도) 원정 시드가 같으면 같은 결과여야 한다
+  const t = boot({}, false, null, mathSeed); click('mNew');
+  t.RUN.seed = seed; t.RUN.rng = { reward:12345 }; t.RUN.map = t.genMap(0, false, seed);
+  const n = t.RUN.map[0].find(x => x.t === 'battle'); t.newBattle(n);
+  return { t, n };
+}
+{ const a = seeded(1), b = seeded(99999), A = snap(a.t), B = snap(b.t);
+  ok('R06 같은 시드: 지도 재현', A.map === B.map);
+  ok('R06 같은 시드: 첫 전투 벽돌·덱 순서·첫 조준 재현', A.bricks === B.bricks && A.draw === B.draw && A.aim === B.aim);
+  ok('R06 같은 시드: 보상 후보 재현', a.t.rollOrbs().join() === b.t.rollOrbs().join() && a.t.rollRelics(3, true).join() === b.t.rollRelics(3, true).join());
+  const c = seeded(1, 778); ok('R06 다른 시드: 지도가 달라진다', snap(c.t).map !== A.map); }
+{ // 파티클을 많이 뿌려도 다음 벽돌 줄이 그대로
+  const a = seeded(5), b = seeded(5);
+  for (let i = 0; i < 50; i++) b.t.burst(50, 50, '#000', 20);
+  a.t.spawnRow(0, true); b.t.spawnRow(0, true);
+  ok('R06 연출 난수와 분리: 파티클 수와 무관하게 같은 벽돌 줄', snap(a.t).bricks === snap(b.t).bricks); }
+{ // 전투 칸에서 새로고침 → 같은 판
+  const store = {}; const t = boot(store); click('mNew');
+  const n = t.reachable().find(x => x.t === 'battle') || t.reachable()[0]; t.enterNode(n); const A = snap(t);
+  const u = boot(store, false, null, 4242); click('mContinue');
+  ok('R06 전투 중 새로고침: 같은 벽돌·덱 순서·첫 조준', u.G && snap(u).bricks === A.bricks && snap(u).draw === A.draw && snap(u).aim === A.aim); }
+{ // 상점 진열·보상 흐름은 저장된다: 다시 열어도 같고, 저장된 흐름 상태로 이어진다
+  const store = {}; const t = boot(store); click('mNew'); const before = t.RUN.rng.reward;
+  t.showShop(); const shop = JSON.stringify(t.RUN.shop);
+  const saved = JSON.parse(store[RUN_KEY]);
+  ok('R06 보상 흐름 저장: 상점을 연 뒤 rng.reward 진행이 저장됨', saved.rng.reward !== before && JSON.stringify(saved.shop) === shop); }
+{ // 강화 결과: 같은 저장에서 몇 번을 시도해도(새로고침) 같은 결과, 고른 즉시 저장
+  const store = {}; const t = boot(store); click('mNew'); t.RUN.deck = ['bomb+3', 'basic', 'basic']; t.saveRun();
+  const base = store[RUN_KEY], res = [];
+  let savedOk = true;
+  for (const ms of [1, 2, 3]){
+    const st = { [RUN_KEY]:base }; const u = boot(st, false, null, ms); click('mContinue');
+    const got = u.catchChoice(); u.showUpgrade(() => {}, () => {});
+    got[0].cards.find(c => c.orb === 'bomb+3').onPick();
+    res.push(u.RUN.deck.join());
+    savedOk = savedOk && JSON.parse(st[RUN_KEY]).deck.join() === u.RUN.deck.join();
+  }
+  ok('R06 강화 결과 고정: 다시 시도해도 같은 결과(' + res[0] + ')', res.every(x => x === res[0]));
+  ok('R06 강화 결과: 고른 즉시 저장', savedOk); }
+{ // v2 원정 저장 → v3로 옮겨 이어하기
+  const v2 = JSON.parse(JSON.stringify(goodRun)); v2.v = 2; delete v2.seed; delete v2.rng;
+  const store = { 'brickquest:run:v2':JSON.stringify(v2) }; const t = boot(store); click('mContinue');
+  const s3 = store[RUN_KEY] && JSON.parse(store[RUN_KEY]);
+  ok('R06 v2 저장 이전: 이어하기, v3 키에 시드 저장, v2 키 삭제', t.mode === 'map' && s3 && s3.v === 3 && Number.isInteger(s3.seed)
+    && typeof s3.rng.reward === 'number' && !('brickquest:run:v2' in store) && JSON.stringify(s3.map) === JSON.stringify(v2.map)); }
+
+{ // v2 → v3 옮기기에서 새 키 쓰기만 실패해도 원정은 이어하고 옛 키는 남긴다
+  const v2 = JSON.parse(JSON.stringify(goodRun)); v2.v = 2; delete v2.seed; delete v2.rng;
+  const store = { 'brickquest:run:v2':JSON.stringify(v2) }; const t = boot(store);
+  // 메인 화면이 띄워지며 이미 옮겼으니 v2 상태로 되돌리고 새 키 쓰기를 막은 뒤 이어하기
+  store['brickquest:run:v2'] = JSON.stringify(v2); delete store[RUN_KEY];
+  const ls = globalThis.localStorage, set = ls.setItem;
+  ls.setItem = (k, v) => { if (k === RUN_KEY) throw new Error('용량 초과'); return set(k, v); };
+  click('mContinue'); ls.setItem = set;
+  ok('R06 v2 이전 쓰기 실패: 이어하기 유지, v2 키 보존', t.mode === 'map' && 'brickquest:run:v2' in store && !(RUN_KEY in store)); }
 
 process.exit(fail ? 1 : 0);

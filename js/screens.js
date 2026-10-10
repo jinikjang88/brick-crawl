@@ -396,7 +396,7 @@ function battleEnd(win){
   const n = G.node;
   if (!win) return runOver();
   RUN.hp = Math.min(RUN.maxHp, G.p.hp + 2 * rel('medkit') + (tree('d3') ? 2 : 0));
-  const gain = (n.t === 'boss' ? 40 : n.t === 'elite' ? 22 + rnd(7) : 10 + rnd(5)) + (tree('e3') ? 5 : 0)
+  const gain = (n.t === 'boss' ? 40 : n.t === 'elite' ? 22 + rnd(7, 'reward') : 10 + rnd(5, 'reward')) + (tree('e3') ? 5 : 0)
     + (rel('wallet') ? 3 : 0) + (rel('greed') ? 12 : 0) + (n.t === 'elite' && rel('lantern') ? 10 : 0) + (rel('alchemy') ? G.m.poison : 0);
   RUN.coins += gain; RUN.lastGain = gain;
   if (RUN.coins >= 200) earnBadge('rich');
