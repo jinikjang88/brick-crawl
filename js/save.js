@@ -25,6 +25,9 @@ let META = META_BASE();
     }
   } catch(e){}
 })();
+// 메타는 원정보다 소중하다(포인트·배지·도감): 버리지 않고 깨진 칸만 기본값으로 메운다
+for (const k of ['best', 'abyssBest', 'runs', 'clears', 'pts'])
+  if (typeof META[k] !== 'number' || !isFinite(META[k]) || META[k] < 0) META[k] = 0;
 if (!META.tree || typeof META.tree !== 'object') META.tree = {};
 if (!META.badges || typeof META.badges !== 'object') META.badges = {};
 if (!META.seen || typeof META.seen !== 'object') META.seen = {};
@@ -35,12 +38,56 @@ const seenCount = kind => Object.keys(META.seen[kind]).filter(k => (kind === 'or
 function saveMeta(){ try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch(e){} }
 function saveRun(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(RUN)); } catch(e){} }
 function loadRun(){
-  try {
-    const r = JSON.parse(localStorage.getItem(SAVE_KEY));
-    // 구조가 맞지 않는 저장은 버린다(이전 버전 데이터 등)
-    if (r && r.v === 2 && Array.isArray(r.deck) && Array.isArray(r.map) && r.map.length === 5) return r;
-  } catch(e){}
+  try { return fixRun(JSON.parse(localStorage.getItem(SAVE_KEY))); } catch(e){}
   return null;
+}
+// 원정 저장 검사: JSON이 읽혔다고 쓸 수 있는 저장은 아니다. 메인 화면도 이 저장으로 배경 전투를 그리므로
+// 깨진 값이 하나라도 지나가면 이어하기 전에 메인부터 멈춘다.
+// 고칠 수 있는 값(빠진 필드·범위 밖 수치·사라진 구슬/유물 id)은 기본값으로 메우고, 지도·덱처럼 되살릴 수 없으면 버린다
+const isObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
+const isInt = (x, lo, hi) => Number.isInteger(x) && x >= lo && x <= hi;
+const numOr = (x, d, lo = 0) => typeof x === 'number' && isFinite(x) && x >= lo ? x : d;
+function fixMap(map){
+  if (!Array.isArray(map) || map.length !== 5) return false;
+  for (let r = 0; r < 5; r++){
+    const row = map[r];
+    if (!Array.isArray(row) || !row.length) return false;
+    for (const n of row){
+      if (!isObj(n) || n.r !== r || !isInt(n.l, 0, LANES - 1) || !NODE_NAME[n.t] || !Array.isArray(n.to)) return false;
+      // 다음 줄에 없는 칸으로 이어지면 지도에서 길이 끊긴다
+      if (r < 4 && (!n.to.length || n.to.some(l => !map[r + 1].some(m => m && m.l === l)))) return false;
+    }
+  }
+  return map[4].some(n => n.t === 'boss');
+}
+const cellOk = (map, c) => isObj(c) && isInt(c.r, 0, 4) && map[c.r].some(n => n.l === c.l);
+function fixRun(r){
+  if (!isObj(r) || r.v !== 2 || !fixMap(r.map)) return null;
+  if (!Array.isArray(r.deck)) return null;
+  r.deck = r.deck.filter(o => typeof o === 'string' && ORBS[orbKind(o)] && orbLv(o) <= UP_MAX);
+  if (!r.deck.length) return null;
+  const relics = {};
+  if (isObj(r.relics)) for (const k in r.relics)
+    if (RELICS[k] && isInt(r.relics[k], 1, 99)) relics[k] = Math.min(r.relics[k], RELICS[k].max || 1);
+  r.relics = relics;
+  r.abyss = !!r.abyss;
+  r.s = isInt(r.s, 0, r.abyss ? 9999 : SESSIONS - 1) ? r.s : 0;
+  r.maxHp = Math.round(numOr(r.maxHp, 24, 1));
+  r.hp = Math.max(1, Math.min(r.maxHp, Math.round(numOr(r.hp, r.maxHp))));
+  r.coins = Math.floor(numOr(r.coins, 0));
+  r.pts = Math.floor(numOr(r.pts, 0));
+  if (typeof r.rid !== 'string') r.rid = uuid();
+  r.pos = cellOk(r.map, r.pos) ? { r:r.pos.r, l:r.pos.l } : null;
+  r.pending = cellOk(r.map, r.pending) ? { r:r.pending.r, l:r.pending.l } : null;
+  r.path = Array.isArray(r.path) ? r.path.filter(p => Array.isArray(p) && cellOk(r.map, { r:p[0], l:p[1] })) : [];
+  if (typeof r.pendingReward !== 'string') r.pendingReward = null;
+  // 보상 후보·상점 진열은 다시 뽑으면 된다: 하나라도 이상하면 통째로 비운다
+  const idOk = (k, id) => k === 'orb' ? !!ORBS[id] : k === 'relic' ? !!RELICS[id] : ['heal', 'upgrade', 'remove'].includes(k);
+  if (!(isObj(r.reward) && typeof r.reward.kind === 'string' && Array.isArray(r.reward.stock)
+    && r.reward.stock.every(id => ORBS[id] || RELICS[id]))) r.reward = null;
+  else r.reward.reroll = Math.floor(numOr(r.reward.reroll, 0));
+  if (!(Array.isArray(r.shop) && r.shop.every(it => isObj(it) && idOk(it.k, it.id) && numOr(it.price, -1) >= 0))) r.shop = null;
+  return r;
 }
 function clearRun(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
 // 칸 번호 → 화면 표기. 본편은 1~25("세션-칸"), 그 위는 심연(26 = 심연 1층 1칸)
