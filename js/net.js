@@ -49,9 +49,18 @@ function recordRun(r){
   const rid = r.rid || uuid();
   if (p.queue.some(q => q.rid === rid)) return;
   p.queue.push({ rid, progress:runProgress(r), at:Date.now() });
-  if (p.queue.length > 50) p.queue = p.queue.slice(-50);
+  trimQueue(p.queue);
   saveProfile();
   flushRecords();
+}
+// 오프라인으로 오래 놀아도 저장이 끝없이 커지지 않게 50개까지만 둔다. 넘치면 오래된 것부터 버리되
+// 대기열의 최고 기록은 남긴다: 랭킹에 올라갈 기록을 잃는 것보다 원정 횟수 몇 개를 빠뜨리는 편이 낫다(2026-10 결정)
+const QUEUE_MAX = 50;
+function trimQueue(q){
+  while (q.length > QUEUE_MAX){
+    const best = q.reduce((b, x, i) => x.progress > q[b].progress ? i : b, 0);
+    q.splice(best === 0 ? 1 : 0, 1);
+  }
 }
 // 이미 올리는 중이면 같은 작업을 기다린다. 원정 직후 메인 화면의 랭킹이 방금 기록을 빠뜨리지 않게
 let flushP = null;
@@ -59,14 +68,25 @@ function flushRecords(){
   if (!API_BASE) return Promise.resolve();
   return flushP || (flushP = doFlush().finally(() => { flushP = null; }));
 }
+// 응답 분류: 성공 → 빼기 / 일시 실패(통신·5xx·408·429) → 남겨 두고 다음에 / 서버에 플레이어가 없음(404) → 다시 등록하고 재시도 /
+// 그 밖의 4xx는 값 자체가 잘못돼 몇 번 보내도 같으니 빼고 다음 기록으로
+const retryLater = r => !r || r.status >= 500 || r.status === 408 || r.status === 429;
 async function doFlush(){
   if (!(await registerProfile())) return;
   const p = PROFILE;
+  let reReg = false;
   while (p.queue.length){
     const q = p.queue[0];
     const r = await api('record', { id:p.id, rid:q.rid, progress:q.progress });
-    if (!r || r.status >= 500) return;   // 통신·서버 오류: 다음에 다시
-    p.queue.shift(); saveProfile();      // 성공 또는 잘못된 값이라 거절(4xx): 다시 보낼 필요 없다
+    if (retryLater(r)) return;
+    if (r.status === 404 && r.data && r.data.error === 'player'){
+      // 등록했다고 기억했는데 서버에 없다(DB 초기화 등). 한 번만 다시 등록해 무한 반복을 막는다
+      if (reReg) return;
+      reReg = true; p.registered = false; saveProfile();
+      if (!(await registerProfile())) return;
+      continue;
+    }
+    p.queue.shift(); saveProfile();
   }
 }
 
