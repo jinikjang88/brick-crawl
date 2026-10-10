@@ -45,13 +45,21 @@ async function record(db, { id, rid, progress }){
   if (!Number.isInteger(progress) || progress < 0 || progress > MAX_PROGRESS) return json({ error:'progress' }, 400);
   const p = await db.prepare('SELECT best FROM players WHERE id = ?').bind(id).first();
   if (!p) return json({ error:'player' }, 404);
-  const now = Date.now();
-  const r = await db.prepare('INSERT OR IGNORE INTO runs (rid, player_id, progress, ended_at) VALUES (?, ?, ?, ?)').bind(rid, id, progress, now).run();
-  if (!r.meta.changes) return json({ ok:true, dup:true });
-  await db.prepare(`UPDATE players SET runs = runs + 1,
-      best_at = CASE WHEN ?1 > best THEN ?2 ELSE best_at END,
-      best = MAX(best, ?1) WHERE id = ?3`).bind(progress, now, id).run();
-  return json({ ok:true });
+  // 원정 행 삽입과 플레이어 집계를 batch(한 트랜잭션)로 묶는다: 삽입만 되고 집계가 실패하면
+  // 재전송이 "중복"으로 끝나 집계가 영영 빠졌다(R03).
+  // 집계는 "+1"이 아니라 runs 표에서 다시 센다. 같은 rid를 몇 번 보내도 결과가 같고(멱등),
+  // 예전에 어긋난 플레이어도 다음 기록 때 바로잡힌다. MAX로 감싸 runs 표에 없는 옛 기록은 줄이지 않는다
+  const [ins] = await db.batch([
+    db.prepare('INSERT OR IGNORE INTO runs (rid, player_id, progress, ended_at) VALUES (?, ?, ?, ?)').bind(rid, id, progress, Date.now()),
+    db.prepare(`UPDATE players SET
+        runs = MAX(runs, (SELECT COUNT(*) FROM runs WHERE player_id = ?1)),
+        best_at = CASE WHEN (SELECT MAX(progress) FROM runs WHERE player_id = ?1) > best
+          THEN (SELECT MIN(ended_at) FROM runs WHERE player_id = ?1 AND progress = (SELECT MAX(progress) FROM runs WHERE player_id = ?1))
+          ELSE best_at END,
+        best = MAX(best, COALESCE((SELECT MAX(progress) FROM runs WHERE player_id = ?1), 0))
+      WHERE id = ?1`).bind(id),
+  ]);
+  return ins.meta.changes ? json({ ok:true }) : json({ ok:true, dup:true });
 }
 
 async function board(db, { id }){
