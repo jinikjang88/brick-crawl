@@ -306,6 +306,16 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .tNode.key{width:clamp(28px,12cqw,40px);height:clamp(28px,12cqw,40px);border-width:4px}
 .tNode.root{width:clamp(34px,14cqw,48px);height:clamp(34px,14cqw,48px)}
 .tBranch{font-size:11px;letter-spacing:.15em}
+/* 탭 영역은 보이는 모양과 따로 지름 44px 원으로 잡는다(R08): 버튼 자체는 누르기를 받지 않고 ::after 원만 받는다.
+   핵심 노드(마름모)·시작 노드처럼 그림이 44px보다 커도 이웃의 탭 영역을 덮지 않는다. 노드 중심 간격은 44px 이상으로 둔다.
+   가로로 눕힌 낮은 화면처럼 상자가 좁아지면 지름을 노드 간격(상자 폭의 14.3%)보다 작게 줄여, 작아질지언정 이웃과 겹치지는 않게 */
+.tNode{pointer-events:none}
+.tNode::after{content:'';position:absolute;left:50%;top:50%;width:min(44px,14.2cqw);height:min(44px,14.2cqw);transform:translate(-50%,-50%);border-radius:50%;pointer-events:auto}
+/* 상자가 300px보다 좁으면(가로로 눕힌 낮은 화면) 44px은 어차피 안 나오니 간격보다 넉넉히 작게 해 경계 오차로도 겹치지 않게 */
+@container (max-width:300px){ .tNode::after{width:13cqw;height:13cqw} }
+/* 좁은 화면: 트리 상자를 화면 폭 가까이 넓혀 노드 간격(상자 폭의 14.3%)을 44px 위로 올린다 */
+@media(max-width:380px){ .ovTree{padding-left:0;padding-right:0;overflow-x:hidden} .ovTree .treeBox{max-width:none;width:100%} }
+@media(max-width:340px){ .app{padding-left:4px;padding-right:4px} .ovTree{left:0;right:0} }
 
 /* ── 심연: 테마와 무관하게 화면 전체를 검붉은 어둠으로. 붉은 강조색은 그대로(위험의 의미가 더 짙어진다) */
 :root[data-realm="abyss"]{ --bg:#141113; --panel:#211B1D; --field:#191517; --ink:#ECE4DA; --ink2:#B5AAA1; --ink3:#6E625D; --line:#3B3033; --accent:#D2574F; color-scheme:dark; }
