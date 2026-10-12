@@ -11,7 +11,8 @@ try { ({ chromium } = require('playwright')); } catch (e) {
 (async () => {
   const browser = await chromium.launch({ headless: true });
   try {
-    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    // 시작 버튼의 빛 띠 애니메이션이 멈추지 않아 클릭이 "불안정"으로 막힌다: 동작 줄이기로 띄운다
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.goto(pathToFileURL(path.resolve(__dirname, '../index.html')).href);
@@ -19,8 +20,9 @@ try { ({ chromium } = require('playwright')); } catch (e) {
     assert.equal(await page.locator('#ovMain').evaluate(e => e.classList.contains('on')), true);
     await page.locator('#mNew').click();
     await page.waitForFunction(() => mode === 'map');
-    await page.evaluate(() => enterNode(reachable()[0]));
-    await page.waitForFunction(() => mode === 'battle');
+    // 첫 줄에 상점·휴식이 섞일 수 있어 전투 칸을 고른다. 전투 중 화면 모드 이름은 'play'다
+    await page.evaluate(() => enterNode(reachable().find(n => n.t === 'battle') || reachable()[0]));
+    await page.waitForFunction(() => mode === 'play');
     await page.evaluate(() => {
       RUN.pendingReward = 'elite'; RUN.reward = { kind: 'elite', stock: ['whetstone', 'ring', 'collector'], reroll: 0 };
       saveRun(); showReward('elite');
