@@ -306,6 +306,13 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .tNode.key{width:clamp(28px,12cqw,40px);height:clamp(28px,12cqw,40px);border-width:4px}
 .tNode.root{width:clamp(34px,14cqw,48px);height:clamp(34px,14cqw,48px)}
 .tBranch{font-size:11px;letter-spacing:.15em}
+/* ── 이야기(작업 05): 문단을 줄바꿈 그대로, 읽기 편하게 왼쪽 정렬 */
+#cSub.story{white-space:pre-line;text-align:left;font-size:16px;line-height:1.7;color:var(--ink);max-width:340px}
+.mapStory{font-size:13px;color:var(--ink2);font-style:italic;margin-top:2px}
+.mapStory:empty{display:none}
+/* 고난 단계 버튼: 새 원정 바로 아래, 붉은 강조 없이(위험 = 붉은색은 몬스터 쪽에만) 굵은 테 */
+.ascBtn{border-width:3px}
+.ascBtn small{display:block;font-size:12px;font-weight:600;color:var(--ink2)}
 /* 탭 영역은 보이는 모양과 따로 지름 44px 원으로 잡는다(R08): 버튼 자체는 누르기를 받지 않고 ::after 원만 받는다.
    핵심 노드(마름모)·시작 노드처럼 그림이 44px보다 커도 이웃의 탭 영역을 덮지 않는다. 노드 중심 간격은 44px 이상으로 둔다.
    가로로 눕힌 낮은 화면처럼 상자가 좁아지면 지름을 노드 간격(상자 폭의 14.3%)보다 작게 줄여, 작아질지언정 이웃과 겹치지는 않게 */
