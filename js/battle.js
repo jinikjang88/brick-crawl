@@ -17,9 +17,18 @@ function newBattle(node){
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
     draw:[], disc:[], orb:'basic',
     // 전투 난수 흐름: 시드·세션·칸으로 정한다. 같은 칸에 다시 들어오면(새로고침) 같은 벽돌·덱 순서·첫 조준
-    rs:seedOf(RUN.seed, 'battle', RUN.abyss ? 1 : 0, RUN.s, node.r, node.l),
+    // 근원은 군주와 같은 칸이라 흐름을 따로 갈라 같은 판이 되지 않게
+    // (근원이 아닌 전투의 시드는 예전과 같게 둔다: 같은 원정이 같은 판으로 재현되게)
+    rs:seedOf(RUN.seed, 'battle', RUN.abyss ? 1 : 0, RUN.s, node.r, node.l, ...(node.mon === 'king' ? ['king'] : [])),
+    // 봉인된 천장 칸(그 칸에 닿은 구슬은 튕기기만 한다), 다음 턴 봉인 칸(예고)
+    seal:[], sealNext:null,
   };
   G.draw = shuffle(RUN.deck, 'battle');
+  // 고난 1: 정예가 처음부터 분노한다
+  if (cfg.elite && ascOn(1)) G.m.rage = true;
+  // 근원은 cfg.seal칸, 고난 5부터는 다른 보스도 한 칸을 봉인한다
+  const sealN = cfg.seal || (cfg.boss && ascOn(5) ? 1 : 0);
+  if (sealN) G.seal = shuffle([...Array(COLS).keys()], 'battle').slice(0, sealN).sort((a, b) => a - b);
   for (let r = WALL.init - 1; r >= 0; r--) spawnRow(r, true);
   drawOrb(); resetAim();
 }
@@ -31,7 +40,9 @@ function spawnRow(r, instant){
   // 특수 벽돌은 한 줄에 최대 1개(독은 별도 1개): 드물어야 노려서 맞힐 가치가 생긴다
   const order = shuffle(cells, 'battle');
   const statCell = rand('battle') < rc.stat + (rel('mason') ? .1 : 0) ? order[0] : -1;
-  const poisonCell = rc.poison && order.length > 1 && rand('battle') < rc.poison ? order[1] : -1;
+  // 고난 4: 독 안개. 독 벽돌이 없던 몬스터에게도 섞인다
+  const pz = Math.max(rc.poison || 0, ascOn(4) ? .25 : 0);
+  const poisonCell = pz && order.length > 1 && rand('battle') < pz ? order[1] : -1;
   for (const c of cells){
     const type = c === statCell ? pickW(rc.w, 'battle') : c === poisonCell ? 'poison' : 'n';
     const hp = type === 'n' && rand('battle') < rc.hard ? 2 : 1;
@@ -74,8 +85,13 @@ const atkLeft = it => atkN(it) - G.m.ai;
 const poisonAmt = it => it.v !== undefined ? it.v : G.m.atk;
 // 보스 벽돌 낙하: 패턴과 별개로 짝수 턴마다(분노 페이즈부터는 매 턴) 아무 칸에나 벽돌을 떨어뜨린다.
 // 깊을수록 많이 떨어진다(본편 1·1·2·2·3개, 심연 1층 2개부터). 이미 벽돌이 있는 칸이면 그 벽돌 체력 +1
-const bossDropN = () => 1 + Math.floor((RUN.abyss ? RUN.s + ABYSS.base + 1 : RUN.s) / 2);
-const bossDropsNow = () => !!G.cfg.boss && !G.m.dead && G.turn % (G.m.phase >= 2 ? 2 : 3) === 0;
+// 고난 2: 정예도 3턴마다 1개씩 떨어뜨린다
+const bossDropN = () => G.cfg.boss ? 1 + Math.floor((RUN.abyss ? RUN.s + ABYSS.base + 1 : RUN.s) / 2) : 1;
+const bossDropsNow = () => (!!G.cfg.boss || (!!G.cfg.elite && ascOn(2))) && !G.m.dead && G.turn % (G.cfg.boss && G.m.phase >= 2 ? 2 : 3) === 0;
+// 천장 봉인: x 위치의 칸이 봉인되었나
+const sealedAt = x => G.seal.includes(clamp(Math.floor((x - OX) / CW), 0, COLS - 1));
+// 근원 2페이즈부터: 봉인이 매 턴 한 칸씩 옆으로(끝에서 반대쪽으로) 옮긴다. 다음 자리를 미리 보여 피할 수 있게
+const sealShift = s => s.map(c => (c + 1) % COLS).sort((a, b) => a - b);
 function bossDrop(){
   for (let k = 0; k < bossDropN(); k++){
     // 붕괴선 바로 위 두 줄은 비운다: 떨어지자마자 무너져 피할 수 없는 피해가 되지 않게
@@ -226,10 +242,17 @@ function checkRage(){
   if (m.dead) return;
   if (cfg.boss){
     // 일반 보스는 절반에서 2페이즈, 최종 보스는 2/3·1/3에서 2·3페이즈
-    const next = cfg.final ? (m.hp <= m.max / 3 ? 3 : m.hp <= m.max * 2 / 3 ? 2 : 1) : (m.hp <= m.max / 2 ? 2 : 1);
+    // 근원은 체력 절반에서 2페이즈(봉인 이동), 1/3에서 3페이즈(봉인 3칸)
+    const next = cfg.king ? (m.hp <= m.max / 3 ? 3 : m.hp <= m.max / 2 ? 2 : 1)
+      : cfg.final ? (m.hp <= m.max / 3 ? 3 : m.hp <= m.max * 2 / 3 ? 2 : 1) : (m.hp <= m.max / 2 ? 2 : 1);
     if (next <= m.phase) return;
     m.phase = next; m.pi = 0; m.ai = 0; m.fresh = G.phase === 'enemy' && G.eStep >= 1; m.atk += 1; m.def += 2; G.shake = 8;
-    banner(next === 3 ? '군주가 마지막 힘을 끌어낸다' : '보스가 분노했다', `${next}페이즈`, true); sfx('rage');
+    // 근원: 2페이즈부터 봉인이 움직이고(예고), 3페이즈에 봉인이 한 칸 늘어난다
+    if (cfg.seal){
+      if (next === 3){ const free = [...Array(COLS).keys()].filter(c => !G.seal.includes(c)); G.seal = G.seal.concat(free[rnd(free.length, 'battle')]).sort((a, b) => a - b); }
+      G.sealNext = sealShift(G.seal);
+    }
+    banner(cfg.king ? (next === 3 ? '왕이 마지막 성벽을 세운다' : '봉인이 움직이기 시작한다') : next === 3 ? '군주가 마지막 힘을 끌어낸다' : '보스가 분노했다', `${next}페이즈`, true); sfx('rage');
   } else if (cfg.elite && !m.rage && m.hp <= m.max / 2){
     m.rage = true; G.shake = 5;
     banner('정예가 날뛴다', '조준 가속', true); sfx('rage');
@@ -254,7 +277,7 @@ function hitBricks(b){
     if (br.hp <= 0){ br.dead = true; onBreak(br); ballBreak(b, br); }
     if (br.hp <= 0){
       b.broke++;
-      if (b.kind === 'thorn' && b.broke % (b.up ? 2 : 3) === 0 && !G.m.dead) strike(OX + br.c * CW + CW / 2, br.y, 1);
+      if (b.kind === 'thorn' && b.broke % (b.up ? 1 : 2) === 0 && !G.m.dead) strike(OX + br.c * CW + CW / 2, br.y, 1);
     }
     if (br.dead && G.shot && ++G.shot.broke === 12) earnBadge('demolish');
     if (drilled) return;
@@ -276,8 +299,9 @@ function moveBall(b, dt){
     else if (b.x > RIGHT - 1.5){ b.x = RIGHT - 1.5; b.vx = -Math.abs(b.vx); }
     if (b.y < BT + 1.5){
       b.y = BT + 1.5; b.vy = Math.abs(b.vy);
-      // 천장 타격: 성벽을 뚫고 올라온 구슬만 몬스터를 친다
-      if (!G.m.dead && b.hits < ballCap(b)){
+      // 천장 타격: 성벽을 뚫고 올라온 구슬만 몬스터를 친다. 봉인된 칸은 튕기기만 한다(타격 횟수도 쓰지 않는다)
+      if (!G.m.dead && sealedAt(b.x)){ burst(b.x, BT + 1, C.ink3, 3); sfx('block'); }
+      else if (!G.m.dead && b.hits < ballCap(b)){
         b.hits++;
         sfx('ceil', { orb:b.kind, n:b.hits - 1 });
         const v = hitDmg(b.orb, b.hits, b);
@@ -314,12 +338,12 @@ function orbCeil(b){
   else if (b.kind === 'vamp' && (up || b.hits % 2 === 0)) heal(1);
   else if (b.kind === 'weaken' && G.shot.weak < (up ? 2 : 1) && it.t === 'atk' && atkLeft(it) > 1){
     G.shot.weak++; m.ai++; pop(MX, 20, '-1', C.ink, 'sword');
-  } else if (b.kind === 'disarm' && G.disarm < (up ? 3 : 2) && m.atk > 1){
+  } else if (b.kind === 'disarm' && G.disarm < (up ? 4 : 3) && m.atk > 1){
     G.disarm++; m.atk--; pop(MX + 16, 88, '-1', C.ink, 'sword');
   } else if (b.kind === 'rust'){
     if (m.def) pop(MX + 16, 76, '0', C.ink, 'shield');
     m.def = 0; if (up) m.noGuard = true;
-  } else if (b.kind === 'stun' && !G.stunUsed && b.hits === (up ? 2 : 3)){
+  } else if (b.kind === 'stun' && !G.stunUsed && b.hits === (up ? 1 : 2)){
     G.stunUsed = true; m.stun = true; pop(MX, 20, '', C.ink, 'dots'); sfx('block');
   } else if (b.kind === 'time' && G.timeUsed < (up ? 2 : 1)){
     G.timeUsed++; m.pi = 0; m.ai = 0;
@@ -513,6 +537,7 @@ function enemyUpdate(dt){
     if (p.hp <= 0){ g.phase = 'lose'; g.timer = 0; return; }
     // phase를 먼저 바꾼다: drawOrb가 구슬 줄을 다시 그릴 때 "발사!"가 "발사 대기"로 돌아오게
     g.phase = 'aim'; g.turn++; g.cur = null;
+    if (g.sealNext){ g.seal = g.sealNext; g.sealNext = sealShift(g.seal); }
     g.disc.push(g.orb); drawOrb(); resetAim();
   }
 }

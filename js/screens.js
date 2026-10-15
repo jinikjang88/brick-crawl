@@ -27,7 +27,7 @@ function showChoice(o){
   // 덜어내기·강화는 상점·휴식 안에서 이어지는 화면이라 장면을 그대로 둔다
   setScene(o.scene !== undefined ? o.scene : ['remove', 'upgrade'].includes(o.mode) ? SCENE : null);
   $('cTitle').textContent = o.title; $('cTitle').className = 'big';
-  $('cSub').textContent = o.sub || '';
+  $('cSub').textContent = o.sub || ''; $('cSub').classList.remove('story');
   const box = $('cCards'); box.textContent = '';
   for (const c of o.cards){
     const b = document.createElement('button');
@@ -75,6 +75,15 @@ function showMain(){
   nw.classList.toggle('hero', !saved);
   nw.textContent = '새 원정'; nw.dataset.arm = '';
   // 심연은 본편을 한 번 깨야 열린다. 닫혀 있을 때도 자리를 보여 줘 "끝에 무언가 있다"는 걸 알린다
+  // 고난 단계: 한 번이라도 완주해야 보인다. 누를 때마다 다음 단계로(열린 단계까지 돌고 0으로)
+  const as = $('mAsc'); as.hidden = !META.asc;
+  if (META.asc){
+    const k = META.ascPick;
+    as.textContent = k ? `고난 ${k} · ${ASC[k].name}` : '고난 없음';
+    const sm = document.createElement('small');
+    sm.textContent = k ? `${ASC[k].desc}${k > 1 ? ` (+ 고난 1~${k - 1} 규칙)` : ''}` : `누르면 고난 단계를 고른다 · 열린 단계 ${META.asc}/${ASC_MAX}`;
+    as.append(sm);
+  }
   ab.disabled = !abyssOpen(); ab.dataset.arm = '';
   ab.textContent = abyssOpen() ? '심연으로' : '심연 · 5층을 깨면 열린다';
   if (abyssOpen() && META.abyssBest){ const sm = document.createElement('small'); sm.textContent = `최고 ${progLabel(MAIN_CELLS + META.abyssBest)}`; ab.append(sm); }
@@ -106,10 +115,27 @@ function confirmStart(e, abyss){
   startNewRun(abyss);
 }
 $('mNew').onclick = e => confirmStart(e, false);
+$('mAsc').onclick = () => { if (mode !== 'main') return; META.ascPick = (META.ascPick + 1) % (META.asc + 1); saveMeta(); sfx('pick'); showMain(); $('mAsc').focus(); };
 $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 // 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); }); } catch(e){}
-function startNewRun(abyss){ RUN = freshRun(abyss); applyTreeStart(RUN); RUN.deck.forEach(o => markSeen('orb', orbKind(o))); META.runs++; saveMeta(); saveRun(); showMap(); }
+function startNewRun(abyss){
+  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => markSeen('orb', orbKind(o))); META.runs++; saveMeta(); saveRun();
+  // 첫 원정에는 이야기의 시작을 먼저 보여 준다(한 번만)
+  storyOnce('intro', () => showMap());
+}
+// ── 이야기: 처음 한 번만 보여 주고 META.story에 남긴다(도감에서 다시 읽는다). 이미 봤으면 바로 다음으로
+function storyOnce(id, next){
+  if (META.story[id]) return next();
+  META.story[id] = 1; saveMeta();
+  showStory(id, next);
+}
+function showStory(id, next){
+  const st = STORY[id];
+  setHeader('', '');
+  showChoice({ mode:'story', title:st.title, sub:st.text, scene:null, cards:[], buttons:[{ label:'계속', primary:true, onClick:next }] });
+  $('cSub').classList.add('story');
+}
 // 스킬 트리 중 원정 시작 때 한 번 정해지는 효과
 function applyTreeStart(r){
   if (tree('d1')){ r.maxHp += 4; r.hp += 4; }
@@ -250,6 +276,12 @@ function showBadges(){
     const r = RELICS[k], own = !!META.seen.relic[k];
     box.append(bookRow(own ? relicPortrait(k, 'bIc') : badgeIcon(UNKNOWN, false), own ? r.name : '???', RARITY[r.t].name, own ? r.desc : '아직 손에 넣지 못했다', own));
   }
+  box.append(bookHead('이야기'));
+  for (const id of STORY_ORDER){
+    const st = STORY[id], own = !!META.story[id];
+    box.append(bookRow(badgeIcon({ icon:'dots' }, own), own ? st.title : '???', own ? '' : '아직 못 봄',
+      own ? st.text.replace(/\n+/g, ' ') : '탑을 더 오르면 알게 된다', own));
+  }
   box.append(bookHead('배지'));
   for (const b of BADGES){
     const n = META.badges[b.id] || 0, li = document.createElement('li');
@@ -316,6 +348,8 @@ function showMap(note){
   $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  코인 ${RUN.coins}  구슬 ${RUN.deck.length}/${deckMax()}`;
   // 일반 전투는 보상 화면 없이 지도로 돌아오므로, 얻은 코인을 부제 앞에 한 번 보여 준다
   if (note) $('mapSub').textContent = `${note} · ${$('mapSub').textContent}`;
+  if (RUN.asc) $('mapTitle').textContent += ` · 고난 ${RUN.asc}`;
+  $('mapStory').textContent = RUN.abyss ? '' : STORY_FLOOR[RUN.s] || '';
   const box = $('mapBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
@@ -383,6 +417,8 @@ function finishNonBattle(){
 // ── 전투 시작·종료
 function startBattle(n){
   setRealm(RUN.abyss);
+  // 군주를 쓰러뜨린 뒤(고난 6)라면 같은 보스 칸에서 근원과 싸운다. 새로고침해도 근원부터 이어진다
+  if (n.t === 'boss' && RUN.king) n = Object.assign({}, n, { mon:'king' });
   newBattle(n);
   const label = `${stageName(RUN.s)} · ${n.r + 1}번째 방`;
   // 공백 두 칸은 HTML에서 하나로 줄어 "세션 11-1"처럼 붙어 읽혔다. 구분점으로 나눈다
@@ -395,6 +431,8 @@ function startBattle(n){
 function battleEnd(win){
   const n = G.node;
   if (!win) return runOver();
+  // 고난 6: 군주는 껍데기다. 승리 회복 없이 남은 체력 그대로 근원과 이어 싸운다(저장해 두어 새로고침해도 근원부터)
+  if (G.cfg.final && !G.cfg.king && ascOn(6)){ RUN.hp = G.p.hp; RUN.king = true; saveRun(); return storyOnce('root', () => startBattle(G.node)); }
   RUN.hp = Math.min(RUN.maxHp, G.p.hp + 2 * rel('medkit') + (tree('d3') ? 2 : 0));
   const gain = (n.t === 'boss' ? 40 : n.t === 'elite' ? 22 + rnd(7, 'reward') : 10 + rnd(5, 'reward')) + (tree('e3') ? 5 : 0)
     + (rel('wallet') ? 3 : 0) + (rel('greed') ? 12 : 0) + (n.t === 'elite' && rel('lantern') ? 10 : 0) + (rel('alchemy') ? G.m.poison : 0);
@@ -403,7 +441,7 @@ function battleEnd(win){
   if (n.t === 'boss' && RUN.abyss && RUN.s === 4) earnBadge('abyss5');
   if (G.cfg.final) return victory();
   // 세션 돌파: 최대 체력 +4 후 절반 회복. 몬스터는 세션마다 공·방이 오르는데 기사 체력만 고정이면 후반이 벽이 된다
-  if (n.t === 'boss'){ RUN.maxHp += 4; RUN.hp = Math.min(RUN.maxHp, RUN.hp + 4 + Math.ceil(RUN.maxHp / 2)); }
+  if (n.t === 'boss'){ RUN.maxHp += 4; if (!ascOn(3)) RUN.hp = Math.min(RUN.maxHp, RUN.hp + 4 + Math.ceil(RUN.maxHp / 2)); }
   completeNode();
   sfx('win'); bgm(calmSong());
   // 구슬 보상은 정예·보스(유물 다음)와 상점에서만: 매 전투마다 덱이 불면 구슬 하나하나의 무게가 가벼워진다
@@ -414,21 +452,35 @@ function battleEnd(win){
 }
 // 최종 보스 격파 = 원정 완주. 저장을 지우고 결과를 보여 준 뒤 메인으로 돌아간다(메인에서 심연이 열린다)
 function victory(){
-  const firstClear = !META.clears;
+  const firstClear = !META.clears, asc = RUN.asc || 0, king = !!G.cfg.king;
   completeNode();
-  META.clears = (META.clears || 0) + 1; saveMeta();
+  META.clears = (META.clears || 0) + 1;
+  // 고난: 지금 열린 최고 단계를 깨면 다음 단계가 열린다. 처음 여는 단계면 메인에서 바로 그 단계가 골라져 있게
+  const opened = asc >= META.asc && META.asc < ASC_MAX;
+  META.ascClear[asc] = (META.ascClear[asc] || 0) + 1;
+  if (opened){ META.asc = asc + 1; META.ascPick = META.asc; }
+  saveMeta();
   earnBadge('final');
   if (RUN.deck.length <= 3) earnBadge('light');
+  if (king) earnBadge('root');
+  // 빌드 배지: 덱 구슬의 절반 이상이 한 계열이면
+  for (const [id, kinds] of Object.entries(BUILD_BADGES))
+    if (RUN.deck.filter(o => kinds.includes(orbKind(o))).length * 2 >= RUN.deck.length) earnBadge(id);
   clearRun(); endRun(RUN);
   sfx('win'); bgm('calm');
   const got = (RUN.badges || []).map(id => BADGES.find(b => b.id === id).name);
-  showChoice({
-    mode:'result', title:'원정 완료!',
-    sub:`탑의 군주를 쓰러뜨렸다. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개.`
+  const result = () => showChoice({
+    mode:'result', title:king ? '탑이 무너졌다' : '원정 완료!',
+    sub:`${king ? '성벽의 왕' : '탑의 군주'}를 쓰러뜨렸다${asc ? `(고난 ${asc})` : ''}. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개.`
       + ` 이번 원정 스킬 포인트 +${RUN.pts || 0}.` + (got.length ? ` 배지: ${got.join(', ')}.` : '')
-      + (firstClear ? ' 메인 화면에 심연으로 가는 문이 열렸다.' : ''),
+      + (firstClear ? ' 메인 화면에 심연으로 가는 문이 열렸다.' : '')
+      + (opened ? ` 고난 ${META.asc}(${ASC[META.asc].name})이 열렸다.` : ''),
     cards:[], buttons:[{ label:'메인 화면', primary:true, onClick:showMain }],
   });
+  // 이야기: 진 엔딩 > 고난 n 첫 완주 조각 > 첫 완주 결말
+  if (king) return storyOnce('end', result);
+  if (asc >= 1 && asc <= 5) return storyOnce('a' + asc, result);
+  storyOnce('end1', result);
 }
 function runOver(){
   const n = G.node; clearRun(); endRun(RUN);

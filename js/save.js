@@ -7,7 +7,9 @@
 // 원정 v3: 시드 난수(seed·rng)가 붙었다. v2 원정은 버리지 않고 새 시드를 붙여 이어한다(fixRun)
 const SAVE_KEY = 'brickquest:run:v3', SAVE_KEY_V2 = 'brickquest:run:v2', META_KEY = 'brickquest:meta:v3', META_KEY_V2 = 'brickquest:meta:v2';
 // seen = 도감: 한 번이라도 손에 넣은 구슬·유물. 필드만 늘었고 예전 메타도 빈 도감으로 그대로 읽히므로 키 버전은 올리지 않는다
-const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{}, seen:{ orb:{}, relic:{} } });
+// asc = 열린 최고 고난 단계, ascPick = 메인에서 고른 단계, ascClear = 단계별 완주 횟수, story = 본 이야기 조각(작업 05).
+// 필드만 늘어 예전 메타도 기본값으로 읽히므로 키 버전은 그대로다
+const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{}, seen:{ orb:{}, relic:{} }, asc:0, ascPick:0, ascClear:{}, story:{} });
 // p칸까지 처음 돌파하며 받는 포인트 합계(본편·심연 모두 5칸째가 보스)
 const ptsUpTo = p => { let t = 0; for (let i = 1; i <= p; i++) t += i % 5 === 0 ? PTS.boss : PTS.cell; return t; };
 let META = META_BASE();
@@ -28,11 +30,15 @@ let META = META_BASE();
   } catch(e){}
 })();
 // 메타는 원정보다 소중하다(포인트·배지·도감): 버리지 않고 깨진 칸만 기본값으로 메운다
-for (const k of ['best', 'abyssBest', 'runs', 'clears', 'pts'])
+for (const k of ['best', 'abyssBest', 'runs', 'clears', 'pts', 'asc', 'ascPick'])
   if (typeof META[k] !== 'number' || !isFinite(META[k]) || META[k] < 0) META[k] = 0;
 if (!META.tree || typeof META.tree !== 'object') META.tree = {};
 if (!META.badges || typeof META.badges !== 'object') META.badges = {};
 if (!META.seen || typeof META.seen !== 'object') META.seen = {};
+for (const k of ['ascClear', 'story']) if (!META[k] || typeof META[k] !== 'object') META[k] = {};
+// 고난 단계가 생기기 전에 이미 완주한 계정은 고난 1이 열린 상태로 옮긴다(다시 5층을 깨야 열리는 일이 없게)
+if (META.clears > 0 && META.asc < 1) META.asc = 1;
+META.asc = Math.min(Math.floor(META.asc), ASC_MAX); META.ascPick = Math.min(Math.floor(META.ascPick), META.asc);
 for (const k of ['orb', 'relic']) if (!META.seen[k] || typeof META.seen[k] !== 'object') META.seen[k] = {};
 function markSeen(kind, id){ if (META.seen[kind][id]) return; META.seen[kind][id] = 1; saveMeta(); }
 // 데이터에서 빠진 옛 id는 세지 않는다
@@ -85,6 +91,9 @@ function fixRun(r){
     if (RELICS[k] && isInt(r.relics[k], 1, 99)) relics[k] = Math.min(r.relics[k], RELICS[k].max || 1);
   r.relics = relics;
   r.abyss = !!r.abyss;
+  r.asc = r.abyss ? 0 : isInt(r.asc, 0, ASC_MAX) ? r.asc : 0;
+  // 근원 표시는 고난 6·마지막 층·최종 보스 칸 대기 중일 때만 뜻이 있다. 그 밖이면 중간 층 보스가 근원으로 바뀌어 원정이 잘못 끝난다
+  r.king = r.king === true && r.asc >= ASC_MAX && r.s === FINAL_S && !!r.pending && r.pending.r === 4;
   r.s = isInt(r.s, 0, r.abyss ? 9999 : SESSIONS - 1) ? r.s : 0;
   r.maxHp = Math.round(numOr(r.maxHp, 24, 1));
   r.hp = Math.max(1, Math.min(r.maxHp, Math.round(numOr(r.hp, r.maxHp))));

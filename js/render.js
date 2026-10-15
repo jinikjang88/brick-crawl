@@ -75,6 +75,12 @@ function draw(){
 
   // 천장: 이 선에 닿아야 몬스터를 친다
   ctx.fillStyle = C.ink; ctx.fillRect(0, BT - 2, W, 2);
+  // 봉인된 천장 칸: 빗금으로 막힌 자리를 말 없이 보여 준다. 다음 턴 봉인 자리는 붉은 점선으로 예고
+  for (const c of g.seal || []){
+    const x0 = OX + c * CW; ctx.fillStyle = C.ink2; ctx.fillRect(x0, BT - 2, CW, 5);
+    ctx.fillStyle = C.field; for (let i = 0; i < CW; i += 4) ctx.fillRect(x0 + i, BT - 1 + (i / 4 % 2), 2, 2);
+  }
+  if (g.sealNext){ ctx.fillStyle = C.accent; for (const c of g.sealNext) if (!g.seal.includes(c)) for (let i = 1; i < CW; i += 4) ctx.fillRect(OX + c * CW + i, BT + 4, 2, 1); }
   for (const f of g.cf){ ctx.globalAlpha = clamp(f.t * 4, 0, 1); ctx.fillRect(Math.round(f.x) - 7, BT - 5, 14, 3); }
   ctx.globalAlpha = 1;
 

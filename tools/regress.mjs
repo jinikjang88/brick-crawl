@@ -6,7 +6,12 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,catchChoice:()=>{ const got = []; showChoice = o => got.push(o); return got; }};';
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
+  // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
+  + 'catchChoice:()=>{ const got = [], orig = showChoice; showChoice = o => { got.push(o); orig(o); }; return got; },'
+  + 'update,victory,bossDropsNow,sealedAt};';
+// 프롤로그(첫 원정의 이야기)는 따로 검사한다. 다른 검사는 새 원정 → 바로 지도를 기대하므로 본 것으로 둔다
+let FRESH_STORY = false;
 const code = '(() => {' + srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n' + EXPOSE + '})();';
 
 function mk(){
@@ -39,6 +44,7 @@ function boot(store = {}, broken = false, net = null, mathSeed = 20261010){
   // 지도·보상이 실행마다 달라지면 검사가 들쭉날쭉해진다: 띄울 때마다 같은 시드로
   let seed = mathSeed; Math.random = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };
   (0, eval)(code);
+  if (!FRESH_STORY) try { globalThis.__t.META().story.intro = 1; } catch(e){}
   return globalThis.__t;
 }
 const click = id => els[id].onclick({ currentTarget:els[id] });
@@ -230,5 +236,136 @@ function seeded(mathSeed, seed = 777){
   ls.setItem = (k, v) => { if (k === RUN_KEY) throw new Error('용량 초과'); return set(k, v); };
   click('mContinue'); ls.setItem = set;
   ok('R06 v2 이전 쓰기 실패: 이어하기 유지, v2 키 보존', t.mode === 'map' && 'brickquest:run:v2' in store && !(RUN_KEY in store)); }
+
+// ── 작업 05: 고난 단계·근원·이야기
+{ // 고난 규칙: 1 정예 분노, 2 정예 벽돌 낙하, 3 보스 회복 없음, 4 독 안개, 5 보스 천장 봉인 1칸
+  const t = boot(); click('mNew'); const R = t.RUN;
+  const elite = { r:1, l:0, t:'elite', mon:'bat' }, boss = { r:4, l:2, t:'boss', mon:'boss' };
+  R.asc = 0; t.newBattle(elite); const calm = t.G.m.rage;
+  R.asc = 1; t.newBattle(elite); ok('고난 1: 정예가 처음부터 분노', calm === false && t.G.m.rage === true);
+  t.G.turn = 3; const d1 = t.bossDropsNow(); R.asc = 2; const d2 = t.bossDropsNow();
+  ok('고난 2: 정예도 3턴마다 벽돌 낙하', d1 === false && d2 === true);
+  // 독 안개: 독 벽돌이 없는 슬라임 줄에도 섞인다
+  const countPoison = a => { R.asc = a; t.newBattle({ r:0, l:0, t:'battle', mon:'slime' }); for (let i = 0; i < 60; i++) t.spawnRow(0, true); return t.G.bricks.filter(b => b.type === 'poison').length; };
+  ok('고난 4: 독 안개(슬라임 줄에 독 벽돌)', countPoison(3) === 0 && countPoison(4) > 0);
+  R.asc = 4; t.newBattle(boss); const s4 = t.G.seal.length; R.asc = 5; t.newBattle(boss);
+  ok('고난 5: 보스전 천장 1칸 봉인', s4 === 0 && t.G.seal.length === 1);
+  // 꺼진 모닥불: 보스를 잡아도 체력 그대로, 최대 체력만 +4
+  for (const [a, want] of [[2, 'heal'], [3, 'none']]){
+    R.asc = a; t.newBattle(boss); R.pending = { r:4, l:2 }; R.maxHp = 30; t.G.p.hp = 10; R.relics.medkit = 0;
+    t.battleEnd(true); ok(`고난 ${a}: 보스 처치 후 체력 ${want === 'heal' ? '회복' : '그대로'}`, R.maxHp === 34 && (want === 'heal' ? R.hp > 10 : R.hp === 10));
+  }
+  // 심연에는 고난 규칙이 걸리지 않는다
+  R.abyss = true; R.asc = 6; t.newBattle(elite); ok('심연: 고난 규칙 없음', t.G.m.rage === false); R.abyss = false;
+}
+{ // 봉인된 천장 칸에 닿은 구슬은 피해를 주지 않는다(같은 자리, 봉인만 다르게)
+  const shoot = sealed => {
+    const t = boot(); click('mNew'); t.newBattle({ r:0, l:0, t:'battle', mon:'slime' }); const G = t.G;
+    G.bricks = []; G.seal = sealed ? [3] : []; G.phase = 'fire'; G.queue = []; G.fireEl = 0; G.shot = { full:true, hits:0, broke:0 };
+    G.balls = [{ x:6 + 3 * 24 + 12, y:40, vx:0, vy:-300, hits:0, orb:'basic', kind:'basic', up:false, broke:0, bombed:false, drill:0, bounces:0 }];
+    for (let i = 0; i < 10; i++) t.update(1 / 60);
+    return { hits:G.balls[0] ? G.balls[0].hits : -1, projs:G.projs.filter(p => p.kind === 'dmg').length };
+  };
+  const a = shoot(false), b = shoot(true);
+  ok(`봉인 판정: 봉인 칸은 타격 없음·튕기기만(열림 ${a.projs}, 봉인 ${b.projs})`, a.projs === 1 && b.projs === 0 && b.hits === 0);
+}
+{ // 근원: 고난 6에서 군주를 쓰러뜨리면 이야기 → 같은 칸에서 성벽의 왕. 새로고침해도 근원부터
+  const store = {}; const t = boot(store); const M = t.META(); M.asc = 6; M.ascPick = 6; click('mNew');
+  const R = t.RUN; R.s = 4; R.map = t.genMap(4, false, R.seed); R.pos = { r:3, l:2 }; t.saveRun();
+  const got = t.catchChoice(); t.enterNode(R.map[4][0]);
+  ok('고난 6: 5층 보스는 먼저 탑의 군주', t.G.cfg.name === '탑의 군주');
+  t.G.p.hp = 17; t.battleEnd(true);
+  const st = got.find(o => o.mode === 'story');
+  ok('고난 6: 군주 격파 → 근원 이야기 → 저장에 근원 표시', R.king === true && st && st.title === '근원' && JSON.parse(store[RUN_KEY]).king === true);
+  st.buttons[0].onClick();
+  ok('근원: 성벽의 왕, 천장 2칸 봉인, 체력 이어짐', t.G.cfg.name === '성벽의 왕' && t.G.seal.length === 2 && t.G.p.hp === 17);
+  const u = boot(store); click('mContinue');
+  ok('근원 중 새로고침 → 성벽의 왕부터 이어하기', !!u.G && u.G.cfg.name === '성벽의 왕');
+  const got2 = u.catchChoice(); u.G.m.hp = 0; u.G.m.dead = true; u.battleEnd(true);
+  const M2 = u.META();
+  ok('근원 격파: 진 엔딩 이야기·아침 배지·고난 6 완주 기록', got2.some(o => o.mode === 'story' && o.title === '성벽이 내려간 아침') && M2.badges.root >= 1 && M2.ascClear[6] === 1);
+  const fin = got2.find(o => o.mode === 'story'); fin.buttons[0].onClick();
+  ok('진 엔딩 → 결과 화면 "탑이 무너졌다"', got2.some(o => o.mode === 'result' && o.title === '탑이 무너졌다'));
+}
+{ // 근원 페이즈: 2페이즈부터 다음 봉인 예고·턴마다 이동, 3페이즈 봉인 3칸
+  const t = boot(); click('mNew'); t.newBattle({ r:4, l:2, t:'boss', mon:'king' }); const G = t.G;
+  const s1 = G.seal.join(); G.m.hp = Math.floor(G.m.max * .45); G.phase = 'enemy'; G.eStep = 0; G.timer = 0;
+  // checkRage는 피해가 들어갈 때 불린다: 몬스터 독으로 한 번 깎아 페이즈를 올린다
+  G.m.poison = 1; G.phase = 'aim'; G.balls = []; G.queue = [];
+  const before = G.sealNext; t.G.m.hp = Math.floor(G.m.max * .45);
+  // 직접 페이즈 판정을 부르는 경로가 없으므로 피해 투사체를 하나 보낸다
+  G.projs.push({ x0:0, y0:0, x1:0, y1:0, t:1, dur:0.01, kind:'dmg', v:1, venom:0, shot:null });
+  for (let i = 0; i < 3; i++) t.update(1 / 60);
+  ok('근원 2페이즈: 다음 봉인 예고가 생긴다', before === null && Array.isArray(G.sealNext) && G.m.phase === 2);
+  const cur = G.seal.join(), next = G.sealNext.join();
+  G.m.def = 0; G.m.hp = Math.floor(G.m.max / 3) + 1;
+  G.projs.push({ x0:0, y0:0, x1:0, y1:0, t:1, dur:0.01, kind:'dmg', v:1, venom:0, shot:null });
+  for (let i = 0; i < 3; i++) t.update(1 / 60);
+  ok('근원 3페이즈: 봉인 3칸', G.m.phase === 3 && G.seal.length === 3 && s1 !== '' && cur !== next);
+}
+{ // 고난 해금: 열린 최고 단계를 깨면 다음 단계가 열리고 골라지며, 이야기 조각을 한 번만
+  const t = boot(); const M = t.META(); M.asc = 1; M.ascPick = 1; M.story = { intro:1, end1:1 }; click('mNew');
+  const R = t.RUN; t.newBattle({ r:4, l:2, t:'boss', mon:'lord' }); R.pending = { r:4, l:2 };
+  const got = t.catchChoice(); t.victory();
+  ok('고난 1 완주: 고난 2 열림·골라짐, 조각 a1', M.asc === 2 && M.ascPick === 2 && M.story.a1 === 1 && got.some(o => o.title === '첫 번째 조각 · 성주'));
+  const t2 = boot(); const M2 = t2.META(); M2.asc = 3; M2.ascPick = 1; M2.story = { intro:1, end1:1, a1:1 }; click('mNew');
+  t2.newBattle({ r:4, l:2, t:'boss', mon:'lord' }); t2.RUN.pending = { r:4, l:2 }; const g2 = t2.catchChoice(); t2.victory();
+  ok('낮은 단계 재완주: 해금 없음·이미 본 조각은 다시 안 보임', M2.asc === 3 && !g2.some(o => o.mode === 'story'));
+  const t3 = boot(); const M3 = t3.META(); click('mNew');
+  t3.newBattle({ r:4, l:2, t:'boss', mon:'lord' }); t3.RUN.pending = { r:4, l:2 }; const g3 = t3.catchChoice(); t3.victory();
+  ok('첫 완주: 결말 1 "빈 갑옷" → 고난 1 열림', M3.asc === 1 && g3.some(o => o.title === '빈 갑옷'));
+}
+{ // 첫 원정: 프롤로그 → 지도. 두 번째 원정은 바로 지도
+  FRESH_STORY = true;
+  const store = {}; const t = boot(store); const got = t.catchChoice(); click('mNew');
+  ok('첫 원정: 프롤로그', t.mode === 'story' && got[0] && got[0].title === '성벽이 내려온 밤');
+  got[0].buttons[0].onClick(); ok('프롤로그 → 지도', t.mode === 'map');
+  const u = boot(store); click('mNew'); click('mNew'); ok('두 번째 원정: 프롤로그 없이 지도', u.mode === 'map');
+  FRESH_STORY = false;
+}
+{ // 빌드 배지: 덱 절반 이상이 한 계열이면
+  const t = boot(); const M = t.META(); M.story = { intro:1, end1:1 }; click('mNew');
+  t.RUN.deck = ['venom', 'toxin+2', 'basic', 'bomb']; t.newBattle({ r:4, l:2, t:'boss', mon:'lord' }); t.RUN.pending = { r:4, l:2 }; t.catchChoice(); t.victory();
+  ok('빌드 배지: 독 2/4 → 독의 길, 폭파 1/4 → 없음', M.badges.path_poison === 1 && !M.badges.path_bomb);
+}
+{ // 저장 보정: 범위 밖 고난 단계
+  const t = boot({ [META_KEY]:JSON.stringify({ best:25, asc:99, ascPick:-3, ascClear:null, story:'x' }), [RUN_KEY]:mut(r => { r.asc = 42; }) }); const M = t.META();
+  ok('메타 보정: asc ≤ 6, ascPick 0, ascClear·story 객체', M.asc === 6 && M.ascPick === 0 && typeof M.ascClear === 'object' && typeof M.story === 'object');
+  click('mContinue'); ok('원정 보정: 범위 밖 asc → 0', t.RUN.asc === 0);
+}
+{ // 메인: 고난 버튼은 완주 전엔 숨고, 누르면 열린 단계까지 돈다
+  boot(); ok('고난 버튼: 완주 전 숨김', els.mAsc.hidden === true);
+  const u = boot({ [META_KEY]:JSON.stringify({ best:25, clears:1, asc:2, ascPick:0 }) }); const M = u.META();
+  const seq = []; for (let i = 0; i < 4; i++){ click('mAsc'); seq.push(M.ascPick); }
+  ok('고난 버튼: 0→1→2→0 순환', els.mAsc.hidden === false && seq.join() === '1,2,0,1');
+  click('mNew'); ok('고른 고난 단계로 원정 시작', u.RUN.asc === 1);
+}
+
+{ // 리뷰 반영(PR #29): 기존 완주 계정은 고난 1이 열려 있다
+  const t = boot({ [META_KEY]:JSON.stringify({ best:25, clears:2, pts:5 }) }); const M = t.META();
+  ok('기존 완주 기록 → 고난 1 열림', M.asc === 1 && els.mAsc.hidden === false);
+}
+{ // 리뷰 반영: 군주 → 근원 전환에는 승리 회복(구급상자·재생)이 붙지 않는다
+  const t = boot(); const M = t.META(); M.asc = 6; M.ascPick = 6; M.tree = { d1:1, d2:1, d3:1 }; click('mNew');
+  const R = t.RUN; R.relics.medkit = 2; R.s = 4; R.map = t.genMap(4, false, R.seed); R.pos = { r:3, l:2 };
+  const got = t.catchChoice(); t.enterNode(R.map[4][0]); t.G.p.hp = 9; t.battleEnd(true);
+  got.find(o => o.mode === 'story').buttons[0].onClick();
+  ok('근원 전환: 회복 없이 군주전 체력 그대로(9)', t.G.cfg.name === '성벽의 왕' && t.G.p.hp === 9);
+  M.tree = {};
+}
+{ // 리뷰 반영: 성벽의 왕 2페이즈는 체력 절반부터(2/3 아님)
+  const t = boot(); click('mNew'); t.newBattle({ r:4, l:2, t:'boss', mon:'king' }); const G = t.G;
+  G.m.def = 0; G.m.hp = Math.floor(G.m.max * .6) + 1; G.phase = 'aim'; G.balls = []; G.queue = [];
+  G.projs.push({ x0:0, y0:0, x1:0, y1:0, t:1, dur:0.01, kind:'dmg', v:1, venom:0, shot:null });
+  for (let i = 0; i < 3; i++) t.update(1 / 60);
+  ok('성벽의 왕: 체력 60%에서는 아직 1페이즈', G.m.phase === 1 && G.sealNext === null);
+}
+{ // 리뷰 반영: 깨진 근원 표시는 고난 6·5층·보스 칸 대기 중일 때만 유지
+  const bad = boot({ [RUN_KEY]:mut(r => { r.king = 'yes'; r.asc = 2; r.s = 1; }) }); click('mContinue');
+  ok('근원 표시 보정: 조건 밖이면 지움', bad.RUN.king === false);
+  const keep = mut(r => { r.king = true; r.asc = 6; r.s = 4; r.map = JSON.parse(JSON.stringify(goodRun.map)); r.map[4] = [{ r:4, l:2, t:'boss', mon:'lord', to:[] }]; r.map[3].forEach(n => n.to = [2]); r.pending = { r:4, l:2 }; });
+  const ok2 = boot({ [RUN_KEY]:keep }); click('mContinue');
+  ok('근원 표시 보정: 조건 안이면 유지 → 성벽의 왕', ok2.RUN.king === true && !!ok2.G && ok2.G.cfg.name === '성벽의 왕');
+}
 
 process.exit(fail ? 1 : 0);
