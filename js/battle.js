@@ -18,7 +18,8 @@ function newBattle(node){
     draw:[], disc:[], orb:'basic',
     // 전투 난수 흐름: 시드·세션·칸으로 정한다. 같은 칸에 다시 들어오면(새로고침) 같은 벽돌·덱 순서·첫 조준
     // 근원은 군주와 같은 칸이라 흐름을 따로 갈라 같은 판이 되지 않게
-    rs:seedOf(RUN.seed, 'battle', RUN.abyss ? 1 : 0, RUN.s, node.r, node.l, node.mon === 'king' ? 'king' : ''),
+    // (근원이 아닌 전투의 시드는 예전과 같게 둔다: 같은 원정이 같은 판으로 재현되게)
+    rs:seedOf(RUN.seed, 'battle', RUN.abyss ? 1 : 0, RUN.s, node.r, node.l, ...(node.mon === 'king' ? ['king'] : [])),
     // 봉인된 천장 칸(그 칸에 닿은 구슬은 튕기기만 한다), 다음 턴 봉인 칸(예고)
     seal:[], sealNext:null,
   };
@@ -274,7 +275,7 @@ function hitBricks(b){
     if (br.hp <= 0){ br.dead = true; onBreak(br); ballBreak(b, br); }
     if (br.hp <= 0){
       b.broke++;
-      if (b.kind === 'thorn' && b.broke % (b.up ? 2 : 3) === 0 && !G.m.dead) strike(OX + br.c * CW + CW / 2, br.y, 1);
+      if (b.kind === 'thorn' && b.broke % (b.up ? 1 : 2) === 0 && !G.m.dead) strike(OX + br.c * CW + CW / 2, br.y, 1);
     }
     if (br.dead && G.shot && ++G.shot.broke === 12) earnBadge('demolish');
     if (drilled) return;
@@ -335,12 +336,12 @@ function orbCeil(b){
   else if (b.kind === 'vamp' && (up || b.hits % 2 === 0)) heal(1);
   else if (b.kind === 'weaken' && G.shot.weak < (up ? 2 : 1) && it.t === 'atk' && atkLeft(it) > 1){
     G.shot.weak++; m.ai++; pop(MX, 20, '-1', C.ink, 'sword');
-  } else if (b.kind === 'disarm' && G.disarm < (up ? 3 : 2) && m.atk > 1){
+  } else if (b.kind === 'disarm' && G.disarm < (up ? 4 : 3) && m.atk > 1){
     G.disarm++; m.atk--; pop(MX + 16, 88, '-1', C.ink, 'sword');
   } else if (b.kind === 'rust'){
     if (m.def) pop(MX + 16, 76, '0', C.ink, 'shield');
     m.def = 0; if (up) m.noGuard = true;
-  } else if (b.kind === 'stun' && !G.stunUsed && b.hits === (up ? 2 : 3)){
+  } else if (b.kind === 'stun' && !G.stunUsed && b.hits === (up ? 1 : 2)){
     G.stunUsed = true; m.stun = true; pop(MX, 20, '', C.ink, 'dots'); sfx('block');
   } else if (b.kind === 'time' && G.timeUsed < (up ? 2 : 1)){
     G.timeUsed++; m.pi = 0; m.ai = 0;
