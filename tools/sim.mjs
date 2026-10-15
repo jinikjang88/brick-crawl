@@ -52,6 +52,43 @@ function seededRandom(value){
   return () => { value += 0x6D2B79F5; let t = value; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
 const reach = new Array(40).fill(0), bossHp = [], finals = [];
+// SIM_BUILD: 봇이 한 가지 덱 컨셉만 모은다(조합별로 원정이 성립하는지 비교). 없으면 예전처럼 늘 첫 카드
+// 해금 구슬은 컨셉에 들어가므로 이 모드에서는 모두 풀린 계정으로 돈다
+const BUILDS = {
+  poison:{ orbs:['venom','toxin'], relics:['sting','plague','alchemy','antidote'] },
+  counter:{ orbs:['guard','mirror','thorn'], relics:['counter','thorns','armor','buckler','endure'] },
+  split:{ orbs:['split','chain','bounce'], relics:['giant','combo','leech'] },
+  bomb:{ orbs:['bomb','drill','wreck','hammer'], relics:['crusher','brace'] },
+  debuff:{ orbs:['weaken','disarm','rust','stun','time'], relics:['hourglass','endure'] },
+  heavy:{ orbs:['heavy','comet','crown'], relics:['whetstone','pact','wrath','kingsword'] },
+};
+const BUILD = BUILDS[process.env.SIM_BUILD] || null;
+const buildShare = [];   // 원정이 끝날 때 덱에서 컨셉 구슬이 차지한 비율(컨셉이 실제로 모였는지)
+if (process.env.SIM_BUILD && !BUILD) throw new Error('SIM_BUILD는 ' + Object.keys(BUILDS).join('·') + ' 중 하나');
+// 컨셉 밖 유물은 누구에게나 쓸모 있는 것부터
+const GOOD_RELICS = ['heart','combo','medkit','armor','endure','ring','hourglass','focus','warp','callus','brace'];
+const kindOf = o => o.replace(/\+\d*$/, ''), lvOf = o => { const m = o.match(/\+(\d*)$/); return m ? (+m[1] || 1) : 0; };
+const wants = o => BUILD.orbs.includes(kindOf(o));
+// 컨셉 봇의 고르기: 고를 카드 번호, 또는 -1(건너뛰기·취소·나가기)
+function buildPick(mode, RUN){
+  const uniq = a => [...new Set(a)];
+  if (mode === 'reward' && RUN.reward){
+    const st = RUN.reward.stock, orb = RUN.reward.kind === 'orb' || RUN.reward.kind.endsWith('-orb');
+    let i = st.findIndex(id => orb ? wants(id) : BUILD.relics.includes(id));
+    if (i >= 0) return i;
+    if (orb) return RUN.deck.some(o => wants(o) && lvOf(o) < 5) ? st.length : -1;   // 컨셉 구슬 강화 카드, 없으면 건너뛰기
+    i = st.findIndex(id => GOOD_RELICS.includes(id)); return i >= 0 ? i : 0;
+  }
+  if (mode === 'upgrade'){
+    const ks = uniq(RUN.deck.filter(o => lvOf(o) < 5)), i = ks.findIndex(wants);
+    return i >= 0 ? i : 0;
+  }
+  if (mode === 'swap'){
+    const ks = uniq(RUN.deck); let i = ks.indexOf('basic'); if (i < 0) i = ks.findIndex(o => !wants(o));
+    return i;
+  }
+  return 0;
+}
 let s1clear = 0;
 
 for (let run = 0; run < N; run++){
@@ -63,7 +100,8 @@ for (let run = 0; run < N; run++){
   const TREE_SET = { all:['a1','a2','a3','a4','a5','a6','d1','d2','d3','d4','d5','d6','o1','o2','o3','o4','o5','o6','e1','e2','e3','e4','e5','e6'],
     main:['a1','a2','a5','a6','d1','d2','d3','d4','o1'] }[process.env.SIM_TREE];
   const abyss = !!process.env.SIM_ABYSS;
-  if (TREE_SET || abyss) store['brickquest:meta:v3'] = JSON.stringify({ best:abyss ? 25 : 0, abyssBest:0, runs:0, clears:abyss ? 1 : 0, pts:0, badges:{},
+  const unlock = BUILD ? { venom:1, counter:1, demolish:1, oneshot:1, rich:1 } : {};
+  if (TREE_SET || abyss || BUILD) store['brickquest:meta:v3'] = JSON.stringify({ best:abyss ? 25 : 0, abyssBest:BUILD ? 15 : 0, runs:0, clears:abyss ? 1 : 0, pts:0, badges:unlock,
     tree:Object.fromEntries((TREE_SET || []).map(k => [k, 1])) });
   globalThis.document = { getElementById:id => els[id] || (els[id] = mk()), documentElement:{}, createElement:() => mk(),
     createElementNS:() => mk(), addEventListener(){}, hidden:false };
@@ -88,7 +126,13 @@ for (let run = 0; run < N; run++){
       const cards = $('cCards').children.filter(c => !c.disabled), btns = $('cBtns').children.filter(c => !c.disabled);
       // 상점: 살 수 있는 구슬을 사고 나간다. 구슬 보상이 정예·보스·상점으로 줄어 상점을 안 쓰는 봇은 실제보다 약하다
       if (mode === 'shop'){
-        const all = $('cCards').children, i = (RUN.shop || []).findIndex(it => it.k === 'orb' && !it.sold && RUN.coins >= it.price);
+        const all = $('cCards').children, i = (RUN.shop || []).findIndex(it => !it.sold && RUN.coins >= it.price
+          && (BUILD ? (it.k === 'orb' && wants(it.id)) || (it.k === 'relic' && BUILD.relics.includes(it.id)) : it.k === 'orb'));
+        if (i >= 0 && all[i] && !all[i].disabled){ all[i].onclick(); continue; }
+        btns[btns.length - 1].onclick(); continue;
+      }
+      if (BUILD && ['reward','upgrade','swap'].includes(mode)){
+        const all = $('cCards').children, i = buildPick(mode, RUN);
         if (i >= 0 && all[i] && !all[i].disabled){ all[i].onclick(); continue; }
         btns[btns.length - 1].onclick(); continue;
       }
@@ -122,6 +166,7 @@ for (let run = 0; run < N; run++){
     if (st.RUN && st.RUN.pos) prog = Math.max(prog, st.RUN.s * 5 + st.RUN.pos.r + 1);
   }
   reach[Math.min(prog, 39)]++;
+  { const fin = __h.st().RUN; if (BUILD && fin) buildShare.push(fin.deck.filter(wants).length / fin.deck.length); }
   runs.push({ run, completed:done, progress:prog });
 }
 
@@ -136,6 +181,7 @@ console.log('보스 격파 순간 남은 체력 중앙값', bossHp.length ? (med
 Math.random = nativeRandom;
 console.log(`원정 완주(최종 보스 격파) ${finals.length}/${N} (${(finals.length / N * 100).toFixed(0)}%)`,
             finals.length ? `/ 격파 순간 남은 체력 중앙값 ${(med(finals) * 100).toFixed(0)}%` : '');
+if (BUILD) console.log(`컨셉 ${process.env.SIM_BUILD}: 끝날 때 덱의 컨셉 구슬 비율 평균 ${(buildShare.reduce((a, b) => a + b, 0) / buildShare.length * 100).toFixed(0)}%`);
 console.log(`재현 시드 ${seed}; 시간 제한 도달 ${runs.filter(r => !r.completed).length}회`);
 const report = sessions.map((s, i) => ({ session:i + 1, entered:s.entered, cleared:s.cleared,
   reachPct:100 * s.entered / N, conditionalClearPct:100 * s.cleared / s.entered,
