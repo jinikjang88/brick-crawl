@@ -19,6 +19,9 @@ try { ({ chromium } = require('playwright')); } catch (e) {
     await page.waitForFunction(() => Object.keys(ORBS).every(k => artImg('orb_' + k)) && Object.keys(RELICS).every(k => artImg('relic_' + k)));
     assert.equal(await page.locator('#ovMain').evaluate(e => e.classList.contains('on')), true);
     await page.locator('#mNew').click();
+    // 첫 원정은 프롤로그(이야기)가 먼저 뜬다(작업 05)
+    await page.waitForFunction(() => mode === 'story' || mode === 'map');
+    if (await page.evaluate(() => mode === 'story')) await page.locator('#cBtns button').click();
     await page.waitForFunction(() => mode === 'map');
     // 첫 줄에 상점·휴식이 섞일 수 있어 전투 칸을 고른다. 전투 중 화면 모드 이름은 'play'다
     await page.evaluate(() => enterNode(reachable().find(n => n.t === 'battle') || reachable()[0]));
