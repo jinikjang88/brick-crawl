@@ -242,7 +242,9 @@ function checkRage(){
   if (m.dead) return;
   if (cfg.boss){
     // 일반 보스는 절반에서 2페이즈, 최종 보스는 2/3·1/3에서 2·3페이즈
-    const next = cfg.final ? (m.hp <= m.max / 3 ? 3 : m.hp <= m.max * 2 / 3 ? 2 : 1) : (m.hp <= m.max / 2 ? 2 : 1);
+    // 근원은 체력 절반에서 2페이즈(봉인 이동), 1/3에서 3페이즈(봉인 3칸)
+    const next = cfg.king ? (m.hp <= m.max / 3 ? 3 : m.hp <= m.max / 2 ? 2 : 1)
+      : cfg.final ? (m.hp <= m.max / 3 ? 3 : m.hp <= m.max * 2 / 3 ? 2 : 1) : (m.hp <= m.max / 2 ? 2 : 1);
     if (next <= m.phase) return;
     m.phase = next; m.pi = 0; m.ai = 0; m.fresh = G.phase === 'enemy' && G.eStep >= 1; m.atk += 1; m.def += 2; G.shake = 8;
     // 근원: 2페이즈부터 봉인이 움직이고(예고), 3페이즈에 봉인이 한 칸 늘어난다

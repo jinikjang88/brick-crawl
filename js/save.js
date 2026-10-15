@@ -36,6 +36,8 @@ if (!META.tree || typeof META.tree !== 'object') META.tree = {};
 if (!META.badges || typeof META.badges !== 'object') META.badges = {};
 if (!META.seen || typeof META.seen !== 'object') META.seen = {};
 for (const k of ['ascClear', 'story']) if (!META[k] || typeof META[k] !== 'object') META[k] = {};
+// 고난 단계가 생기기 전에 이미 완주한 계정은 고난 1이 열린 상태로 옮긴다(다시 5층을 깨야 열리는 일이 없게)
+if (META.clears > 0 && META.asc < 1) META.asc = 1;
 META.asc = Math.min(Math.floor(META.asc), ASC_MAX); META.ascPick = Math.min(Math.floor(META.ascPick), META.asc);
 for (const k of ['orb', 'relic']) if (!META.seen[k] || typeof META.seen[k] !== 'object') META.seen[k] = {};
 function markSeen(kind, id){ if (META.seen[kind][id]) return; META.seen[kind][id] = 1; saveMeta(); }
@@ -90,7 +92,8 @@ function fixRun(r){
   r.relics = relics;
   r.abyss = !!r.abyss;
   r.asc = r.abyss ? 0 : isInt(r.asc, 0, ASC_MAX) ? r.asc : 0;
-  r.king = !!r.king;
+  // 근원 표시는 고난 6·마지막 층·최종 보스 칸 대기 중일 때만 뜻이 있다. 그 밖이면 중간 층 보스가 근원으로 바뀌어 원정이 잘못 끝난다
+  r.king = r.king === true && r.asc >= ASC_MAX && r.s === FINAL_S && !!r.pending && r.pending.r === 4;
   r.s = isInt(r.s, 0, r.abyss ? 9999 : SESSIONS - 1) ? r.s : 0;
   r.maxHp = Math.round(numOr(r.maxHp, 24, 1));
   r.hp = Math.max(1, Math.min(r.maxHp, Math.round(numOr(r.hp, r.maxHp))));

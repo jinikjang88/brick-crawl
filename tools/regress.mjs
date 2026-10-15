@@ -289,10 +289,10 @@ function seeded(mathSeed, seed = 777){
 }
 { // 근원 페이즈: 2페이즈부터 다음 봉인 예고·턴마다 이동, 3페이즈 봉인 3칸
   const t = boot(); click('mNew'); t.newBattle({ r:4, l:2, t:'boss', mon:'king' }); const G = t.G;
-  const s1 = G.seal.join(); G.m.hp = Math.floor(G.m.max * .6); G.phase = 'enemy'; G.eStep = 0; G.timer = 0;
+  const s1 = G.seal.join(); G.m.hp = Math.floor(G.m.max * .45); G.phase = 'enemy'; G.eStep = 0; G.timer = 0;
   // checkRage는 피해가 들어갈 때 불린다: 몬스터 독으로 한 번 깎아 페이즈를 올린다
   G.m.poison = 1; G.phase = 'aim'; G.balls = []; G.queue = [];
-  const before = G.sealNext; t.G.m.hp = Math.floor(G.m.max * .6);
+  const before = G.sealNext; t.G.m.hp = Math.floor(G.m.max * .45);
   // 직접 페이즈 판정을 부르는 경로가 없으므로 피해 투사체를 하나 보낸다
   G.projs.push({ x0:0, y0:0, x1:0, y1:0, t:1, dur:0.01, kind:'dmg', v:1, venom:0, shot:null });
   for (let i = 0; i < 3; i++) t.update(1 / 60);
@@ -339,6 +339,33 @@ function seeded(mathSeed, seed = 777){
   const seq = []; for (let i = 0; i < 4; i++){ click('mAsc'); seq.push(M.ascPick); }
   ok('고난 버튼: 0→1→2→0 순환', els.mAsc.hidden === false && seq.join() === '1,2,0,1');
   click('mNew'); ok('고른 고난 단계로 원정 시작', u.RUN.asc === 1);
+}
+
+{ // 리뷰 반영(PR #29): 기존 완주 계정은 고난 1이 열려 있다
+  const t = boot({ [META_KEY]:JSON.stringify({ best:25, clears:2, pts:5 }) }); const M = t.META();
+  ok('기존 완주 기록 → 고난 1 열림', M.asc === 1 && els.mAsc.hidden === false);
+}
+{ // 리뷰 반영: 군주 → 근원 전환에는 승리 회복(구급상자·재생)이 붙지 않는다
+  const t = boot(); const M = t.META(); M.asc = 6; M.ascPick = 6; M.tree = { d1:1, d2:1, d3:1 }; click('mNew');
+  const R = t.RUN; R.relics.medkit = 2; R.s = 4; R.map = t.genMap(4, false, R.seed); R.pos = { r:3, l:2 };
+  const got = t.catchChoice(); t.enterNode(R.map[4][0]); t.G.p.hp = 9; t.battleEnd(true);
+  got.find(o => o.mode === 'story').buttons[0].onClick();
+  ok('근원 전환: 회복 없이 군주전 체력 그대로(9)', t.G.cfg.name === '성벽의 왕' && t.G.p.hp === 9);
+  M.tree = {};
+}
+{ // 리뷰 반영: 성벽의 왕 2페이즈는 체력 절반부터(2/3 아님)
+  const t = boot(); click('mNew'); t.newBattle({ r:4, l:2, t:'boss', mon:'king' }); const G = t.G;
+  G.m.def = 0; G.m.hp = Math.floor(G.m.max * .6) + 1; G.phase = 'aim'; G.balls = []; G.queue = [];
+  G.projs.push({ x0:0, y0:0, x1:0, y1:0, t:1, dur:0.01, kind:'dmg', v:1, venom:0, shot:null });
+  for (let i = 0; i < 3; i++) t.update(1 / 60);
+  ok('성벽의 왕: 체력 60%에서는 아직 1페이즈', G.m.phase === 1 && G.sealNext === null);
+}
+{ // 리뷰 반영: 깨진 근원 표시는 고난 6·5층·보스 칸 대기 중일 때만 유지
+  const bad = boot({ [RUN_KEY]:mut(r => { r.king = 'yes'; r.asc = 2; r.s = 1; }) }); click('mContinue');
+  ok('근원 표시 보정: 조건 밖이면 지움', bad.RUN.king === false);
+  const keep = mut(r => { r.king = true; r.asc = 6; r.s = 4; r.map = JSON.parse(JSON.stringify(goodRun.map)); r.map[4] = [{ r:4, l:2, t:'boss', mon:'lord', to:[] }]; r.map[3].forEach(n => n.to = [2]); r.pending = { r:4, l:2 }; });
+  const ok2 = boot({ [RUN_KEY]:keep }); click('mContinue');
+  ok('근원 표시 보정: 조건 안이면 유지 → 성벽의 왕', ok2.RUN.king === true && !!ok2.G && ok2.G.cfg.name === '성벽의 왕');
 }
 
 process.exit(fail ? 1 : 0);

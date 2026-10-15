@@ -431,14 +431,14 @@ function startBattle(n){
 function battleEnd(win){
   const n = G.node;
   if (!win) return runOver();
+  // 고난 6: 군주는 껍데기다. 승리 회복 없이 남은 체력 그대로 근원과 이어 싸운다(저장해 두어 새로고침해도 근원부터)
+  if (G.cfg.final && !G.cfg.king && ascOn(6)){ RUN.hp = G.p.hp; RUN.king = true; saveRun(); return storyOnce('root', () => startBattle(G.node)); }
   RUN.hp = Math.min(RUN.maxHp, G.p.hp + 2 * rel('medkit') + (tree('d3') ? 2 : 0));
   const gain = (n.t === 'boss' ? 40 : n.t === 'elite' ? 22 + rnd(7, 'reward') : 10 + rnd(5, 'reward')) + (tree('e3') ? 5 : 0)
     + (rel('wallet') ? 3 : 0) + (rel('greed') ? 12 : 0) + (n.t === 'elite' && rel('lantern') ? 10 : 0) + (rel('alchemy') ? G.m.poison : 0);
   RUN.coins += gain; RUN.lastGain = gain;
   if (RUN.coins >= 200) earnBadge('rich');
   if (n.t === 'boss' && RUN.abyss && RUN.s === 4) earnBadge('abyss5');
-  // 고난 6: 군주는 껍데기다. 체력 그대로 근원과 이어 싸운다(저장해 두어 새로고침해도 근원부터)
-  if (G.cfg.final && !G.cfg.king && ascOn(6)){ RUN.king = true; saveRun(); return storyOnce('root', () => startBattle(G.node)); }
   if (G.cfg.final) return victory();
   // 세션 돌파: 최대 체력 +4 후 절반 회복. 몬스터는 세션마다 공·방이 오르는데 기사 체력만 고정이면 후반이 벽이 된다
   if (n.t === 'boss'){ RUN.maxHp += 4; if (!ascOn(3)) RUN.hp = Math.min(RUN.maxHp, RUN.hp + 4 + Math.ceil(RUN.maxHp / 2)); }
