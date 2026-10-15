@@ -52,6 +52,7 @@ function seededRandom(value){
   return () => { value += 0x6D2B79F5; let t = value; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
 const reach = new Array(40).fill(0), bossHp = [], finals = [];
+let kings = 0;   // 근원(성벽의 왕) 격파 수
 // SIM_BUILD: 봇이 한 가지 덱 컨셉만 모은다(조합별로 원정이 성립하는지 비교). 없으면 예전처럼 늘 첫 카드
 // 해금 구슬은 컨셉에 들어가므로 이 모드에서는 모두 풀린 계정으로 돈다
 const BUILDS = {
@@ -69,12 +70,14 @@ if (process.env.SIM_BUILD && !BUILD) throw new Error('SIM_BUILD는 ' + Object.ke
 const GOOD_RELICS = ['heart','combo','medkit','armor','endure','ring','hourglass','focus','warp','callus','brace'];
 const kindOf = o => o.replace(/\+\d*$/, ''), lvOf = o => { const m = o.match(/\+(\d*)$/); return m ? (+m[1] || 1) : 0; };
 const wants = o => BUILD.orbs.includes(kindOf(o));
+// 컨셉 구슬을 더 받을 수 있나: 덱에 자리가 있거나, 바꿔 낼 컨셉 밖 구슬이 있어야 한다(아니면 교체 화면에서 취소 → 다시 고르기가 끝없이 돈다)
+const canTake = RUN => RUN.deck.length < 5 + (RUN.relics.pouch ? 1 : 0) || RUN.deck.some(o => !wants(o));
 // 컨셉 봇의 고르기: 고를 카드 번호, 또는 -1(건너뛰기·취소·나가기)
 function buildPick(mode, RUN){
   const uniq = a => [...new Set(a)];
   if (mode === 'reward' && RUN.reward){
     const st = RUN.reward.stock, orb = RUN.reward.kind === 'orb' || RUN.reward.kind.endsWith('-orb');
-    let i = st.findIndex(id => orb ? wants(id) : BUILD.relics.includes(id));
+    let i = st.findIndex(id => orb ? wants(id) && canTake(RUN) : BUILD.relics.includes(id));
     if (i >= 0) return i;
     if (orb) return RUN.deck.some(o => wants(o) && lvOf(o) < 5) ? st.length : -1;   // 컨셉 구슬 강화 카드, 없으면 건너뛰기
     i = st.findIndex(id => GOOD_RELICS.includes(id)); return i >= 0 ? i : 0;
@@ -100,8 +103,11 @@ for (let run = 0; run < N; run++){
   const TREE_SET = { all:['a1','a2','a3','a4','a5','a6','d1','d2','d3','d4','d5','d6','o1','o2','o3','o4','o5','o6','e1','e2','e3','e4','e5','e6'],
     main:['a1','a2','a5','a6','d1','d2','d3','d4','o1'] }[process.env.SIM_TREE];
   const abyss = !!process.env.SIM_ABYSS;
+  // SIM_ASC=n: 고난 n단계가 열려 있고 골라 둔 계정(본편 완주 기록 포함)
+  const ASCN = +process.env.SIM_ASC || 0;
   const unlock = BUILD ? { venom:1, counter:1, demolish:1, oneshot:1, rich:1 } : {};
-  if (TREE_SET || abyss || BUILD) store['brickquest:meta:v3'] = JSON.stringify({ best:abyss ? 25 : 0, abyssBest:BUILD ? 15 : 0, runs:0, clears:abyss ? 1 : 0, pts:0, badges:unlock,
+  if (TREE_SET || abyss || BUILD || ASCN) store['brickquest:meta:v3'] = JSON.stringify({ best:abyss || ASCN ? 25 : 0, abyssBest:BUILD ? 15 : 0, runs:0, clears:abyss || ASCN ? 1 : 0, pts:0, badges:unlock,
+    asc:ASCN, ascPick:ASCN, story:{ intro:1, end1:1 },
     tree:Object.fromEntries((TREE_SET || []).map(k => [k, 1])) });
   globalThis.document = { getElementById:id => els[id] || (els[id] = mk()), documentElement:{}, createElement:() => mk(),
     createElementNS:() => mk(), addEventListener(){}, hidden:false };
@@ -121,13 +127,13 @@ for (let run = 0; run < N; run++){
     const { RUN, G, mode } = __h.st();
     if (RUN && !entered.has(RUN.s)){ entered.add(RUN.s); session(RUN.s).entered++; }
     if (mode === 'map'){ __h.enterNode(pickOne(__h.reachable())); continue; }
-    if (['reward','rest','shop','remove','upgrade','swap','gift','result'].includes(mode)){
+    if (['reward','rest','shop','remove','upgrade','swap','gift','result','story'].includes(mode)){
       if (mode === 'result'){ done = true; break; }
       const cards = $('cCards').children.filter(c => !c.disabled), btns = $('cBtns').children.filter(c => !c.disabled);
       // 상점: 살 수 있는 구슬을 사고 나간다. 구슬 보상이 정예·보스·상점으로 줄어 상점을 안 쓰는 봇은 실제보다 약하다
       if (mode === 'shop'){
         const all = $('cCards').children, i = (RUN.shop || []).findIndex(it => !it.sold && RUN.coins >= it.price
-          && (BUILD ? (it.k === 'orb' && wants(it.id)) || (it.k === 'relic' && BUILD.relics.includes(it.id)) : it.k === 'orb'));
+          && (BUILD ? (it.k === 'orb' && wants(it.id) && canTake(RUN)) || (it.k === 'relic' && BUILD.relics.includes(it.id)) : it.k === 'orb'));
         if (i >= 0 && all[i] && !all[i].disabled){ all[i].onclick(); continue; }
         btns[btns.length - 1].onclick(); continue;
       }
@@ -158,7 +164,9 @@ for (let run = 0; run < N; run++){
         if (wait < 0 && G.aimT > 0.2 && Math.abs(G.aim - want) < 0.03) wait = Math.floor(Math.random() * 5);
         if (wait === 0){ L.keydown({ key:' ', preventDefault(){} }); wait = -2; } else if (wait > 0) wait--;
       }
-      if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec && G.cfg.final) finals.push(G.p.hp / G.p.max);
+      // 고난 6에서는 군주 뒤 근원까지 잡아야 완주다
+      if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec && G.cfg.final && (G.cfg.king || (RUN.asc || 0) < 6)) finals.push(G.p.hp / G.p.max);
+      if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec && G.cfg.king) kings++;
       if (G.phase === 'win' && G.node.t === 'boss' && !G.__rec){ G.__rec = 1; bossHp.push(G.p.hp / G.p.max); const ss = session(RUN.s); ss.cleared++; ss.hp.push(G.p.hp / G.p.max); ss.turns.push(G.turn); if (RUN.s === 0) s1clear++; }
     }
     now += 16.7; raf(now);
@@ -181,6 +189,7 @@ console.log('보스 격파 순간 남은 체력 중앙값', bossHp.length ? (med
 Math.random = nativeRandom;
 console.log(`원정 완주(최종 보스 격파) ${finals.length}/${N} (${(finals.length / N * 100).toFixed(0)}%)`,
             finals.length ? `/ 격파 순간 남은 체력 중앙값 ${(med(finals) * 100).toFixed(0)}%` : '');
+if (+process.env.SIM_ASC >= 6) console.log(`근원(성벽의 왕) 격파 ${kings}/${N}`);
 if (BUILD) console.log(`컨셉 ${process.env.SIM_BUILD}: 끝날 때 덱의 컨셉 구슬 비율 평균 ${(buildShare.reduce((a, b) => a + b, 0) / buildShare.length * 100).toFixed(0)}%`);
 console.log(`재현 시드 ${seed}; 시간 제한 도달 ${runs.filter(r => !r.completed).length}회`);
 const report = sessions.map((s, i) => ({ session:i + 1, entered:s.entered, cleared:s.cleared,
