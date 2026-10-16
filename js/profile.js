@@ -51,7 +51,8 @@ const BAD_NAME = ['시발','씨발','씨빨','시빨','씨팔','시팔','씨바'
   'admin','administrator','moderator','official','gm'];
 // 공백·숫자를 끼워 넣거나(시1발, 시 발) 대소문자를 바꿔 피하는 것을 막으려고 비교 전에 걸러 낸다
 const normName = s => String(s).toLowerCase().replace(/[\s0-9]/g, '');
-const badName = s => { const n = normName(s); return BAD_NAME.some(w => n.includes(w)); };
+// 다른 문자 체계를 끼워 넣는 우회(시a발, f한uck)도 막는다: 영문을 뺀 꼴(한글 금지어용)과 한글을 뺀 꼴(영문 금지어용)도 함께 본다
+const badName = s => { const n = normName(s), forms = [n, n.replace(/[a-z]/g, ''), n.replace(/[가-힣]/g, '')]; return BAD_NAME.some(w => forms.some(f => f.includes(w))); };
 const validName = s => typeof s === 'string' && /^[가-힣A-Za-z0-9]+( [가-힣A-Za-z0-9]+)*$/.test(s) && [...s].length >= 2 && [...s].length <= 12;
 let PROFILE = null;
 const okProfile = p => p && typeof p.id === 'string' && typeof p.name === 'string';

@@ -398,7 +398,10 @@ async function renameWith(reply, prof = {}){
   // 서버와 클라이언트가 같은 목록을 쓰는지(한쪽만 고치면 화면은 통과시키는데 서버가 거절하거나 그 반대가 된다)
   const srv = fs.readFileSync(path.join(ROOT, 'functions/api/[[path]].js'), 'utf8').match(/const BAD_NAME = (\[[\s\S]*?\]);/);
   ok('금지어 목록: 서버와 클라이언트가 같다', !!srv && JSON.stringify(eval(srv[1])) === JSON.stringify(t.BAD_NAME));
-  const bad = ['시발놈', '씨 발', '시1발', '병신같이', '개새끼', 'FuCk you', 'f u c k', '운영자', 'Admin', '미친놈아', '좆밥', 'sex123'];
+  const line = (src, n) => (src.match(new RegExp('^const ' + n + ' = .*$', 'm')) || [''])[0];
+  const cli = fs.readFileSync(path.join(ROOT, 'js/profile.js'), 'utf8'), sv = fs.readFileSync(path.join(ROOT, 'functions/api/[[path]].js'), 'utf8');
+  ok('금지어 판정 코드(normName·badName): 서버와 클라이언트가 같다', ['normName', 'badName'].every(n => line(cli, n) && line(cli, n).trim() === line(sv, n).trim()));
+  const bad = ['시발놈', '씨 발', '시1발', '병신같이', '개새끼', 'FuCk you', 'f u c k', '운영자', 'Admin', '미친놈아', '좆밥', 'sex123', '시a발', 'f한uck', '병X신', 'S하e나x'];
   const good = ['새 기사', '하람', '바삭한 우울한 냉장고', 'Knight 7', '성벽의 왕', '구슬장인', '시바견', '보리차'];
   const missed = bad.filter(n => !t.badName(n)), wrong = good.filter(n => t.badName(n));
   ok(`금지어: 우회(공백·숫자·대소문자)까지 거름${missed.length ? ' 놓침 ' + missed.join(',') : ''}`, missed.length === 0);

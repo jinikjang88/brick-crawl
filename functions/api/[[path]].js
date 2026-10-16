@@ -20,7 +20,8 @@ const BAD_NAME = ['시발','씨발','씨빨','시빨','씨팔','시팔','씨바'
   'admin','administrator','moderator','official','gm'];
 // 공백·숫자를 끼워 넣거나(시1발, 시 발) 대소문자를 바꿔 피하는 것을 막으려고 비교 전에 걸러 낸다
 const normName = s => String(s).toLowerCase().replace(/[\s0-9]/g, '');
-const badName = s => { const n = normName(s); return BAD_NAME.some(w => n.includes(w)); };
+// 다른 문자 체계를 끼워 넣는 우회(시a발, f한uck)도 막는다: 영문을 뺀 꼴(한글 금지어용)과 한글을 뺀 꼴(영문 금지어용)도 함께 본다
+const badName = s => { const n = normName(s), forms = [n, n.replace(/[a-z]/g, ''), n.replace(/[가-힣]/g, '')]; return BAD_NAME.some(w => forms.some(f => f.includes(w))); };
 const RENAME_GAP = 7 * 24 * 3600 * 1000;
 // 진행도 초기화 회차(클라이언트 RESET_EPOCH와 같게). 2026-10-16 랭킹 초기화 이후에는 이 회차의 기록만 받는다:
 // 초기화 전에 열어 둔 탭이나 내려받은 옛 file:// 버전이 보관 중인 기록을 보내 지운 랭킹을 되살리지 않게(400이라 옛 버전도 다시 보내지 않는다)
