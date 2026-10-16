@@ -1,9 +1,11 @@
-// 기록 서버 통합 검사(R03): 로컬 Functions + D1에 실제로 요청을 보내 원자성·멱등성·집계 복구를 본다
+// 기록 서버 통합 검사(R03·닉네임 변경·랭킹 초기화): 로컬 Functions + D1에 실제로 요청을 보내 원자성·멱등성·집계 복구·이름 변경 제한·초기화 SQL을 본다
+// 기존 로컬 DB라면 db/migrations/0002_name_at.sql을 먼저 적용한다(새로 만들면 schema.sql에 칸이 있다). 0003은 이 검사가 직접 실행한다
 // 실제 서버·사용자 기록은 건드리지 않는다. 준비(AGENTS.md 검증 4와 같다. wrangler.toml은 커밋하지 않는다):
 //   임시 폴더에 functions/·db/를 복사하고 wrangler.toml(pages_build_output_dir, [[d1_databases]] binding = "DB")을 둔 뒤
 //   npx wrangler d1 execute DB --local --file db/schema.sql → npx wrangler pages dev --port 8788
 //   그 임시 폴더에서: node <저장소>/tools/d1-check.mjs   (실패 주입용 트리거를 로컬 DB에 잠깐 만들었다 지운다)
 import { execSync } from 'child_process';
+import fs from 'fs';
 const B = 'http://127.0.0.1:8788/api/';
 // 바깥에서 스키마를 바꾸면(트리거) 로컬 서버가 연결을 한 번 끊는다: 연결 오류만 잠깐 뒤 다시
 const post = async (p, b) => { for (let i = 0; ; i++){ try { const r = await fetch(B + p, { method:'POST', body:JSON.stringify(b) }); return { status:r.status, data:await r.json().catch(() => null) }; } catch(e){ if (i > 5) throw e; await new Promise(f => setTimeout(f, 1000)); } } };
@@ -41,4 +43,21 @@ ok('어긋난 집계 복구: dup 응답이지만 runs 5, best 12', r5.data.dup =
 ok('없는 플레이어 404', (await post('record', { id:u(999999), rid:u(6), progress:1 })).data.error === 'player');
 const b = await post('board', { id:P });
 ok('랭킹: 내 기록 9→12, 원정 5', b.data.me.best === 12 && b.data.me.runs === 5);
+// 6) 닉네임 변경(2026-10-16): 형식 400, 처음 한 번은 바로, 7일 안 재변경 429(nextAt), 중복 409, 동시 요청은 한 번만
+const nmA = '기사' + RUNID.slice(0, 4), nmB = '하람' + RUNID.slice(0, 4);
+ok('닉네임 변경: 형식이 틀리면 400', (await post('rename', { id:P, name:'<b>' })).status === 400);
+const rn1 = await post('rename', { id:P, name:nmA });
+ok('닉네임 변경: 처음 한 번은 바로(200), name_at 기록', rn1.status === 200 && rn1.data.name === nmA && sql(`SELECT name_at FROM players WHERE id='${P}'`)[0].name_at > 0);
+const rn2 = await post('rename', { id:P, name:nmB });
+ok('닉네임 변경: 7일 안 재변경 429 + 다음 가능 시각', rn2.status === 429 && rn2.data.nextAt - sql(`SELECT name_at FROM players WHERE id='${P}'`)[0].name_at === 7 * 864e5);
+sql(`UPDATE players SET name_at = name_at - ${8 * 864e5} WHERE id='${P}'`);   // 8일이 지난 것으로
+const Q = u(Date.now() % 1e9 + 7); await post('player', { id:Q, name:nmB });
+ok('닉네임 변경: 남이 쓰는 이름은 409', (await post('rename', { id:P, name:nmB })).status === 409);
+const both = await Promise.all(['갑' + RUNID.slice(0, 3), '을' + RUNID.slice(0, 3)].map(n => post('rename', { id:P, name:n })));
+ok('닉네임 변경: 동시 요청은 한 번만 반영(200 하나, 429 하나)', both.filter(r => r.status === 200).length === 1 && both.filter(r => r.status === 429).length === 1);
+ok('닉네임 변경: 직접 입력 형식으로도 등록 가능', (await post('player', { id:u(Date.now() % 1e9 + 9), name:'Knight ' + RUNID.slice(0, 3) })).status === 200);
+// 7) 랭킹 초기화 SQL(0003): 플레이어는 남고 기록만 비운다
+sql(fs.readFileSync('db/migrations/0003_reset_ranking.sql', 'utf8').split('\n').filter(l => !l.startsWith('--')).join(' ').trim().replace(/"/g, "'"));
+const after = sql(`SELECT name, best, best_at, runs FROM players WHERE id='${P}'`)[0];
+ok('랭킹 초기화: 플레이어·닉네임 유지, 최고 기록·원정 횟수 0, 원정 기록 0', !!after && after.best === 0 && after.best_at === null && after.runs === 0 && sql('SELECT COUNT(*) AS n FROM runs')[0].n === 0);
 process.exit(fail ? 1 : 0);
