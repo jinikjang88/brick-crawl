@@ -33,24 +33,44 @@ function uuid(){
 
 // ── 프로필 저장. id는 기록을 올릴 때 쓰는 비밀 열쇠라 화면·랭킹에 내보내지 않는다
 // queue: 아직 서버에 못 올린 원정 기록(오프라인·서버 오류). 다음에 다시 보낸다
-const PROFILE_KEY = 'brickquest:profile:v1';
+// v2(2026-10-16): 닉네임 변경 시각(nameAt)이 붙고 진행도 초기화로 옛 대기열을 버린다.
+// 옛 v1에서는 id·닉네임·등록 여부만 옮긴다. 초기화 전에 열어 둔 옛 버전 탭은 v1만 건드리므로 새 대기열에 섞이지 않는다
+const PROFILE_KEY = 'brickquest:profile:v2', PROFILE_KEY_V1 = 'brickquest:profile:v1';
+// 진행도 초기화 회차. 원정 기록에 실어 보내고, 서버는 이 회차의 기록만 받는다(옛 버전이 보낸 기록이 새 랭킹을 되살리지 않게)
+const RESET_EPOCH = 2;
+// 닉네임 변경 간격(서버가 같은 값으로 최종 판정한다. 여기서는 남은 시간을 미리 보여 주는 용도)
+const RENAME_GAP = 7 * 24 * 3600 * 1000;
+// 직접 입력 닉네임: 한글·영문·숫자·공백 2~12자, 앞뒤 공백·연속 공백 없음(서버와 같은 규칙)
+const validName = s => typeof s === 'string' && /^[가-힣A-Za-z0-9]+( [가-힣A-Za-z0-9]+)*$/.test(s) && [...s].length >= 2 && [...s].length <= 12;
 let PROFILE = null;
+const okProfile = p => p && typeof p.id === 'string' && typeof p.name === 'string';
 function loadProfile(){
   try {
     const p = JSON.parse(localStorage.getItem(PROFILE_KEY));
-    if (p && typeof p.id === 'string' && typeof p.name === 'string'){
+    if (okProfile(p)){
       // queue:null 같은 값이 기본값을 덮으면 원정 종료 처리(recordRun)가 멈춘다. 형식이 맞는 기록만 남긴다
       const queue = Array.isArray(p.queue) ? p.queue.filter(q => q && typeof q.rid === 'string' && typeof q.progress === 'number') : [];
-      return Object.assign({}, p, { registered:p.registered === true, queue });
+      // nameAt = 마지막으로 닉네임을 바꾼 시각(서버 응답으로 맞춘다). 없으면 아직 바꾼 적 없음
+      const nameAt = typeof p.nameAt === 'number' && isFinite(p.nameAt) ? p.nameAt : 0;
+      return Object.assign({}, p, { registered:p.registered === true, queue, nameAt });
+    }
+  } catch(e){}
+  // v1 → v2: id·닉네임·등록만 옮기고 옛 대기열은 버린다(진행도 초기화)
+  try {
+    const o = JSON.parse(localStorage.getItem(PROFILE_KEY_V1));
+    if (okProfile(o)){
+      const prof = { id:o.id, name:o.name, registered:o.registered === true, queue:[], nameAt:0 };
+      try { localStorage.setItem(PROFILE_KEY, JSON.stringify(prof)); localStorage.removeItem(PROFILE_KEY_V1); } catch(e){}
+      return prof;
     }
   } catch(e){}
   return null;
 }
 function saveProfile(){ try { localStorage.setItem(PROFILE_KEY, JSON.stringify(PROFILE)); } catch(e){} }
-// 메인 화면에 처음 들어올 때 한 번 만든다. 이후로는 바꾸지 않는다
+// 메인 화면에 처음 들어올 때 임의 닉네임으로 한 번 만든다. 이후에는 메인의 "변경"으로 일주일에 한 번 바꿀 수 있다(net.js renameProfile)
 function ensureProfile(){
   if (!PROFILE) PROFILE = loadProfile();
-  if (!PROFILE){ PROFILE = { id:uuid(), name:makeNickname(), registered:false, queue:[] }; saveProfile(); }
+  if (!PROFILE){ PROFILE = { id:uuid(), name:makeNickname(), registered:false, queue:[], nameAt:0 }; saveProfile(); }
   return PROFILE;
 }
 // 원정에서 끝까지 완료한 칸 수(1세션 보스까지 = 5). 랭킹 단위다.

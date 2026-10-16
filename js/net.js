@@ -42,6 +42,24 @@ async function registerProfile(){
   return false;
 }
 
+// ── 닉네임 변경: 서버가 형식·중복·7일 제한을 최종 판정한다. 돌려주는 값 = { ok } | { error:'name'|'taken'|'wait'|'offline', nextAt }
+async function renameProfile(name){
+  const p = ensureProfile();
+  name = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!validName(name)) return { error:'name' };
+  if (name === p.name) return { ok:true };
+  if (p.nameAt && Date.now() - p.nameAt < RENAME_GAP) return { error:'wait', nextAt:p.nameAt + RENAME_GAP };
+  // 아직 서버에 등록 전이면 먼저 등록한다(바꿀 대상이 서버에 있어야 한다)
+  if (!(await registerProfile())) return { error:'offline' };
+  const r = await api('rename', { id:p.id, name });
+  if (!r) return { error:'offline' };
+  if (r.ok){ p.name = name; p.nameAt = (r.data && r.data.nameAt) || Date.now(); saveProfile(); return { ok:true }; }
+  if (r.status === 409) return { error:'taken' };
+  if (r.status === 429){ const nextAt = r.data && r.data.nextAt; if (nextAt){ p.nameAt = nextAt - RENAME_GAP; saveProfile(); } return { error:'wait', nextAt }; }
+  if (r.status === 400) return { error:'name' };
+  return { error:'offline' };
+}
+
 // ── 원정 기록: 먼저 대기열에 넣고 보낸다. 실패하면 남아 있다가 다음 flush에서 다시 간다
 function recordRun(r){
   if (!r) return;
@@ -77,7 +95,7 @@ async function doFlush(){
   let reReg = false;
   while (p.queue.length){
     const q = p.queue[0];
-    const r = await api('record', { id:p.id, rid:q.rid, progress:q.progress });
+    const r = await api('record', { id:p.id, rid:q.rid, progress:q.progress, epoch:RESET_EPOCH });
     if (retryLater(r)) return;
     if (r.status === 404 && r.data && r.data.error === 'player'){
       // 등록했다고 기억했는데 서버에 없다(DB 초기화 등). 한 번만 다시 등록해 무한 반복을 막는다

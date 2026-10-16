@@ -8,7 +8,7 @@ function freshRun(abyss, asc = 0){
   // abyss: 심연 원정(본편과 같은 규칙, 몬스터만 더 세고 끝이 없다). revived: 불사조(트리)를 이미 썼는지
   // seed: 원정 시드(지도·보상·전투 난수의 뿌리). rng.reward: 저장되는 보상 흐름 상태
   const seed = Math.floor(Math.random() * 4294967296) >>> 0;
-  return { v:3, seed, rng:{ reward:seedOf(seed, 'reward') }, rid:uuid(), abyss:!!abyss, asc:abyss ? 0 : asc, king:false, s:0, hp:24, maxHp:24, coins:0, deck:['basic','basic','bomb'], relics:{},
+  return { v:4, seed, rng:{ reward:seedOf(seed, 'reward') }, rid:uuid(), abyss:!!abyss, asc:abyss ? 0 : asc, king:false, s:0, hp:24, maxHp:24, coins:0, deck:['basic','basic','bomb'], relics:{},
            map:genMap(0, abyss, seed), pos:null, pending:null, path:[], pendingReward:null, shop:null, revived:false, pts:0 };
 }
 

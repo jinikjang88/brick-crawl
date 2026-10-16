@@ -1,12 +1,19 @@
 // 기록 API (Cloudflare Pages Functions). D1 바인딩 이름: DB
 //   POST /api/player  { id, name }           닉네임 등록. 이름이 이미 쓰이면 409
-//   POST /api/record  { id, rid, progress }  원정 하나의 최종 도달 칸 수
+//   POST /api/record  { id, rid, progress, epoch }  원정 하나의 최종 도달 칸 수(epoch = 진행도 초기화 회차, 다르면 400)
 //   POST /api/board   { id }                 상위 10명 + 내 순위
+//   POST /api/rename  { id, name }           닉네임 변경. 형식이 틀리면 400, 겹치면 409, 7일이 안 지났으면 429(nextAt)
 // 로그인 없는 공개 API라 조작을 완전히 막을 수는 없다. 형식·범위 검사로 명백한 쓰레기만 거른다.
 // (제대로 된 방어는 시드 RNG 이후 재현 검증으로 — docs/tasks/01)
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const NAME = /^[가-힣]{3} [가-힣]{3} [가-힣]{3}$/;
+// 닉네임: 한글·영문·숫자·공백 2~12자, 앞뒤 공백·연속 공백 없음. 처음 받는 임의 닉네임("바삭한 우울한 냉장고")도 이 규칙에 맞는다
+const NAME = /^[가-힣A-Za-z0-9]+( [가-힣A-Za-z0-9]+)*$/;
+const validName = s => typeof s === 'string' && NAME.test(s) && [...s].length >= 2 && [...s].length <= 12;
+const RENAME_GAP = 7 * 24 * 3600 * 1000;
+// 진행도 초기화 회차(클라이언트 RESET_EPOCH와 같게). 2026-10-16 랭킹 초기화 이후에는 이 회차의 기록만 받는다:
+// 초기화 전에 열어 둔 탭이나 내려받은 옛 file:// 버전이 보관 중인 기록을 보내 지운 랭킹을 되살리지 않게(400이라 옛 버전도 다시 보내지 않는다)
+const EPOCH = 2;   // 닉네임 변경 간격: 랭킹에서 남을 사칭하거나 이름을 자주 바꿔 혼란을 주지 않게
 const MAX_PROGRESS = 200;   // 현재 세션이 끝없이 이어지지만, 사람이 실제로 닿기 힘든 값으로 상한을 둔다
 const TOP = 10;
 
@@ -27,12 +34,13 @@ export async function onRequest({ request, env, params }){
     if (route === 'player') return await player(env.DB, body);
     if (route === 'record') return await record(env.DB, body);
     if (route === 'board') return await board(env.DB, body);
+    if (route === 'rename') return await rename(env.DB, body);
   } catch(e){ return json({ error:'server' }, 500); }
   return json({ error:'route' }, 404);
 }
 
 async function player(db, { id, name }){
-  if (typeof name !== 'string' || !NAME.test(name)) return json({ error:'name' }, 400);
+  if (!validName(name)) return json({ error:'name' }, 400);
   const cur = await db.prepare('SELECT name FROM players WHERE id = ?').bind(id).first();
   // 이미 등록된 id(응답을 못 받고 다시 보낸 경우 등)면 서버에 있는 이름이 정답이다
   if (cur) return json({ ok:true, name:cur.name });
@@ -40,7 +48,8 @@ async function player(db, { id, name }){
   return r.meta.changes ? json({ ok:true, name }) : json({ error:'name taken' }, 409);
 }
 
-async function record(db, { id, rid, progress }){
+async function record(db, { id, rid, progress, epoch }){
+  if (epoch !== EPOCH) return json({ error:'epoch' }, 400);
   if (typeof rid !== 'string' || !UUID.test(rid)) return json({ error:'rid' }, 400);
   if (!Number.isInteger(progress) || progress < 0 || progress > MAX_PROGRESS) return json({ error:'progress' }, 400);
   const p = await db.prepare('SELECT best FROM players WHERE id = ?').bind(id).first();
@@ -60,6 +69,31 @@ async function record(db, { id, rid, progress }){
       WHERE id = ?1`).bind(id),
   ]);
   return ins.meta.changes ? json({ ok:true }) : json({ ok:true, dup:true });
+}
+
+// 닉네임 변경: 마지막 변경(name_at)에서 7일이 지나야 한다(처음 한 번은 바로). 조건을 UPDATE의 WHERE에 넣어
+// 동시에 두 번 보내도 한 번만 바뀐다. 이름이 겹치면 UNIQUE 제약이 막는다
+async function rename(db, { id, name }){
+  if (!validName(name)) return json({ error:'name' }, 400);
+  const p = await db.prepare('SELECT name, name_at FROM players WHERE id = ?').bind(id).first();
+  if (!p) return json({ error:'player' }, 404);
+  if (p.name === name) return json({ ok:true, name, nameAt:p.name_at || 0 });
+  const now = Date.now();
+  if (p.name_at && now - p.name_at < RENAME_GAP) return json({ error:'wait', nextAt:p.name_at + RENAME_GAP }, 429);
+  let r;
+  try {
+    r = await db.prepare('UPDATE players SET name = ?1, name_at = ?2 WHERE id = ?3 AND (name_at IS NULL OR name_at <= ?4)')
+      .bind(name, now, id, now - RENAME_GAP).run();
+  } catch(e){
+    if (/UNIQUE/i.test(String(e && e.message))) return json({ error:'name taken' }, 409);
+    throw e;
+  }
+  // 동시에 보낸 다른 변경이 먼저 반영됐다: 그 시각 기준으로 다음 가능 시각을 알려 준다
+  if (!r.meta.changes){
+    const cur = await db.prepare('SELECT name_at FROM players WHERE id = ?').bind(id).first();
+    return json({ error:'wait', nextAt:((cur && cur.name_at) || now) + RENAME_GAP }, 429);
+  }
+  return json({ ok:true, name, nameAt:now });
 }
 
 async function board(db, { id }){

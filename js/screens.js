@@ -96,7 +96,7 @@ function showMain(){
   const total = Object.keys(ORBS).length + Object.keys(RELICS).length + BADGES.length;
   const got = seenCount('orb') + seenCount('relic') + BADGES.filter(b => META.badges[b.id]).length;
   const bp = document.createElement('small'); bp.textContent = `${got} / ${total}`; $('mBadge').append(bp);
-  ensureProfile(); $('mName').textContent = PROFILE.name;
+  ensureProfile(); $('mName').textContent = PROFILE.name; $('renameForm').hidden = true;
   drawLogo($('logoCv'));
   const display = $('orbShowcase'); display.textContent = '';
   ['drill','guard','basic','bomb','heavy'].forEach(k => display.append(orbPortrait(k)));
@@ -115,6 +115,29 @@ function confirmStart(e, abyss){
   startNewRun(abyss);
 }
 $('mNew').onclick = e => confirmStart(e, false);
+// ── 닉네임 변경: 처음 받은 임의 닉네임을 일주일에 한 번 바꿀 수 있다. 서버에 등록돼 있어야 해서 오프라인이면 못 바꾼다
+const fmtDate = t => { const d = new Date(t); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${d.getHours()}시`; };
+function renameWait(){ const p = ensureProfile(); return p.nameAt && Date.now() - p.nameAt < RENAME_GAP ? p.nameAt + RENAME_GAP : 0; }
+$('mRename').onclick = () => {
+  if (mode !== 'main') return;
+  const f = $('renameForm'), wait = renameWait();
+  f.hidden = !f.hidden; if (f.hidden) return;
+  $('nameIn').value = PROFILE.name; $('nameIn').disabled = !!wait; $('nameSave').disabled = !!wait;
+  $('nameMsg').textContent = wait ? `${fmtDate(wait)}부터 다시 바꿀 수 있다` : '';
+  if (!wait) $('nameIn').focus();
+};
+$('nameCancel').onclick = () => { $('renameForm').hidden = true; $('mRename').focus(); };
+$('renameForm').onsubmit = async e => {
+  if (e && e.preventDefault) e.preventDefault();
+  if (mode !== 'main' || $('nameSave').disabled) return;
+  $('nameSave').disabled = true; $('nameMsg').textContent = '바꾸는 중…';
+  const r = await renameProfile($('nameIn').value);
+  $('nameSave').disabled = false;
+  const msg = { name:'한글·영문·숫자 2~12자로 쓴다(앞뒤·연속 공백 없이)', taken:'이미 누가 쓰는 닉네임이다', offline:'서버에 연결해야 바꿀 수 있다',
+                wait:`${r.nextAt ? fmtDate(r.nextAt) : '일주일 뒤'}부터 다시 바꿀 수 있다` };
+  if (r.ok){ $('mName').textContent = PROFILE.name; $('renameForm').hidden = true; sfx('badge'); toast(`닉네임 변경 · ${PROFILE.name}`); refreshBoard(); $('mRename').focus(); }
+  else $('nameMsg').textContent = msg[r.error] || msg.offline;
+};
 $('mAsc').onclick = () => { if (mode !== 'main') return; META.ascPick = (META.ascPick + 1) % (META.asc + 1); saveMeta(); sfx('pick'); showMain(); $('mAsc').focus(); };
 $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 // 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다

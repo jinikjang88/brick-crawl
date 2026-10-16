@@ -32,7 +32,13 @@
       <div class="logo">브릭 크롤</div>
       <div class="orbShowcase" id="orbShowcase" aria-hidden="true"></div>
       <p class="tagline">성벽을 깨고, 운명을 튕겨라.</p>
-      <div class="who"><span class="whoLbl">플레이어</span><b id="mName"></b></div>
+      <div class="whoRow"><div class="who"><span class="whoLbl">플레이어</span><b id="mName"></b></div><button class="renameBtn" id="mRename" aria-label="닉네임 변경">변경</button></div>
+      <form class="renameForm" id="renameForm" hidden>
+        <label for="nameIn">새 닉네임 (한글·영문·숫자 2~12자, 일주일에 한 번)</label>
+        <input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false">
+        <div class="renameBtns"><button class="btn primary" id="nameSave" type="submit">바꾸기</button><button class="btn" id="nameCancel" type="button">취소</button></div>
+        <p class="renameMsg" id="nameMsg" aria-live="polite"></p>
+      </form>
       <p class="sub" id="mRecord"></p>
       <div class="mainBtns">
         <button class="btn" id="mContinue" hidden></button>

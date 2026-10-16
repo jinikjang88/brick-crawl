@@ -106,7 +106,7 @@ for (let run = 0; run < N; run++){
   // SIM_ASC=n: 고난 n단계가 열려 있고 골라 둔 계정(본편 완주 기록 포함)
   const ASCN = +process.env.SIM_ASC || 0;
   const unlock = BUILD ? { venom:1, counter:1, demolish:1, oneshot:1, rich:1 } : {};
-  if (TREE_SET || abyss || BUILD || ASCN) store['brickquest:meta:v3'] = JSON.stringify({ best:abyss || ASCN ? 25 : 0, abyssBest:BUILD ? 15 : 0, runs:0, clears:abyss || ASCN ? 1 : 0, pts:0, badges:unlock,
+  if (TREE_SET || abyss || BUILD || ASCN) store['brickquest:meta:v4'] = JSON.stringify({ best:abyss || ASCN ? 25 : 0, abyssBest:BUILD ? 15 : 0, runs:0, clears:abyss || ASCN ? 1 : 0, pts:0, badges:unlock,
     asc:ASCN, ascPick:ASCN, story:{ intro:1, end1:1 },
     tree:Object.fromEntries((TREE_SET || []).map(k => [k, 1])) });
   globalThis.document = { getElementById:id => els[id] || (els[id] = mk()), documentElement:{}, createElement:() => mk(),

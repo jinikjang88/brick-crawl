@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS players (
   best       INTEGER NOT NULL DEFAULT 0,   -- 최고 도달 칸 수(1세션 보스까지 = 5)
   best_at    INTEGER,                      -- 최고 기록을 세운 시각(ms). 같은 기록이면 먼저 세운 쪽이 위
   runs       INTEGER NOT NULL DEFAULT 0,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  name_at    INTEGER                       -- 마지막으로 닉네임을 바꾼 시각(ms). 7일에 한 번만 바꿀 수 있다. 처음 받은 임의 닉네임은 NULL
 );
 CREATE INDEX IF NOT EXISTS players_rank ON players (best DESC, best_at ASC);
 

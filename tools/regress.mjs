@@ -88,7 +88,7 @@ ok('R04+굳은살: 남은 벽돌 붕괴는 굳은살이 막는다', descend([[10
 M.tree = {};
 
 // ── R02: 깨진 저장으로도 메인이 뜨고, 이어하기·새 원정이 막히지 않는다
-const RUN_KEY = 'brickquest:run:v3', META_KEY = 'brickquest:meta:v3', PROF_KEY = 'brickquest:profile:v1';
+const RUN_KEY = 'brickquest:run:v4', META_KEY = 'brickquest:meta:v4', PROF_KEY = 'brickquest:profile:v2';
 const goodRun = (() => { const t = boot(); click('mNew'); return JSON.parse(JSON.stringify(t.RUN)); })();
 const mut = f => { const r = JSON.parse(JSON.stringify(goodRun)); f(r); return JSON.stringify(r); };
 const cases = {
@@ -144,7 +144,7 @@ for (const [name, data] of Object.entries(cases)){
   ok('R02 프로필 queue:null: 덮어쓰기 기록 후 새 원정' + (err ? ' (' + err.message + ')' : ''), !err && t.mode === 'map' && t.PROFILE.queue.length === 1); }
 
 // ── R05: 미전송 기록은 일시 실패에 남고, 성공하면 한 번만 빠진다
-const PROF = (queue, registered = true) => ({ [PROF_KEY]:JSON.stringify({ id:'00000000-0000-4000-8000-000000000000', name:'가나다 라마바 사아자', registered, queue }) });
+const PROF = (queue, registered = true) => ({ [PROF_KEY]:JSON.stringify({ id:'00000000-0000-4000-8000-000000000000', name:'가나다 라마바 사아자', registered, queue, epoch:2 }) });
 const Q = (n, at = 0) => ({ rid:'r' + n, progress:n, at });
 async function flushWith(queue, reply, registered = true){
   const sent = [];
@@ -156,6 +156,8 @@ for (const [name, st] of [['통신 실패', null], ['500', 500], ['503', 503], [
   const { left } = await flushWith([Q(1), Q(2)], p => p === 'board' ? { status:200 } : st === null ? null : { status:st, data:{ error:'x' } });
   ok('R05 ' + name + ': 대기열 유지', left === 'r1,r2');
 }
+{ let ep = []; await flushWith([Q(1)], (p, b) => { if (p === 'record') ep.push(b.epoch); return { status:200, data:{ ok:true } }; });
+  ok('원정 기록에 초기화 회차(epoch 2)를 실어 보낸다', ep.length === 1 && ep[0] === 2); }
 { const { left, sent } = await flushWith([Q(1), Q(2)], () => ({ status:200, data:{ ok:true } }));
   ok('R05 성공: 각각 한 번만 보내고 비움', left === '' && sent.filter(s => s.startsWith('record')).length === 2); }
 { const { left } = await flushWith([Q(1), Q(2)], (p, b) => b.rid === 'r1' ? { status:400, data:{ error:'progress' } } : { status:200, data:{ ok:true } });
@@ -220,22 +222,19 @@ function seeded(mathSeed, seed = 777){
   }
   ok('R06 강화 결과 고정: 다시 시도해도 같은 결과(' + res[0] + ')', res.every(x => x === res[0]));
   ok('R06 강화 결과: 고른 즉시 저장', savedOk); }
-{ // v2 원정 저장 → v3로 옮겨 이어하기
-  const v2 = JSON.parse(JSON.stringify(goodRun)); v2.v = 2; delete v2.seed; delete v2.rng;
-  const store = { 'brickquest:run:v2':JSON.stringify(v2) }; const t = boot(store); click('mContinue');
-  const s3 = store[RUN_KEY] && JSON.parse(store[RUN_KEY]);
-  ok('R06 v2 저장 이전: 이어하기, v3 키에 시드 저장, v2 키 삭제', t.mode === 'map' && s3 && s3.v === 3 && Number.isInteger(s3.seed)
-    && typeof s3.rng.reward === 'number' && !('brickquest:run:v2' in store) && JSON.stringify(s3.map) === JSON.stringify(v2.map)); }
-
-{ // v2 → v3 옮기기에서 새 키 쓰기만 실패해도 원정은 이어하고 옛 키는 남긴다
-  const v2 = JSON.parse(JSON.stringify(goodRun)); v2.v = 2; delete v2.seed; delete v2.rng;
-  const store = { 'brickquest:run:v2':JSON.stringify(v2) }; const t = boot(store);
-  // 메인 화면이 띄워지며 이미 옮겼으니 v2 상태로 되돌리고 새 키 쓰기를 막은 뒤 이어하기
-  store['brickquest:run:v2'] = JSON.stringify(v2); delete store[RUN_KEY];
-  const ls = globalThis.localStorage, set = ls.setItem;
-  ls.setItem = (k, v) => { if (k === RUN_KEY) throw new Error('용량 초과'); return set(k, v); };
-  click('mContinue'); ls.setItem = set;
-  ok('R06 v2 이전 쓰기 실패: 이어하기 유지, v2 키 보존', t.mode === 'map' && 'brickquest:run:v2' in store && !(RUN_KEY in store)); }
+{ // 전체 진행도 초기화(2026-10-16): 옛 원정·메타(v2·v3)는 읽지 않고 지운다. 프로필(닉네임·id)은 남고 못 보낸 옛 기록만 비운다
+  const old = { v:3, deck:['bomb+5'], map:goodRun.map, hp:24, maxHp:24 };
+  const store = { 'brickquest:run:v3':JSON.stringify(old), 'brickquest:run:v2':JSON.stringify(old),
+    'brickquest:meta:v3':JSON.stringify({ best:25, clears:3, pts:30, tree:{ a1:1 }, badges:{ final:2 } }), 'brickquest:meta:v2':JSON.stringify({ best:9 }),
+    'brickquest:profile:v1':JSON.stringify({ id:'00000000-0000-4000-8000-000000000001', name:'바삭한 우울한 냉장고', registered:true, queue:[{ rid:'x', progress:25, at:1 }] }) };
+  const t = boot(store); const M = t.META();
+  ok('초기화: 옛 메타는 읽지 않음(포인트·트리·배지·완주 0, 고난 닫힘)', M.best === 0 && M.pts === 0 && !M.tree.a1 && !M.badges.final && M.clears === 0 && M.asc === 0);
+  ok('초기화: 옛 원정 없음(이어하기 숨김)·옛 키 삭제', els.mContinue.hidden === true && !['brickquest:run:v3', 'brickquest:run:v2', 'brickquest:meta:v3', 'brickquest:meta:v2'].some(k => k in store));
+  ok('초기화: 프로필 v1 → v2(닉네임·id·등록 유지, 옛 대기열 버림, v1 키 삭제)', t.PROFILE.name === '바삭한 우울한 냉장고' && t.PROFILE.id.endsWith('0001') && t.PROFILE.registered === true
+    && t.PROFILE.queue.length === 0 && !('brickquest:profile:v1' in store) && JSON.parse(store[PROF_KEY]).name === '바삭한 우울한 냉장고');
+  const u = boot(store); click('mNew'); ok('초기화 뒤 새 원정은 v4 키에 저장', JSON.parse(store[RUN_KEY]).v === 4);
+  const w = boot(store); ok('초기화는 한 번만: 다음 접속 때 v4 진행도 유지', w.META().runs === 1 && els.mContinue.hidden === false);
+}
 
 // ── 작업 05: 고난 단계·근원·이야기
 { // 고난 규칙: 1 정예 분노, 2 정예 벽돌 낙하, 3 보스 회복 없음, 4 독 안개, 5 보스 천장 봉인 1칸
@@ -367,5 +366,31 @@ function seeded(mathSeed, seed = 777){
   const ok2 = boot({ [RUN_KEY]:keep }); click('mContinue');
   ok('근원 표시 보정: 조건 안이면 유지 → 성벽의 왕', ok2.RUN.king === true && !!ok2.G && ok2.G.cfg.name === '성벽의 왕');
 }
+
+// ── 닉네임 변경(일주일에 한 번)
+async function renameWith(reply, prof = {}){
+  const sent = [];
+  const t = boot({ [PROF_KEY]:JSON.stringify(Object.assign({ id:'00000000-0000-4000-8000-000000000002', name:'바삭한 우울한 냉장고', registered:true, queue:[] }, prof)) }, false,
+    (path, body) => { sent.push(path); return reply(path, body); });
+  click('mRename'); return { t, sent };
+}
+{ const { t, sent } = await renameWith(p => p === 'rename' ? { status:200, data:{ ok:true, name:'새 기사', nameAt:Date.now() } } : { status:200, data:{} });
+  els.nameIn.value = '  새   기사 '; await els.renameForm.onsubmit({ preventDefault(){} });
+  ok('닉네임 변경: 공백 정리 후 서버 반영·화면·저장', t.PROFILE.name === '새 기사' && els.mName.textContent === '새 기사' && els.renameForm.hidden === true && sent.includes('rename') && t.PROFILE.nameAt > 0); }
+{ const { t, sent } = await renameWith(() => ({ status:200, data:{} }));
+  for (const bad of ['a', '열세글자를넘는아주긴닉네임', '<b>', '이모지🙂']){ els.nameIn.value = bad; await els.renameForm.onsubmit({ preventDefault(){} }); }
+  ok('닉네임 변경: 형식이 틀리면 서버에 보내지 않고 안내', !sent.includes('rename') && /2~12자/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
+{ const { t } = await renameWith(p => p === 'rename' ? { status:409, data:{ error:'name taken' } } : { status:200, data:{} });
+  els.nameIn.value = '하람'; await els.renameForm.onsubmit({ preventDefault(){} });
+  ok('닉네임 변경: 중복(409) 안내·이름 유지', /이미/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
+{ const next = Date.now() + 3 * 864e5;
+  const { t } = await renameWith(p => p === 'rename' ? { status:429, data:{ error:'wait', nextAt:next } } : { status:200, data:{} });
+  els.nameIn.value = '하람'; await els.renameForm.onsubmit({ preventDefault(){} });
+  ok('닉네임 변경: 서버 7일 제한(429) → 다음 가능 시각 안내·기억', /다시 바꿀 수 있다/.test(els.nameMsg.textContent) && t.PROFILE.nameAt === next - 7 * 864e5); }
+{ const { t, sent } = await renameWith(() => ({ status:200, data:{} }), { nameAt:Date.now() - 864e5 });
+  ok('닉네임 변경: 7일 안이면 폼이 잠기고 날짜 안내(서버에 안 보냄)', els.nameSave.disabled === true && els.nameIn.disabled === true && /다시 바꿀 수 있다/.test(els.nameMsg.textContent) && !sent.includes('rename')); }
+{ const { t } = await renameWith(() => null);
+  els.nameIn.value = '하람'; await els.renameForm.onsubmit({ preventDefault(){} });
+  ok('닉네임 변경: 오프라인이면 안내·이름 유지', /서버에 연결/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
 
 process.exit(fail ? 1 : 0);

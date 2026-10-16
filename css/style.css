@@ -48,6 +48,16 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .who{display:flex;align-items:stretch;border:2px solid var(--ink);background:var(--panel);font-size:15px;max-width:100%}
 .whoLbl{background:var(--ink);color:var(--bg);font-size:12px;font-weight:800;padding:0 7px;display:flex;align-items:center}
 .who b{padding:3px 10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 닉네임 변경: 탭 타겟 44px, 붉은색 없이(위험이 아니다) */
+.whoRow{display:flex;align-items:stretch;gap:6px;max-width:100%}
+.renameBtn{min-width:44px;min-height:44px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);font-weight:800;font-size:14px;padding:0 10px;cursor:pointer}
+.renameForm{display:flex;flex-direction:column;gap:6px;width:100%;max-width:320px;text-align:left}
+.renameForm[hidden]{display:none}
+.renameForm label{font-size:13px;color:var(--ink2)}
+.renameForm input{min-height:44px;font-size:17px;padding:0 10px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);font-family:inherit}
+.renameBtns{display:flex;gap:6px}
+.renameBtns .btn{flex:1}
+.renameMsg{margin:0;font-size:13px;color:var(--ink2);min-height:1.5em}
 .big{font-size:30px;font-weight:900;letter-spacing:-.03em;line-height:1.15}
 .big.lose{color:var(--accent)}
 .sub{font-size:15px;color:var(--ink2);margin:0}
