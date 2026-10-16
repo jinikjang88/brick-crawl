@@ -88,7 +88,7 @@ ok('R04+굳은살: 남은 벽돌 붕괴는 굳은살이 막는다', descend([[10
 M.tree = {};
 
 // ── R02: 깨진 저장으로도 메인이 뜨고, 이어하기·새 원정이 막히지 않는다
-const RUN_KEY = 'brickquest:run:v4', META_KEY = 'brickquest:meta:v4', PROF_KEY = 'brickquest:profile:v1';
+const RUN_KEY = 'brickquest:run:v4', META_KEY = 'brickquest:meta:v4', PROF_KEY = 'brickquest:profile:v2';
 const goodRun = (() => { const t = boot(); click('mNew'); return JSON.parse(JSON.stringify(t.RUN)); })();
 const mut = f => { const r = JSON.parse(JSON.stringify(goodRun)); f(r); return JSON.stringify(r); };
 const cases = {
@@ -156,6 +156,8 @@ for (const [name, st] of [['통신 실패', null], ['500', 500], ['503', 503], [
   const { left } = await flushWith([Q(1), Q(2)], p => p === 'board' ? { status:200 } : st === null ? null : { status:st, data:{ error:'x' } });
   ok('R05 ' + name + ': 대기열 유지', left === 'r1,r2');
 }
+{ let ep = []; await flushWith([Q(1)], (p, b) => { if (p === 'record') ep.push(b.epoch); return { status:200, data:{ ok:true } }; });
+  ok('원정 기록에 초기화 회차(epoch 2)를 실어 보낸다', ep.length === 1 && ep[0] === 2); }
 { const { left, sent } = await flushWith([Q(1), Q(2)], () => ({ status:200, data:{ ok:true } }));
   ok('R05 성공: 각각 한 번만 보내고 비움', left === '' && sent.filter(s => s.startsWith('record')).length === 2); }
 { const { left } = await flushWith([Q(1), Q(2)], (p, b) => b.rid === 'r1' ? { status:400, data:{ error:'progress' } } : { status:200, data:{ ok:true } });
@@ -224,11 +226,12 @@ function seeded(mathSeed, seed = 777){
   const old = { v:3, deck:['bomb+5'], map:goodRun.map, hp:24, maxHp:24 };
   const store = { 'brickquest:run:v3':JSON.stringify(old), 'brickquest:run:v2':JSON.stringify(old),
     'brickquest:meta:v3':JSON.stringify({ best:25, clears:3, pts:30, tree:{ a1:1 }, badges:{ final:2 } }), 'brickquest:meta:v2':JSON.stringify({ best:9 }),
-    [PROF_KEY]:JSON.stringify({ id:'00000000-0000-4000-8000-000000000001', name:'바삭한 우울한 냉장고', registered:true, queue:[{ rid:'x', progress:25, at:1 }] }) };
+    'brickquest:profile:v1':JSON.stringify({ id:'00000000-0000-4000-8000-000000000001', name:'바삭한 우울한 냉장고', registered:true, queue:[{ rid:'x', progress:25, at:1 }] }) };
   const t = boot(store); const M = t.META();
   ok('초기화: 옛 메타는 읽지 않음(포인트·트리·배지·완주 0, 고난 닫힘)', M.best === 0 && M.pts === 0 && !M.tree.a1 && !M.badges.final && M.clears === 0 && M.asc === 0);
   ok('초기화: 옛 원정 없음(이어하기 숨김)·옛 키 삭제', els.mContinue.hidden === true && !['brickquest:run:v3', 'brickquest:run:v2', 'brickquest:meta:v3', 'brickquest:meta:v2'].some(k => k in store));
-  ok('초기화: 닉네임·id·등록은 유지, 옛 대기열은 비움', t.PROFILE.name === '바삭한 우울한 냉장고' && t.PROFILE.registered === true && t.PROFILE.queue.length === 0);
+  ok('초기화: 프로필 v1 → v2(닉네임·id·등록 유지, 옛 대기열 버림, v1 키 삭제)', t.PROFILE.name === '바삭한 우울한 냉장고' && t.PROFILE.id.endsWith('0001') && t.PROFILE.registered === true
+    && t.PROFILE.queue.length === 0 && !('brickquest:profile:v1' in store) && JSON.parse(store[PROF_KEY]).name === '바삭한 우울한 냉장고');
   const u = boot(store); click('mNew'); ok('초기화 뒤 새 원정은 v4 키에 저장', JSON.parse(store[RUN_KEY]).v === 4);
   const w = boot(store); ok('초기화는 한 번만: 다음 접속 때 v4 진행도 유지', w.META().runs === 1 && els.mContinue.hidden === false);
 }

@@ -95,7 +95,7 @@ async function doFlush(){
   let reReg = false;
   while (p.queue.length){
     const q = p.queue[0];
-    const r = await api('record', { id:p.id, rid:q.rid, progress:q.progress });
+    const r = await api('record', { id:p.id, rid:q.rid, progress:q.progress, epoch:RESET_EPOCH });
     if (retryLater(r)) return;
     if (r.status === 404 && r.data && r.data.error === 'player'){
       // 등록했다고 기억했는데 서버에 없다(DB 초기화 등). 한 번만 다시 등록해 무한 반복을 막는다

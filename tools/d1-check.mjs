@@ -8,7 +8,8 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 const B = 'http://127.0.0.1:8788/api/';
 // 바깥에서 스키마를 바꾸면(트리거) 로컬 서버가 연결을 한 번 끊는다: 연결 오류만 잠깐 뒤 다시
-const post = async (p, b) => { for (let i = 0; ; i++){ try { const r = await fetch(B + p, { method:'POST', body:JSON.stringify(b) }); return { status:r.status, data:await r.json().catch(() => null) }; } catch(e){ if (i > 5) throw e; await new Promise(f => setTimeout(f, 1000)); } } };
+// 원정 기록은 진행도 초기화 회차를 실어 보낸다(서버가 다른 회차는 400)
+const post = async (p, b) => { if (p === 'record' && b && b.epoch === undefined) b = Object.assign({ epoch:2 }, b); for (let i = 0; ; i++){ try { const r = await fetch(B + p, { method:'POST', body:JSON.stringify(b) }); return { status:r.status, data:await r.json().catch(() => null) }; } catch(e){ if (i > 5) throw e; await new Promise(f => setTimeout(f, 1000)); } } };
 const sql = q => JSON.parse(execSync(`npx wrangler d1 execute DB --local --json --command "${q}"`, { stdio:['ignore','pipe','ignore'] }).toString())[0].results;
 // 실행마다 다른 접두어: runs.rid는 전역 고유라 이전 실행의 rid와 겹치면 안 된다
 const RUNID = Math.floor(Math.random() * 1e8).toString(16).padStart(8, '0');
@@ -43,6 +44,8 @@ ok('어긋난 집계 복구: dup 응답이지만 runs 5, best 12', r5.data.dup =
 ok('없는 플레이어 404', (await post('record', { id:u(999999), rid:u(6), progress:1 })).data.error === 'player');
 const b = await post('board', { id:P });
 ok('랭킹: 내 기록 9→12, 원정 5', b.data.me.best === 12 && b.data.me.runs === 5);
+// 5-1) 옛 버전(회차 없음·다른 회차)의 기록은 받지 않는다
+ok('옛 회차 기록 거부(400 epoch)', (await post('record', { id:P, rid:u(70), progress:20, epoch:1 })).data.error === 'epoch' && me().best === 12);
 // 6) 닉네임 변경(2026-10-16): 형식 400, 처음 한 번은 바로, 7일 안 재변경 429(nextAt), 중복 409, 동시 요청은 한 번만
 const nmA = '기사' + RUNID.slice(0, 4), nmB = '하람' + RUNID.slice(0, 4);
 ok('닉네임 변경: 형식이 틀리면 400', (await post('rename', { id:P, name:'<b>' })).status === 400);
@@ -54,7 +57,7 @@ sql(`UPDATE players SET name_at = name_at - ${8 * 864e5} WHERE id='${P}'`);   //
 const Q = u(Date.now() % 1e9 + 7); await post('player', { id:Q, name:nmB });
 ok('닉네임 변경: 남이 쓰는 이름은 409', (await post('rename', { id:P, name:nmB })).status === 409);
 const both = await Promise.all(['갑' + RUNID.slice(0, 3), '을' + RUNID.slice(0, 3)].map(n => post('rename', { id:P, name:n })));
-ok('닉네임 변경: 동시 요청은 한 번만 반영(200 하나, 429 하나)', both.filter(r => r.status === 200).length === 1 && both.filter(r => r.status === 429).length === 1);
+ok('닉네임 변경: 동시 요청은 한 번만 반영(200 하나, 429 하나 + 다음 가능 시각)', both.filter(r => r.status === 200).length === 1 && both.filter(r => r.status === 429 && r.data.nextAt > Date.now()).length === 1);
 ok('닉네임 변경: 직접 입력 형식으로도 등록 가능', (await post('player', { id:u(Date.now() % 1e9 + 9), name:'Knight ' + RUNID.slice(0, 3) })).status === 200);
 // 7) 랭킹 초기화 SQL(0003): 플레이어는 남고 기록만 비운다
 sql(fs.readFileSync('db/migrations/0003_reset_ranking.sql', 'utf8').split('\n').filter(l => !l.startsWith('--')).join(' ').trim().replace(/"/g, "'"));
