@@ -41,6 +41,18 @@ const RESET_EPOCH = 2;
 // 닉네임 변경 간격(서버가 같은 값으로 최종 판정한다. 여기서는 남은 시간을 미리 보여 주는 용도)
 const RENAME_GAP = 7 * 24 * 3600 * 1000;
 // 직접 입력 닉네임: 한글·영문·숫자·공백 2~12자, 앞뒤 공백·연속 공백 없음(서버와 같은 규칙)
+// 닉네임 금지어(서버 functions/api/[[path]].js와 같은 목록. 서버가 최종 판정하고 여기서는 바로 안내하는 용도)
+const BAD_NAME = ['시발','씨발','씨빨','시빨','씨팔','시팔','씨바','시바','쌍년','쌍놈','썅','개새','새끼','색기','병신','빙신','븅신','병싄',
+  '좆','좃','존나','졸라','존내','지랄','염병','엠창','느금','니미','니애미','느그애미','애미','애비','에미','미친놈','미친년','또라이','돌아이',
+  '보지','자지','섹스','쎅스','창녀','걸레','후장','딸딸이','야동','자위','강간','성폭','꼴통','닥쳐','등신','호로','쓰레기','개같','개년','개놈',
+  '일베','한남충','김치녀','틀딱','급식충','맘충','장애인','짱깨','쪽바리','흑형','깜둥',
+  '운영자','관리자','운영진','개발자','브릭크롤',
+  'fuck','fuk','shit','bitch','btch','asshole','bastard','dick','cock','pussy','cunt','nigger','nigga','fag','porn','sex','rape','whore','slut',
+  'admin','administrator','moderator','official','gm'];
+// 공백·숫자를 끼워 넣거나(시1발, 시 발) 대소문자를 바꿔 피하는 것을 막으려고 비교 전에 걸러 낸다
+const normName = s => String(s).toLowerCase().replace(/[\s0-9]/g, '');
+// 다른 문자 체계를 끼워 넣는 우회(시a발, f한uck)도 막는다: 영문을 뺀 꼴(한글 금지어용)과 한글을 뺀 꼴(영문 금지어용)도 함께 본다
+const badName = s => { const n = normName(s), forms = [n, n.replace(/[a-z]/g, ''), n.replace(/[가-힣]/g, '')]; return BAD_NAME.some(w => forms.some(f => f.includes(w))); };
 const validName = s => typeof s === 'string' && /^[가-힣A-Za-z0-9]+( [가-힣A-Za-z0-9]+)*$/.test(s) && [...s].length >= 2 && [...s].length <= 12;
 let PROFILE = null;
 const okProfile = p => p && typeof p.id === 'string' && typeof p.name === 'string';

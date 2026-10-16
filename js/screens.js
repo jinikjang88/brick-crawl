@@ -133,7 +133,7 @@ $('renameForm').onsubmit = async e => {
   $('nameSave').disabled = true; $('nameMsg').textContent = '바꾸는 중…';
   const r = await renameProfile($('nameIn').value);
   $('nameSave').disabled = false;
-  const msg = { name:'한글·영문·숫자 2~12자로 쓴다(앞뒤·연속 공백 없이)', taken:'이미 누가 쓰는 닉네임이다', offline:'서버에 연결해야 바꿀 수 있다',
+  const msg = { name:'한글·영문·숫자 2~12자로 쓴다(앞뒤·연속 공백 없이)', bad:'쓸 수 없는 단어가 들어 있다', taken:'이미 누가 쓰는 닉네임이다', offline:'서버에 연결해야 바꿀 수 있다',
                 wait:`${r.nextAt ? fmtDate(r.nextAt) : '일주일 뒤'}부터 다시 바꿀 수 있다` };
   if (r.ok){ $('mName').textContent = PROFILE.name; $('renameForm').hidden = true; sfx('badge'); toast(`닉네임 변경 · ${PROFILE.name}`); refreshBoard(); $('mRename').focus(); }
   else $('nameMsg').textContent = msg[r.error] || msg.offline;

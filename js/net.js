@@ -42,11 +42,12 @@ async function registerProfile(){
   return false;
 }
 
-// ── 닉네임 변경: 서버가 형식·중복·7일 제한을 최종 판정한다. 돌려주는 값 = { ok } | { error:'name'|'taken'|'wait'|'offline', nextAt }
+// ── 닉네임 변경: 서버가 형식·중복·7일 제한을 최종 판정한다. 돌려주는 값 = { ok } | { error:'name'|'bad'|'taken'|'wait'|'offline', nextAt }
 async function renameProfile(name){
   const p = ensureProfile();
   name = String(name || '').trim().replace(/\s+/g, ' ');
   if (!validName(name)) return { error:'name' };
+  if (badName(name)) return { error:'bad' };
   if (name === p.name) return { ok:true };
   if (p.nameAt && Date.now() - p.nameAt < RENAME_GAP) return { error:'wait', nextAt:p.nameAt + RENAME_GAP };
   // 아직 서버에 등록 전이면 먼저 등록한다(바꿀 대상이 서버에 있어야 한다)
@@ -56,7 +57,7 @@ async function renameProfile(name){
   if (r.ok){ p.name = name; p.nameAt = (r.data && r.data.nameAt) || Date.now(); saveProfile(); return { ok:true }; }
   if (r.status === 409) return { error:'taken' };
   if (r.status === 429){ const nextAt = r.data && r.data.nextAt; if (nextAt){ p.nameAt = nextAt - RENAME_GAP; saveProfile(); } return { error:'wait', nextAt }; }
-  if (r.status === 400) return { error:'name' };
+  if (r.status === 400) return { error:r.data && r.data.error === 'bad' ? 'bad' : 'name' };
   return { error:'offline' };
 }
 
