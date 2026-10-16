@@ -2,7 +2,7 @@
 //   POST /api/player  { id, name }           닉네임 등록. 이름이 이미 쓰이면 409
 //   POST /api/record  { id, rid, progress, epoch }  원정 하나의 최종 도달 칸 수(epoch = 진행도 초기화 회차, 다르면 400)
 //   POST /api/board   { id }                 상위 10명 + 내 순위
-//   POST /api/rename  { id, name }           닉네임 변경. 형식이 틀리면 400, 겹치면 409, 7일이 안 지났으면 429(nextAt)
+//   POST /api/rename  { id, name }           닉네임 변경. 형식이 틀리면 400(name), 금지어 400(bad), 겹치면 409, 7일이 안 지났으면 429(nextAt)
 // 로그인 없는 공개 API라 조작을 완전히 막을 수는 없다. 형식·범위 검사로 명백한 쓰레기만 거른다.
 // (제대로 된 방어는 시드 RNG 이후 재현 검증으로 — docs/tasks/01)
 
@@ -10,6 +10,17 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 // 닉네임: 한글·영문·숫자·공백 2~12자, 앞뒤 공백·연속 공백 없음. 처음 받는 임의 닉네임("바삭한 우울한 냉장고")도 이 규칙에 맞는다
 const NAME = /^[가-힣A-Za-z0-9]+( [가-힣A-Za-z0-9]+)*$/;
 const validName = s => typeof s === 'string' && NAME.test(s) && [...s].length >= 2 && [...s].length <= 12;
+// 닉네임 금지어: 욕설·성적 표현·혐오 표현·운영자 사칭(클라이언트 js/profile.js와 같은 목록). 공개 랭킹에 그대로 보이는 이름이라 서버가 최종 판정한다
+const BAD_NAME = ['시발','씨발','씨빨','시빨','씨팔','시팔','씨바','시바','쌍년','쌍놈','썅','개새','새끼','색기','병신','빙신','븅신','병싄',
+  '좆','좃','존나','졸라','존내','지랄','염병','엠창','느금','니미','니애미','느그애미','애미','애비','에미','미친놈','미친년','또라이','돌아이',
+  '보지','자지','섹스','쎅스','창녀','걸레','후장','딸딸이','야동','자위','강간','성폭','꼴통','닥쳐','등신','호로','쓰레기','개같','개년','개놈',
+  '일베','한남충','김치녀','틀딱','급식충','맘충','장애인','짱깨','쪽바리','흑형','깜둥',
+  '운영자','관리자','운영진','개발자','브릭크롤',
+  'fuck','fuk','shit','bitch','btch','asshole','bastard','dick','cock','pussy','cunt','nigger','nigga','fag','porn','sex','rape','whore','slut',
+  'admin','administrator','moderator','official','gm'];
+// 공백·숫자를 끼워 넣거나(시1발, 시 발) 대소문자를 바꿔 피하는 것을 막으려고 비교 전에 걸러 낸다
+const normName = s => String(s).toLowerCase().replace(/[\s0-9]/g, '');
+const badName = s => { const n = normName(s); return BAD_NAME.some(w => n.includes(w)); };
 const RENAME_GAP = 7 * 24 * 3600 * 1000;
 // 진행도 초기화 회차(클라이언트 RESET_EPOCH와 같게). 2026-10-16 랭킹 초기화 이후에는 이 회차의 기록만 받는다:
 // 초기화 전에 열어 둔 탭이나 내려받은 옛 file:// 버전이 보관 중인 기록을 보내 지운 랭킹을 되살리지 않게(400이라 옛 버전도 다시 보내지 않는다)
@@ -41,6 +52,7 @@ export async function onRequest({ request, env, params }){
 
 async function player(db, { id, name }){
   if (!validName(name)) return json({ error:'name' }, 400);
+  if (badName(name)) return json({ error:'bad' }, 400);
   const cur = await db.prepare('SELECT name FROM players WHERE id = ?').bind(id).first();
   // 이미 등록된 id(응답을 못 받고 다시 보낸 경우 등)면 서버에 있는 이름이 정답이다
   if (cur) return json({ ok:true, name:cur.name });
@@ -75,6 +87,7 @@ async function record(db, { id, rid, progress, epoch }){
 // 동시에 두 번 보내도 한 번만 바뀐다. 이름이 겹치면 UNIQUE 제약이 막는다
 async function rename(db, { id, name }){
   if (!validName(name)) return json({ error:'name' }, 400);
+  if (badName(name)) return json({ error:'bad' }, 400);
   const p = await db.prepare('SELECT name, name_at FROM players WHERE id = ?').bind(id).first();
   if (!p) return json({ error:'player' }, 404);
   if (p.name === name) return json({ ok:true, name, nameAt:p.name_at || 0 });

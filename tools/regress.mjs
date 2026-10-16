@@ -9,7 +9,7 @@ const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode
   + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   + 'catchChoice:()=>{ const got = [], orig = showChoice; showChoice = o => { got.push(o); orig(o); }; return got; },'
-  + 'update,victory,bossDropsNow,sealedAt};';
+  + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName};';
 // 프롤로그(첫 원정의 이야기)는 따로 검사한다. 다른 검사는 새 원정 → 바로 지도를 기대하므로 본 것으로 둔다
 let FRESH_STORY = false;
 const code = '(() => {' + srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n' + EXPOSE + '})();';
@@ -392,5 +392,29 @@ async function renameWith(reply, prof = {}){
 { const { t } = await renameWith(() => null);
   els.nameIn.value = '하람'; await els.renameForm.onsubmit({ preventDefault(){} });
   ok('닉네임 변경: 오프라인이면 안내·이름 유지', /서버에 연결/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
+
+// ── 닉네임 금지어
+{ const t = boot();
+  // 서버와 클라이언트가 같은 목록을 쓰는지(한쪽만 고치면 화면은 통과시키는데 서버가 거절하거나 그 반대가 된다)
+  const srv = fs.readFileSync(path.join(ROOT, 'functions/api/[[path]].js'), 'utf8').match(/const BAD_NAME = (\[[\s\S]*?\]);/);
+  ok('금지어 목록: 서버와 클라이언트가 같다', !!srv && JSON.stringify(eval(srv[1])) === JSON.stringify(t.BAD_NAME));
+  const bad = ['시발놈', '씨 발', '시1발', '병신같이', '개새끼', 'FuCk you', 'f u c k', '운영자', 'Admin', '미친놈아', '좆밥', 'sex123'];
+  const good = ['새 기사', '하람', '바삭한 우울한 냉장고', 'Knight 7', '성벽의 왕', '구슬장인', '시바견', '보리차'];
+  const missed = bad.filter(n => !t.badName(n)), wrong = good.filter(n => t.badName(n));
+  ok(`금지어: 우회(공백·숫자·대소문자)까지 거름${missed.length ? ' 놓침 ' + missed.join(',') : ''}`, missed.length === 0);
+  // '시바견'처럼 금지어를 품은 정상 단어는 막혀도 어쩔 수 없다(목록에 '시바'가 있다). 아래는 막히면 안 되는 이름만 본다
+  const mustPass = good.filter(n => n !== '시바견'), wrong2 = mustPass.filter(n => t.badName(n));
+  ok(`금지어: 정상 이름은 통과${wrong2.length ? ' 잘못 막음 ' + wrong2.join(',') : ''}`, wrong2.length === 0);
+  // 자동 닉네임(약 15만 개)은 하나도 걸리면 안 된다: 처음 접속 때 서버 등록이 막힌다
+  let hits = [];
+  for (const a of t.NICK_A) for (const b of t.NICK_B) for (const c of t.NICK_C){ const n = a + ' ' + b + ' ' + c; if (t.badName(n)) hits.push(n); }
+  ok(`금지어: 자동 닉네임 ${t.NICK_A.length * t.NICK_B.length * t.NICK_C.length}개 중 걸린 것 ${hits.length}개${hits.length ? ' 예: ' + hits.slice(0, 3).join(' / ') : ''}`, hits.length === 0);
+}
+{ const { t, sent } = await renameWith(() => ({ status:200, data:{ ok:true } }));
+  els.nameIn.value = '시1발'; await els.renameForm.onsubmit({ preventDefault(){} });
+  ok('닉네임 변경: 금지어면 서버에 보내지 않고 안내', !sent.includes('rename') && /쓸 수 없는 단어/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
+{ const { t } = await renameWith(p => p === 'rename' ? { status:400, data:{ error:'bad' } } : { status:200, data:{} });
+  els.nameIn.value = '평범한이름'; await els.renameForm.onsubmit({ preventDefault(){} });
+  ok('닉네임 변경: 서버가 금지어로 거절(400 bad)하면 같은 안내', /쓸 수 없는 단어/.test(els.nameMsg.textContent)); }
 
 process.exit(fail ? 1 : 0);

@@ -49,6 +49,8 @@ ok('옛 회차 기록 거부(400 epoch)', (await post('record', { id:P, rid:u(70
 // 6) 닉네임 변경(2026-10-16): 형식 400, 처음 한 번은 바로, 7일 안 재변경 429(nextAt), 중복 409, 동시 요청은 한 번만
 const nmA = '기사' + RUNID.slice(0, 4), nmB = '하람' + RUNID.slice(0, 4);
 ok('닉네임 변경: 형식이 틀리면 400', (await post('rename', { id:P, name:'<b>' })).status === 400);
+ok('닉네임 변경: 금지어(우회 포함) 400 bad', (await post('rename', { id:P, name:'씨 1 발' })).data.error === 'bad' && (await post('rename', { id:P, name:'Admin' })).data.error === 'bad');
+ok('등록: 금지어 닉네임은 400 bad', (await post('player', { id:u(Date.now() % 1e9 + 11), name:'병신 ' + RUNID.slice(0, 2) })).data.error === 'bad');
 const rn1 = await post('rename', { id:P, name:nmA });
 ok('닉네임 변경: 처음 한 번은 바로(200), name_at 기록', rn1.status === 200 && rn1.data.name === nmA && sql(`SELECT name_at FROM players WHERE id='${P}'`)[0].name_at > 0);
 const rn2 = await post('rename', { id:P, name:nmB });
