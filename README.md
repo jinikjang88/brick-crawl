@@ -111,6 +111,7 @@ python -m http.server 8000      # 또는 npx serve .
 ```
 index.html          DOM 골격(HUD·캔버스·오버레이) + 스크립트 로드 순서
 css/style.css       색 토큰(라이트/다크)과 레이아웃
+icons/              앱 아이콘(스토어 1024·512, 웹 192·180·32). 원본 assets/illustrated/icon.png → tools/build_game_assets.py
 fonts/              픽셀 한글 글꼴 Galmuri11(SIL OFL 1.1, fonts/OFL.txt)
 js/config.js        화면 상수(W·H·COLS…), 공용 유틸($·clamp), 시드 난수 rand(s)·rnd·pickW, readColors()
 js/data.js          데이터: 몬스터·성벽·스케일·구슬·유물·스킬 트리·배지

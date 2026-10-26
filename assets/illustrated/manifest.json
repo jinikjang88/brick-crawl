@@ -83,6 +83,15 @@
       "alpha": true,
       "bytes": 2265506,
       "sha256": "8f7299d426a8f72833a43f662446eb78d244b5eccad4c10b428aa02befb4ed40"
+    },
+    {
+      "path": "assets/illustrated/icon.png",
+      "width": 1024,
+      "height": 1024,
+      "mode": "RGB",
+      "alpha": false,
+      "bytes": 1365333,
+      "sha256": "bd00c7ba7f939e21d5d305839157c1b8a07b62d209b9b85c007b58465863cc1b"
     }
   ]
 }
