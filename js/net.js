@@ -110,7 +110,7 @@ function trimQueue(q){
 // 이미 올리는 중이면 같은 작업을 기다린다. 원정 직후 메인 화면의 랭킹이 방금 기록을 빠뜨리지 않게
 let flushP = null;
 function flushRecords(){
-  if (!API_BASE) return Promise.resolve();
+  if (!API_BASE || deleting) return Promise.resolve();
   return flushP || (flushP = doFlush().finally(() => { flushP = null; }));
 }
 // 응답 분류: 성공 → 빼기 / 일시 실패(통신·5xx·408·429) → 남겨 두고 다음에 / 서버에 플레이어가 없음(404) → 다시 등록하고 재시도 /
@@ -120,7 +120,7 @@ async function doFlush(){
   if (!(await registerProfile())) return;
   const p = PROFILE;
   let reReg = false;
-  while (p.queue.length){
+  while (p.queue.length && !deleting){   // 삭제 중이면 다음 기록부터 멈춘다(지울 id로 새 기록이 올라가지 않게)
     const q = p.queue[0];
     const r = await api('record', { id:p.id, rid:q.rid, progress:q.progress, epoch:RESET_EPOCH });
     if (retryLater(r)) return;
@@ -133,6 +133,30 @@ async function doFlush(){
     }
     p.queue.shift(); saveProfile();
   }
+}
+
+// ── 내 기록 삭제: 서버의 닉네임·원정 기록을 지우고 기기에는 새 id·새 임의 닉네임을 만든다(지운 id로 다시 올라가지 않게).
+// 못 보낸 기록은 서버 삭제가 성공한 뒤에만 버린다: 삭제가 실패(오프라인·오류·429)하면 대기열을 그대로 두어 나중에 다시 올라가게 한다.
+// 돌려주는 값 = { ok } | { error:'offline'|'busy' }
+let deleting = false;
+async function deleteProfile(){
+  const p = ensureProfile();
+  deleting = true;
+  try {
+    // 올리는 중인 기록이 삭제 뒤에 들어가지 않게 지금 보내는 것까지 기다린다(deleting이 다음 기록부터 멈춘다)
+    if (flushP) await flushP;
+    if (API_BASE){
+      const r = await api('delete', { id:p.id });
+      if (!r) return { error:'offline' };
+      if (r.status === 429) return { error:'busy' };
+      if (!r.ok) return { error:'offline' };
+    }
+  } finally { deleting = false; }
+  PROFILE = { id:uuid(), name:makeNickname(), registered:false, queue:[], nameAt:0 }; saveProfile();
+  // 저장된 원정의 시작 표는 지운 id 것이다: 새 id로 다시 받게 표시를 지운다
+  try { const r = loadRun(); if (r && r.tk){ r.tk = false; localStorage.setItem(SAVE_KEY, JSON.stringify(r)); } } catch(e){}
+  if (RUN) RUN.tk = false;
+  return { ok:true };
 }
 
 // ── 랭킹: 상위 10명 + 내 순위. 실패하면 null

@@ -53,6 +53,12 @@
       <div class="board mini" id="mBoard" aria-live="polite"></div>
       <button class="linkbtn" id="mRank">랭킹 전체 보기</button>
       <div class="sndRow"><button class="sndBtn" id="mBgm"></button><button class="sndBtn" id="mSfx"></button><button class="sndBtn" id="mTheme"></button></div>
+      <div class="legalRow"><a class="linkbtn" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a><button class="linkbtn" id="mDelete" aria-expanded="false" aria-controls="deleteForm">내 기록 삭제</button></div>
+      <div class="deleteForm" id="deleteForm" hidden>
+        <p>랭킹 서버에서 닉네임과 원정 기록을 지운다. 이 기기의 진행도(스킬 트리·도감)는 그대로 남고, 닉네임은 새로 정해진다. 되돌릴 수 없다.</p>
+        <div class="renameBtns"><button class="btn danger" id="deleteGo" type="button">서버 기록 지우기</button><button class="btn" id="deleteCancel" type="button">취소</button></div>
+        <p class="renameMsg" id="deleteMsg" aria-live="polite"></p>
+      </div>
     </div>
 
     <div class="ov" id="ovRank">

@@ -61,6 +61,13 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .renameForm label{font-size:13px;color:var(--ink2)}
 .renameForm input{min-height:44px;font-size:17px;padding:0 10px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);font-family:inherit}
 .renameBtns{display:flex;gap:6px}
+/* 개인정보 처리방침·내 기록 삭제: 메인 맨 아래. 삭제는 되돌릴 수 없어 두 번 눌러야 하고, 버튼만 위험색(붉은색 = 위험) */
+.legalRow{display:flex;gap:4px 14px;justify-content:center;flex-wrap:wrap}
+.legalRow .linkbtn{font-size:13px;display:inline-flex;align-items:center;padding:0 4px}
+.deleteForm{display:flex;flex-direction:column;gap:6px;width:100%;max-width:320px;text-align:left;font-size:13px;color:var(--ink2);line-height:1.5}
+.deleteForm[hidden]{display:none}
+.deleteForm p{margin:0}
+.btn.danger{border-color:var(--accent)}  /* 글자까지 붉게 하면 다크 모드 대비 3.65:1로 AA 미달: 테두리로만 경고 */
 .renameBtns .btn{flex:1}
 .renameMsg{margin:0;font-size:13px;color:var(--ink2);min-height:1.5em}
 .big{font-size:30px;font-weight:900;letter-spacing:-.03em;line-height:1.15}

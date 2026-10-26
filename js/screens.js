@@ -138,6 +138,27 @@ $('renameForm').onsubmit = async e => {
   if (r.ok){ $('mName').textContent = PROFILE.name; $('renameForm').hidden = true; sfx('badge'); toast(`닉네임 변경 · ${PROFILE.name}`); refreshBoard(); $('mRename').focus(); }
   else $('nameMsg').textContent = msg[r.error] || msg.offline;
 };
+// ── 내 기록 삭제: 두 번 눌러야 지운다(되돌릴 수 없다). 서버에 연결돼야 지울 수 있다
+$('mDelete').onclick = () => {
+  if (mode !== 'main') return;
+  const f = $('deleteForm'); f.hidden = !f.hidden;
+  $('mDelete').setAttribute('aria-expanded', String(!f.hidden));
+  delete $('deleteGo').dataset.arm; $('deleteGo').textContent = '서버 기록 지우기'; $('deleteMsg').textContent = '';
+  if (!f.hidden) $('deleteGo').focus();
+};
+$('deleteCancel').onclick = () => { $('deleteForm').hidden = true; $('mDelete').setAttribute('aria-expanded', 'false'); $('mDelete').focus(); };
+$('deleteGo').onclick = async () => {
+  const b = $('deleteGo');
+  if (mode !== 'main' || b.disabled) return;
+  if (!b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 지워진다'; return; }
+  b.disabled = true; $('deleteMsg').textContent = '지우는 중…';
+  const r = await deleteProfile();
+  b.disabled = false; delete b.dataset.arm; b.textContent = '서버 기록 지우기';
+  if (r.ok){
+    $('deleteForm').hidden = true; $('mDelete').setAttribute('aria-expanded', 'false');
+    $('mName').textContent = PROFILE.name; BOARD = null; toast('서버 기록을 지웠다'); refreshBoard(); $('mDelete').focus();
+  } else $('deleteMsg').textContent = r.error === 'busy' ? '요청이 많다. 잠시 뒤 다시 해 본다' : '서버에 연결해야 지울 수 있다';
+};
 $('mAsc').onclick = () => { if (mode !== 'main') return; META.ascPick = (META.ascPick + 1) % (META.asc + 1); saveMeta(); sfx('pick'); showMain(); $('mAsc').focus(); };
 $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 // 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
