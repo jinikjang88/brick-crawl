@@ -61,7 +61,9 @@ function frame(now){
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (G && mode === 'play') update(dt);
   draw(); drawScene(dt);
-  if (G && mode === 'play') $('hCoin').textContent = `코인 ${RUN.coins}  ${G.turn}턴`;
+  // 전투 중에는 코인 그림(::before)이 "코인"을 대신해 글자를 줄인다(한 줄 헤더에서 몬스터 이름 자리를 지키려고). 읽기 프로그램용 이름은 따로 단다
+  if (G && mode === 'play'){ const h = $('hCoin'), t = `${RUN.coins} · ${G.turn}턴`;
+    if (h.textContent !== t){ h.textContent = t; h.setAttribute('aria-label', `코인 ${RUN.coins}, ${G.turn}턴`); } }
   requestAnimationFrame(frame);
 }
 showMain();
