@@ -132,7 +132,7 @@ function earnBadge(id){
   const first = !META.badges[id];
   META.badges[id] = (META.badges[id] || 0) + 1; saveMeta();
   if (RUN) (RUN.badges = RUN.badges || []).includes(id) || RUN.badges.push(id);
-  if (first){ toast(`배지 획득 · ${b.name}`); sfx('badge'); }
+  if (first){ toast(`훈장 받음 · ${b.name}`); sfx('badge'); }
 }
 function toast(msg){
   const t = $('toast'); if (!t) return;
@@ -252,10 +252,10 @@ function checkRage(){
       if (next === 3){ const free = [...Array(COLS).keys()].filter(c => !G.seal.includes(c)); G.seal = G.seal.concat(free[rnd(free.length, 'battle')]).sort((a, b) => a - b); }
       G.sealNext = sealShift(G.seal);
     }
-    banner(cfg.king ? (next === 3 ? '왕이 마지막 성벽을 세운다' : '봉인이 움직이기 시작한다') : next === 3 ? '군주가 마지막 힘을 끌어낸다' : '보스가 분노했다', `${next}페이즈`, true); sfx('rage');
+    banner(cfg.king ? (next === 3 ? '왕이 마지막 성벽을 세운다' : '봉인이 움직이기 시작한다') : next === 3 ? '군주가 마지막 힘을 끌어낸다' : '보스가 분노했다', '조준이 빨라진다', true); sfx('rage');
   } else if (cfg.elite && !m.rage && m.hp <= m.max / 2){
     m.rage = true; G.shake = 5;
-    banner('정예가 날뛴다', '조준 가속', true); sfx('rage');
+    banner('정예가 날뛴다', '조준이 빨라진다', true); sfx('rage');
   }
 }
 
@@ -365,7 +365,7 @@ function fire(){
   if (rel('twin') && g.turn % 3 === 0) g.queue = g.queue.concat(g.queue);
   g.shot.weak = 0;
   g.mirror = orbKind(g.orb) === 'mirror' ? (orbUp(g.orb) ? 1 : .5) : 0;
-  renderOrbBar();   // "발사 대기" → "발사!"
+  renderOrbBar();   // "조준" → "발사!"
   sfx('fire', { orb:orbKind(g.orb) });
 }
 

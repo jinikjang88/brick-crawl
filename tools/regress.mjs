@@ -395,7 +395,7 @@ async function renameWith(reply, prof = {}){
   ok('닉네임 변경: 7일 안이면 폼이 잠기고 날짜 안내(서버에 안 보냄)', els.nameSave.disabled === true && els.nameIn.disabled === true && /다시 바꿀 수 있다/.test(els.nameMsg.textContent) && !sent.includes('rename')); }
 { const { t } = await renameWith(() => null);
   els.nameIn.value = '하람'; await els.renameForm.onsubmit({ preventDefault(){} });
-  ok('닉네임 변경: 오프라인이면 안내·이름 유지', /서버에 연결/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
+  ok('닉네임 변경: 오프라인이면 안내·이름 유지', /인터넷에 연결/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
 
 // ── 닉네임 금지어
 { const t = boot();
@@ -414,8 +414,11 @@ async function renameWith(reply, prof = {}){
   ok(`금지어: 정상 이름은 통과${wrong2.length ? ' 잘못 막음 ' + wrong2.join(',') : ''}`, wrong2.length === 0);
   // 자동 닉네임(약 15만 개)은 하나도 걸리면 안 된다: 처음 접속 때 서버 등록이 막힌다
   let hits = [];
-  for (const a of t.NICK_A) for (const b of t.NICK_B) for (const c of t.NICK_C){ const n = a + ' ' + b + ' ' + c; if (t.badName(n)) hits.push(n); }
-  ok(`금지어: 자동 닉네임 ${t.NICK_A.length * t.NICK_B.length * t.NICK_C.length}개 중 걸린 것 ${hits.length}개${hits.length ? ' 예: ' + hits.slice(0, 3).join(' / ') : ''}`, hits.length === 0);
+  for (const a of t.NICK_A) for (const b of t.NICK_B) for (const c of t.NICK_C){ const n = a + ' ' + b + ' ' + c; if (t.badName(n) || !t.validName(n)) hits.push(n); }
+  // 사물 낱말은 정확히 3음절 한글(세 묶음 길이를 맞춰 이름 폭이 고르게, 12자 상한 안에 들게)
+  const odd = t.NICK_C.filter(w => !/^[가-힣]{3}$/.test(w)).concat(t.NICK_C.filter((w, i) => t.NICK_C.indexOf(w) !== i));
+  ok(`자동 닉네임 사물: 모두 3음절·중복 없음${odd.length ? ' 어긋남 ' + odd.join(',') : ''}`, odd.length === 0);
+  ok(`금지어·형식: 자동 닉네임 ${t.NICK_A.length * t.NICK_B.length * t.NICK_C.length}개 중 걸린 것 ${hits.length}개${hits.length ? ' 예: ' + hits.slice(0, 3).join(' / ') : ''}`, hits.length === 0);
 }
 { const { t, sent } = await renameWith(() => ({ status:200, data:{ ok:true } }));
   els.nameIn.value = '시1발'; await els.renameForm.onsubmit({ preventDefault(){} });
