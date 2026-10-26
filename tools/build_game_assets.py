@@ -182,6 +182,21 @@ def build_items():
         save(fit(img.crop(bounds), (96, 96)), source.stem)
 
 
+# 앱 아이콘: icon.png(1024, 정사각형 꽉 찬 그림) → icons/. 스토어·브라우저가 각자 모서리를 둥글게 자르므로 원본에 둥근 모서리·투명을 넣지 않는다.
+# iOS 앱 스토어 아이콘은 투명 채널을 거부하므로 전부 RGB로 저장한다. 피사체(구슬)가 가운데 80% 안에 있어 안드로이드 적응형 마스크에도 남는다
+ICON_SIZES = {'icon-1024': 1024, 'icon-512': 512, 'icon-192': 192, 'apple-touch-icon': 180, 'favicon-32': 32}
+
+
+def build_icons():
+    img = Image.open(SRC / 'icon.png').convert('RGB')
+    assert img.width == img.height, f'icon.png는 정사각형이어야 한다: {img.size}'
+    d = ROOT / 'icons'; d.mkdir(exist_ok=True)
+    for name, n in ICON_SIZES.items():
+        p = d / f'{name}.png'
+        img.resize((n, n), Image.LANCZOS).save(p, optimize=True)
+        print(f'{p.relative_to(ROOT)}  {n}x{n}  {p.stat().st_size // 1024}KB')
+
+
 def save(img, name):
     OUT.mkdir(parents=True, exist_ok=True)
     p = OUT / f'{name}.png'
@@ -195,3 +210,4 @@ if __name__ == '__main__':
     build_chars()
     build_bg()
     build_items()
+    build_icons()

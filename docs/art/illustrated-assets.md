@@ -7,6 +7,7 @@
 - [던전 배경](../../assets/illustrated/dungeon.png): 사용자 제공 PNG를 그대로 보존.
 - [구슬·벽돌·UI 컬렉션](../../assets/illustrated/collection.png): 사용자 제공 PNG를 그대로 보존. 불규칙한 배치이므로 균등 격자 아틀라스로 취급하지 않는다.
 - [벽돌 6종](../../assets/illustrated/bricks.png) (2026-10-26 교체): Figma AI `generate_image`(gpt-image-2.5-sunburst)로 만든 3×2 시트. collection.png 벽돌은 일반·특수 벽돌 질감이 비슷해 판에서 구분이 약했다. 특수 벽돌(공격·방어·회복)은 상아 대리석 + 큰 청동 문양, 독은 붉은 균열 + 해골로 바꿨다. 프롬프트·약관 근거는 prompts.json `bricks`. Figma AI 약관상 Output은 사용자 소유이고 상업적 사용 제한 조항이 없다.
+- [앱 아이콘](../../assets/illustrated/icon.png) (2026-10-26): Figma AI로 만든 1024px 정사각형(진주 구슬을 든 기사, 뒤로 금 간 석회암 벽. 사용자 결정으로 "구슬이 벽을 뚫는" 시안 대신 채택). `build_icons()`가 `icons/`에 1024(iOS 스토어, RGB)·512(Google Play)·192·180(apple-touch-icon)·32(favicon)를 만든다. 스토어가 모서리를 자르므로 원본은 꽉 찬 사각형이고 투명이 없다.
 - 캐릭터: 내장 imagegen으로 생성한 투명 배경 PNG. 생성 프롬프트는 [prompts.json](../../assets/illustrated/prompts.json), 크기·알파·체크섬은 [manifest.json](../../assets/illustrated/manifest.json)에 기록한다.
 
 ![던전 배경](../../assets/illustrated/dungeon.png)
