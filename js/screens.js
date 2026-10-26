@@ -133,7 +133,7 @@ $('renameForm').onsubmit = async e => {
   $('nameSave').disabled = true; $('nameMsg').textContent = '바꾸는 중…';
   const r = await renameProfile($('nameIn').value);
   $('nameSave').disabled = false;
-  const msg = { name:'한글·영문·숫자 2~12자로 쓴다(앞뒤·연속 공백 없이)', bad:'쓸 수 없는 단어가 들어 있다', taken:'이미 누가 쓰는 닉네임이다', offline:'서버에 연결해야 바꿀 수 있다',
+  const msg = { name:'한글·영문·숫자 2~12자로 쓴다(앞뒤·연속 공백 없이)', bad:'쓸 수 없는 단어가 들어 있다', taken:'이미 누가 쓰는 닉네임이다', offline:'서버에 연결해야 바꿀 수 있다', busy:'요청이 많다. 잠시 뒤 다시 해 본다',
                 wait:`${r.nextAt ? fmtDate(r.nextAt) : '일주일 뒤'}부터 다시 바꿀 수 있다` };
   if (r.ok){ $('mName').textContent = PROFILE.name; $('renameForm').hidden = true; sfx('badge'); toast(`닉네임 변경 · ${PROFILE.name}`); refreshBoard(); $('mRename').focus(); }
   else $('nameMsg').textContent = msg[r.error] || msg.offline;
@@ -143,7 +143,7 @@ $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 // 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); }); } catch(e){}
 function startNewRun(abyss){
-  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => markSeen('orb', orbKind(o))); META.runs++; saveMeta(); saveRun();
+  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => markSeen('orb', orbKind(o))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
   // 첫 원정에는 이야기의 시작을 먼저 보여 준다(한 번만)
   storyOnce('intro', () => showMap());
 }
@@ -364,6 +364,7 @@ function nodeIcon(n){
 }
 function showMap(note){
   G = null;
+  ticketRun(RUN);
   setRealm(RUN.abyss);
   // 본편은 "세션 2 / 5"처럼 남은 거리를, 심연은 층만 보여 준다(끝이 없다)
   $('mapTitle').textContent = RUN.abyss ? stageName(RUN.s) : `${stageName(RUN.s)} / ${SESSIONS}`;

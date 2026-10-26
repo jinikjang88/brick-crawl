@@ -1,5 +1,5 @@
-// 기록 서버 통합 검사(R03·닉네임 변경·랭킹 초기화): 로컬 Functions + D1에 실제로 요청을 보내 원자성·멱등성·집계 복구·이름 변경 제한·초기화 SQL을 본다
-// 기존 로컬 DB라면 db/migrations/0002_name_at.sql을 먼저 적용한다(새로 만들면 schema.sql에 칸이 있다). 0003은 이 검사가 직접 실행한다
+// 기록 서버 통합 검사(R03·닉네임 변경·랭킹 초기화·남용 방지): 로컬 Functions + D1에 실제로 요청을 보내 원자성·멱등성·집계 복구·이름 변경 제한·초기화 SQL을 본다
+// 기존 로컬 DB라면 db/migrations/0002_name_at.sql·0004_rate_starts.sql을 먼저 적용한다(새로 만들면 schema.sql에 칸이 있다). 0003은 이 검사가 직접 실행한다
 // 실제 서버·사용자 기록은 건드리지 않는다. 준비(AGENTS.md 검증 4와 같다. wrangler.toml은 커밋하지 않는다):
 //   임시 폴더에 functions/·db/를 복사하고 wrangler.toml(pages_build_output_dir, [[d1_databases]] binding = "DB")을 둔 뒤
 //   npx wrangler d1 execute DB --local --file db/schema.sql → npx wrangler pages dev --port 8788
@@ -9,11 +9,15 @@ import fs from 'fs';
 const B = 'http://127.0.0.1:8788/api/';
 // 바깥에서 스키마를 바꾸면(트리거) 로컬 서버가 연결을 한 번 끊는다: 연결 오류만 잠깐 뒤 다시
 // 원정 기록은 진행도 초기화 회차를 실어 보낸다(서버가 다른 회차는 400)
-const post = async (p, b) => { if (p === 'record' && b && b.epoch === undefined) b = Object.assign({ epoch:2 }, b); for (let i = 0; ; i++){ try { const r = await fetch(B + p, { method:'POST', body:JSON.stringify(b) }); return { status:r.status, data:await r.json().catch(() => null) }; } catch(e){ if (i > 5) throw e; await new Promise(f => setTimeout(f, 1000)); } } };
+// 기존 검사의 기록은 "검증된 원정"으로 보낸다: 시작 표를 충분히 옛 시각(0)으로 미리 넣는다. 검증 자체는 8)에서 따로 본다
+const post = async (p, b, raw) => { if (p === 'record' && b && b.epoch === undefined) b = Object.assign({ epoch:2 }, b);
+  if (p === 'record' && !raw && b.rid && b.id) sql(`INSERT OR IGNORE INTO starts (rid, player_id, started_at) VALUES ('${b.rid}', '${b.id}', 0)`); for (let i = 0; ; i++){ try { const r = await fetch(B + p, { method:'POST', body:JSON.stringify(b) }); return { status:r.status, data:await r.json().catch(() => null) }; } catch(e){ if (i > 5) throw e; await new Promise(f => setTimeout(f, 1000)); } } };
 const sql = q => JSON.parse(execSync(`npx wrangler d1 execute DB --local --json --command "${q}"`, { stdio:['ignore','pipe','ignore'] }).toString())[0].results;
 // 실행마다 다른 접두어: runs.rid는 전역 고유라 이전 실행의 rid와 겹치면 안 된다
 const RUNID = Math.floor(Math.random() * 1e8).toString(16).padStart(8, '0');
 const u = n => `${RUNID}-0000-4000-8000-${String(n).padStart(12, '0')}`;
+// 같은 시간에 여러 번 돌리면 IP당 등록 한도(시간당 60)가 차서 실패한다: 로컬 DB의 속도 제한 기록을 비우고 시작한다
+sql('DELETE FROM rate');
 let fail = 0; const ok = (n, c) => { console.log((c ? '통과 ' : '실패 ') + n); if (!c) fail++; };
 const P = u(Date.now() % 1e9), me = () => sql(`SELECT runs, best, best_at FROM players WHERE id='${P}'`)[0];
 const nm = ['가나다','라마바','사아자','차카타','파하거','너더러'].sort(() => Math.random() - .5).slice(0, 3).join(' ');
@@ -37,7 +41,7 @@ ok('동점: best_at 유지', me().best_at === t7);
 await post('record', { id:P, rid:u(4), progress:9 });
 ok('갱신: best 9, best_at 증가', me().best === 9 && me().best_at > t7 && me().runs === 4);
 // 4) 예전 버전에서 어긋난 집계(행은 있는데 집계 누락)를 같은 rid 재전송이 바로잡는다
-sql(`INSERT INTO runs (rid, player_id, progress, ended_at) VALUES ('${u(5)}', '${P}', 12, 1)`);
+sql(`INSERT INTO runs (rid, player_id, progress, score, ended_at) VALUES ('${u(5)}', '${P}', 12, 12, 1)`);   // 0004 이전 행은 마이그레이션이 score = progress로 채운다
 const r5 = await post('record', { id:P, rid:u(5), progress:12 });
 ok('어긋난 집계 복구: dup 응답이지만 runs 5, best 12', r5.data.dup === true && me().runs === 5 && me().best === 12 && me().best_at === 1);
 // 5) 없는 플레이어는 404 player
@@ -61,6 +65,36 @@ ok('닉네임 변경: 남이 쓰는 이름은 409', (await post('rename', { id:P
 const both = await Promise.all(['갑' + RUNID.slice(0, 3), '을' + RUNID.slice(0, 3)].map(n => post('rename', { id:P, name:n })));
 ok('닉네임 변경: 동시 요청은 한 번만 반영(200 하나, 429 하나 + 다음 가능 시각)', both.filter(r => r.status === 200).length === 1 && both.filter(r => r.status === 429 && r.data.nextAt > Date.now()).length === 1);
 ok('닉네임 변경: 직접 입력 형식으로도 등록 가능', (await post('player', { id:u(Date.now() % 1e9 + 9), name:'Knight ' + RUNID.slice(0, 3) })).status === 200);
+// 8) 남용 방지(2026-10-26): 시작 표 없이·너무 빨리 끝난 기록은 랭킹에 5칸까지만, 충분히 지나면 그대로
+const V = u(Date.now() % 1e9 + 21); await post('player', { id:V, name:'검증' + RUNID.slice(0, 4) });
+const best = () => sql(`SELECT best FROM players WHERE id='${V}'`)[0].best;
+const n1 = await post('record', { id:V, rid:u(81), progress:40 }, true);
+ok('시작 표 없는 기록: 받되(200) 랭킹은 5칸까지', n1.status === 200 && n1.data.verified === false && best() === 5
+  && sql(`SELECT progress, score FROM runs WHERE rid='${u(81)}'`)[0].progress === 40);
+ok('시작 표: 200', (await post('start', { id:V, rid:u(82) })).status === 200);
+const n2 = await post('record', { id:V, rid:u(82), progress:40 }, true);
+ok('시작하자마자 40칸 기록: 랭킹 5칸 유지', n2.data.verified === false && best() === 5);
+ok('시작 표: 남의 rid로 보내도 시각이 바뀌지 않음', (await post('start', { id:P, rid:u(83) })).status === 200);
+sql(`UPDATE starts SET started_at = started_at - ${40 * 5000 + 1000} WHERE rid='${u(83)}'`);
+const n3 = await post('record', { id:V, rid:u(83), progress:40 }, true);
+ok('다른 플레이어의 시작 표로는 검증되지 않음', n3.data.verified === false && best() === 5);
+await post('start', { id:V, rid:u(84) });
+sql(`UPDATE starts SET started_at = started_at - ${40 * 5000 + 1000} WHERE rid='${u(84)}'`);
+const n4 = await post('record', { id:V, rid:u(84), progress:40 }, true);
+ok('칸당 5초 이상 지난 기록: 그대로 반영(40)', n4.data.verified === true && best() === 40);
+// 심연: 본편 완주를 인정받은 플레이어(V, best 40)는 심연 첫 칸(26) 기록에 한 칸 시간만 요구한다
+await post('start', { id:V, rid:u(85) });
+sql(`UPDATE starts SET started_at = started_at - 6000 WHERE rid='${u(85)}'`);
+ok('심연 첫 칸: 본편 완주자는 한 칸 시간이면 검증(26)', (await post('record', { id:V, rid:u(85), progress:26 }, true)).data.verified === true);
+const W = u(Date.now() % 1e9 + 22); await post('player', { id:W, name:'심연' + RUNID.slice(0, 4) });
+await post('start', { id:W, rid:u(86) }); sql(`UPDATE starts SET started_at = started_at - 6000 WHERE rid='${u(86)}'`);
+const n6 = await post('record', { id:W, rid:u(86), progress:26 }, true);
+ok('심연 첫 칸 위장: 본편 완주 전이면 26칸 시간 필요(미검증, 5칸)', n6.data.verified === false && sql(`SELECT best FROM players WHERE id='${W}'`)[0].best === 5);
+ok('없는 경로 404', (await post('nope', { id:V })).status === 404);
+ok('큰 본문 413', (await post('board', { id:V, pad:'x'.repeat(3000) })).status === 413);
+const bursts = []; for (let i = 0; i < 32; i++) bursts.push((await post('board', { id:V })).status);
+ok('속도 제한: 같은 id 1분 30회 넘으면 429', bursts.slice(0, 28).every(s => s === 200) && bursts.at(-1) === 429);
+ok('속도 제한 표에 원시 IP가 없다', sql(`SELECT COUNT(*) AS n FROM rate WHERE k LIKE '%127.0.0.1%' OR k LIKE '%::1%'`)[0].n === 0);
 // 7) 랭킹 초기화 SQL(0003): 플레이어는 남고 기록만 비운다
 sql(fs.readFileSync('db/migrations/0003_reset_ranking.sql', 'utf8').split('\n').filter(l => !l.startsWith('--')).join(' ').trim().replace(/"/g, "'"));
 const after = sql(`SELECT name, best, best_at, runs FROM players WHERE id='${P}'`)[0];

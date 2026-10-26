@@ -17,7 +17,25 @@ CREATE INDEX IF NOT EXISTS players_rank ON players (best DESC, best_at ASC);
 CREATE TABLE IF NOT EXISTS runs (
   rid        TEXT PRIMARY KEY,
   player_id  TEXT NOT NULL REFERENCES players(id),
-  progress   INTEGER NOT NULL,
+  progress   INTEGER NOT NULL,                -- 클라이언트가 보낸 도달 칸 수(원본)
+  score      INTEGER,                         -- 랭킹에 반영한 값. 검증 못 한 기록은 FREE_PROGRESS(5)까지만
   ended_at   INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS runs_player ON runs (player_id);
+
+-- 원정 시작 표: 서버가 원정 시작을 처음 받은 시각. 기록이 이 시각에서 칸당 최소 시간이 지나야 진행도를 그대로 인정한다
+CREATE TABLE IF NOT EXISTS starts (
+  rid        TEXT PRIMARY KEY,
+  player_id  TEXT NOT NULL,
+  started_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS starts_at ON starts (started_at);
+
+-- 속도 제한(고정 창). k = "경로:플레이어id" 또는 "ip:IP해시". 원시 IP는 저장하지 않는다. exp가 지난 행은 서버가 가끔 지운다
+CREATE TABLE IF NOT EXISTS rate (
+  k   TEXT PRIMARY KEY,
+  win INTEGER NOT NULL,
+  n   INTEGER NOT NULL,
+  exp INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS rate_exp ON rate (exp);

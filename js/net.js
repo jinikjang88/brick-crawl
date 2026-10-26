@@ -14,19 +14,28 @@ const API_BASE = (() => {
 })();
 
 // 실패는 전부 null로 돌려준다. 기록 서버가 죽어도 게임은 그대로 돌아야 한다
+// 응답 없는 망(캡티브 포털 등)에서 브라우저 기본 제한(수 분)까지 기다리면 닉네임 변경 버튼과 기록 전송(flushP)이 그동안 멈춘다: 8초에 끊는다
+const API_TIMEOUT = 8000;
 async function api(path, body){
   if (!API_BASE) return null;
+  const ac = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = ac ? setTimeout(() => ac.abort(), API_TIMEOUT) : 0;
   try {
     // text/plain으로 보내 CORS 사전 요청(preflight)을 피한다(file://에서 보낼 때)
     const res = await fetch(API_BASE + '/api/' + path,
-      { method:'POST', headers:{ 'Content-Type':'text/plain' }, body:JSON.stringify(body), cache:'no-store' });
+      { method:'POST', headers:{ 'Content-Type':'text/plain' }, body:JSON.stringify(body), cache:'no-store', signal:ac ? ac.signal : undefined });
     const data = await res.json().catch(() => null);
     return { ok:res.ok, status:res.status, data };
   } catch(e){ return null; }
+  finally { if (timer) clearTimeout(timer); }
 }
 
-// ── 닉네임 등록. 드물게 이름이 겹치면(409) 새로 뽑아 다시 시도한다(플레이어가 바꾸는 게 아니라 시스템이 피하는 것)
-async function registerProfile(){
+// ── 닉네임 등록. 드물게 이름이 겹치거나(409) 서버가 이름을 거절하면(400 name·bad: 서버 금지어가 먼저 배포된 옛 자동 닉네임 등)
+// 새로 뽑아 다시 시도한다(플레이어가 바꾸는 게 아니라 시스템이 피하는 것). 거절된 이름에 갇히면 랭킹에도 못 오르고 직접 바꿀 수도 없다.
+// 기록 전송·시작 표·닉네임 변경이 동시에 불러도 등록 요청은 하나만 나간다(서버 속도 제한: 시간당 5회)
+let regP = null;
+function registerProfile(){ return regP || (regP = doRegister().finally(() => { regP = null; })); }
+async function doRegister(){
   const p = ensureProfile();
   if (p.registered) return true;
   for (let i = 0; i < 5; i++){
@@ -36,13 +45,14 @@ async function registerProfile(){
       if (r.data && typeof r.data.name === 'string') p.name = r.data.name;
       p.registered = true; saveProfile(); return true;
     }
-    if (r.status !== 409) return false;
+    const rejected = r.status === 400 && r.data && (r.data.error === 'name' || r.data.error === 'bad');
+    if (r.status !== 409 && !rejected) return false;
     p.name = makeNickname(); saveProfile();
   }
   return false;
 }
 
-// ── 닉네임 변경: 서버가 형식·중복·7일 제한을 최종 판정한다. 돌려주는 값 = { ok } | { error:'name'|'bad'|'taken'|'wait'|'offline', nextAt }
+// ── 닉네임 변경: 서버가 형식·중복·7일 제한을 최종 판정한다. 돌려주는 값 = { ok } | { error:'name'|'bad'|'taken'|'wait'|'busy'|'offline', nextAt }
 async function renameProfile(name){
   const p = ensureProfile();
   name = String(name || '').trim().replace(/\s+/g, ' ');
@@ -56,9 +66,25 @@ async function renameProfile(name){
   if (!r) return { error:'offline' };
   if (r.ok){ p.name = name; p.nameAt = (r.data && r.data.nameAt) || Date.now(); saveProfile(); return { ok:true }; }
   if (r.status === 409) return { error:'taken' };
+  if (r.status === 429 && r.data && r.data.error === 'rate') return { error:'busy' };
   if (r.status === 429){ const nextAt = r.data && r.data.nextAt; if (nextAt){ p.nameAt = nextAt - RENAME_GAP; saveProfile(); } return { error:'wait', nextAt }; }
   if (r.status === 400) return { error:r.data && r.data.error === 'bad' ? 'bad' : 'name' };
   return { error:'offline' };
+}
+
+// ── 원정 시작 표: 서버가 원정 시작 시각을 알아야 그 원정의 기록을 랭킹에 그대로 반영한다(서버 MIN_CELL_MS·FREE_PROGRESS).
+// 원정 시작과 지도 화면마다 보내고, 받으면 r.tk로 기억해 다시 보내지 않는다(오프라인에서 시작해도 연결되는 대로 받는다).
+// 저장은 다음 정상 저장 때 함께 된다: 전투 도중에 saveRun을 부르면 덜 끝난 상태가 저장될 수 있다. 저장 전에 꺼져도 다시 보낼 뿐이다
+// 보내는 중인 rid는 다시 보내지 않는다(지도 화면을 빠르게 오가도 요청 하나)
+const ticketing = new Set();
+async function ticketRun(r){
+  if (!API_BASE || !r || r.tk || ticketing.has(r.rid)) return;
+  ticketing.add(r.rid);
+  try {
+    if (!(await registerProfile())) return;
+    const res = await api('start', { id:PROFILE.id, rid:r.rid });
+    if (res && res.ok) r.tk = true;
+  } finally { ticketing.delete(r.rid); }
 }
 
 // ── 원정 기록: 먼저 대기열에 넣고 보낸다. 실패하면 남아 있다가 다음 flush에서 다시 간다
