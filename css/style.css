@@ -52,7 +52,7 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .ovMain .logo{font-size:15px;font-weight:800;letter-spacing:.4em;color:var(--ink2);margin:-4px 0 4px;padding-left:.4em}
 .who{display:flex;align-items:stretch;border:2px solid var(--ink);background:var(--panel);font-size:15px;max-width:100%}
 .whoLbl{background:var(--ink);color:var(--bg);font-size:12px;font-weight:800;padding:0 7px;display:flex;align-items:center}
-.who b{display:flex;align-items:center;padding:3px 10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who b{display:block;align-self:center;padding:3px 10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 닉네임 변경: 탭 타겟 44px, 붉은색 없이(위험이 아니다) */
 .whoRow{display:flex;align-items:stretch;gap:6px;max-width:100%}
 .renameBtn{min-width:44px;min-height:44px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);font-weight:800;font-size:14px;padding:0 10px;cursor:pointer}
@@ -260,7 +260,8 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
    위에서부터 쌓고, 첫·끝 요소의 auto 여백으로 남는 공간이 있을 때만 가운데로 모은다. 넘치면 여백이 0이 되어 맨 위부터 스크롤된다 */
 .ov{justify-content:flex-start}
 .ov > :first-child,#ovChoose > .sceneCv[hidden] + *{margin-top:auto}
-.ov > :last-child{margin-bottom:auto}
+/* 아래쪽 auto 여백은 마지막 자식이 아니라 ::after가 맡는다: 마지막 자식이 [hidden]이면(메인의 삭제 확인) 여백이 사라져 내용이 아래로 쏠렸다 */
+.ov::after{content:'';flex:none;margin-bottom:auto}
 /* 위에 붙여 두는 화면은 가운데로 모으지 않는다 */
 #ovRank > :first-child,.ovTree > :first-child,.ovBadge > :first-child,.ovMap > :first-child,#ovChoose:has(.sceneCv:not([hidden])) > :first-child{margin-top:0}
 .ov > *{flex-shrink:0}
@@ -401,32 +402,41 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .app{height:calc(100vh - var(--safe));height:calc(100dvh - var(--safe))}
 .stageWrap{flex:1;min-height:320px;container-type:size;display:flex;justify-content:center;align-items:flex-start}
 .stage{width:100%;height:100%}
-.app[data-mode="play"] .stage{height:auto;aspect-ratio:9/17;width:min(100cqw,100cqh * 9 / 17)}
-/* 전투판 캔버스는 전투(와 그 위 일시정지) 때만 보인다. 다른 화면에서는 오버레이 가장자리 틈으로 판 테두리가 잔선처럼 비쳤다 */
-.app:not([data-mode="play"]):not([data-mode="pause"]) #cv{visibility:hidden}
-/* 전투 중에는 열을 판 폭에 가깝게 줄여 헤더·구슬 줄이 판 가장자리와 같은 선에 서게 한다(위쪽 줄 약 170px을 뺀 어림값. 어긋나도 판 크기에는 영향 없다).
-   단, 헤더가 한 줄에 들어가는 320px 아래로는 줄이지 않는다 */
-.app[data-mode="play"]{max-width:clamp(320px,calc((100dvh - 170px - var(--safe)) * .5294 + 24px),var(--col))}
+/* 앞 줄은 컨테이너 쿼리(cqw·cqh)를 모르는 브라우저(iOS 15·오래된 WebView)용 어림값. 아는 브라우저는 뒷줄이 덮는다 */
+.app[data-mode="play"] .stage{height:auto;aspect-ratio:9/17;width:min(100%,calc((100vh - 170px - var(--safe)) * .5294));width:min(100cqw,100cqh * 9 / 17)}
+/* 전투판 캔버스는 전투 때만 보인다(일시정지 중에도 data-mode는 play로 남는다). 다른 화면에서는 오버레이 가장자리 틈으로 판 테두리가 잔선처럼 비쳤다 */
+.app:not([data-mode="play"]) #cv{visibility:hidden}
+/* [CTO P0] 일시정지 메뉴는 판(짧은 폰에서 폭 240px) 안이 아니라 화면 열 전체를 덮는다: 소리·테마 버튼 줄이 잘렸다 */
+#ovPause{position:fixed;inset:0;margin:0 auto;max-width:var(--col)}
+.sndRow{flex-wrap:wrap}
+/* 전투가 아닌 화면의 구슬 줄은 한 줄 요약(지도·보상에서 위쪽 줄이 화면의 1/3을 차지했다) */
+.app:not([data-mode="play"]) .orbBar:not(:empty){min-height:0;padding:6px 10px;font-size:13px}
+/* 전투 중에는 열을 판 폭(--board-w = 판이 쓸 수 있는 높이 × 9/17, js/config.js fitCanvas)에 맞춰 헤더·구슬 줄이 판 가장자리와 같은 선에 서게 한다.
+   첫 프레임 전에는 어림값. 300px 아래로는 줄이지 않는다(헤더가 몇 줄로 꺾이면 판이 더 작아진다) */
+.app[data-mode="play"]{max-width:clamp(300px,calc(var(--board-w,360px) + 24px),var(--col))}
 
 /* ── 세로 고정: 가로로 눕힌 폰(낮은 화면 + 손가락 입력)에서는 판이 손가락 두 개 폭으로 줄어 플레이할 수 없다.
    게임을 가리고 세로로 세우라고 알린다(전투 중이면 main.js가 일시정지한다). 태블릿·PC 가로는 세로 열을 가운데 두고 그대로 쓴다 */
 .rotateHint{display:none}
-@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
+/* 조건은 js/main.js PORTRAIT_LOCK과 같게. min-aspect-ratio: 키보드가 떠 360×330처럼 줄어든 세로 폰을 가로로 오인하지 않게 */
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse) and (min-aspect-ratio:4/3){
   .rotateHint{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--bg);color:var(--ink);text-align:center;padding:24px}
   .rotateHint .ri{width:56px;height:88px;border:4px solid var(--ink);border-bottom-width:8px;animation:riTurn 1.6s ease-in-out infinite}
   .rotateHint b{font-size:20px}
   .rotateHint span{font-size:14px;color:var(--ink2)}
   .app{visibility:hidden}
 }
+:root:has(input:focus) .rotateHint{display:none}
+:root:has(input:focus) .app{visibility:visible}
 @keyframes riTurn{0%,30%{transform:rotate(-90deg)}60%,100%{transform:rotate(0)}}
 
 /* ── 상호작용: 누를 수 있는 것은 모두 같은 규칙으로 반응한다(마우스 올림 = 살짝 떠오름, 누름 = 눌려 내려감, 키보드 = 같은 초점 테).
    손가락 기기에는 올림 효과가 없다(hover가 눌린 채 남는 문제) */
 @media (hover:hover) and (pointer:fine){
-  .btn:hover:not(:disabled),.subBtn:hover,.sndBtn:hover,.renameBtn:hover,.iconBtn:hover,.rCard:hover:not(:disabled){transform:translateY(-1px)}
+  .btn:not(.hero):hover:not(:disabled),.subBtn:hover,.sndBtn:hover,.renameBtn:hover,.iconBtn:hover,.rCard:hover:not(:disabled){transform:translateY(-1px)}
 }
 .btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.rCard,.linkbtn{transition:transform .12s ease-out,filter .12s,background-color .12s}
-.btn:active:not(:disabled),.subBtn:active,.sndBtn:active,.renameBtn:active,.iconBtn:active,.rCard:active:not(:disabled){transform:translateY(2px)}
+.btn:not(.hero):active:not(:disabled),.subBtn:active,.sndBtn:active,.renameBtn:active,.iconBtn:active,.rCard:active:not(:disabled){transform:translateY(2px)}
 .linkbtn:active{opacity:.6}
 :is(.btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.rCard,.linkbtn,.node,.tNode,a):focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 /* 화면 전환: 오버레이가 열릴 때 짧게 떠오르며 나타난다(어느 화면으로 바뀌었는지 눈이 따라가게) */
@@ -435,10 +445,26 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 @media (prefers-reduced-motion: reduce){
   .ov.on,.rotateHint .ri{animation:none}
   .btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.rCard,.linkbtn{transition:none}
-  .btn:active,.subBtn:active,.sndBtn:active,.renameBtn:active,.iconBtn:active,.rCard:active{transform:none}
+  :is(.btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.rCard):is(:active,:hover){transform:none}
 }
 
 /* ── 정렬 규칙(어정쩡한 위치 금지): 오버레이 = 제목·부제·버튼 가운데 / 카드 안 = 왼쪽 정렬 / 위쪽 줄 = 왼쪽 정렬.
    판 위쪽 줄(구슬 줄 상자·유물 줄)은 같은 왼쪽 선에 선다: "유물 없음"이 상자 안쪽 글자보다 7px 들어가 있던 것을 맞춘다 */
 .abil .none{padding:0}
 .ov .sub,.ov .big{max-width:var(--content)}
+
+/* ── 태블릿(세로 900px 이상 + 폭 700px 이상): 열을 760px까지 넓히고 글자·버튼·카드를 약 1.2배로 키운다.
+   폰 크기 글자가 큰 화면에서 작게 읽혔다. 픽셀 제목 글꼴은 11px 정수배 규칙에 따라 33 → 44px */
+@media (min-width:700px) and (min-height:900px){
+  :root{--col:760px;--content:520px}
+  .big,.banner .b2{font-size:44px}
+  .btn{font-size:19px;min-height:56px}
+  .btn.hero{font-size:22px;min-height:80px}
+  .sub,.mapHead .s{font-size:17px}
+  .rCard b{font-size:21px}
+  .rCard span{font-size:16px}
+  .subBtn,.sndBtn{font-size:16px;min-height:52px}
+  .mainBtns{max-width:360px}
+  .hName{font-size:26px}
+  .hStage,.hCoin,.orbBar{font-size:16px}
+}

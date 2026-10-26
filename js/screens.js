@@ -95,7 +95,7 @@ function showMain(){
   setHeader('', '');
   setMode('main', 'ovMain');
   bgm('calm'); renderSound();
-  (saved ? c : nw).focus();
+  if (INPUT_SEEN) (saved ? c : nw).focus();
   refreshBoard();
 }
 $('mContinue').onclick = () => { const r = loadRun(); if (!r) return showMain(); RUN = r; resumeRun(); };

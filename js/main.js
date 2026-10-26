@@ -30,8 +30,16 @@ $('pGiveup').onclick = e => {
   $('ovPause').classList.remove('on'); clearRun(); endRun(RUN); showMain();
 };
 document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') openMenu(); });
-// 폰을 가로로 눕히면 세로 안내가 게임을 가린다(css "세로 고정"과 같은 조건). 전투 중이면 그 사이 몬스터가 움직이지 않게 멈춘다
-try { matchMedia('(orientation: landscape) and (max-height: 520px) and (pointer: coarse)').addEventListener('change', e => { if (e.matches && mode === 'play') openMenu(); }); } catch(e){}
+// 폰을 가로로 눕히면 세로 안내가 게임을 가린다(조건은 css "세로 고정"의 @media와 같게). 전투 중이면 그 사이 몬스터가 움직이지 않게 멈춘다
+let PORTRAIT_LOCK = null;
+try {
+  PORTRAIT_LOCK = matchMedia('(orientation: landscape) and (max-height: 520px) and (pointer: coarse) and (min-aspect-ratio: 4/3)');
+  PORTRAIT_LOCK.addEventListener('change', e => { if (e.matches && mode === 'play') openMenu(); });
+} catch(e){}
+// 첫 화면의 자동 초점은 사용자가 한 번이라도 입력한 뒤에만 준다: 앱을 열자마자 시작 버튼에 키보드 초점 테가 그려졌다
+let INPUT_SEEN = false;
+document.addEventListener('pointerdown', () => { INPUT_SEEN = true; }, true);
+document.addEventListener('keydown', () => { INPUT_SEEN = true; }, true);
 
 // ── 소리 켬/끔(메인·메뉴 두 곳에 같은 버튼). 브라우저는 첫 입력 전에 소리를 막으므로 첫 탭·키에서 연다
 const SND_BTNS = [['mBgm','bgm'], ['mSfx','sfx'], ['pBgm','bgm'], ['pSfx','sfx']];
@@ -65,6 +73,7 @@ document.addEventListener('click', unlockAudio, true);
 // ── 입력: 조준선은 스스로 움직이고, 플레이어는 타이밍에 맞춰 누르기만 한다
 cv.addEventListener('pointerdown', e => { if (mode === 'play'){ e.preventDefault(); fire(); } });
 addEventListener('keydown', e => {
+  if (PORTRAIT_LOCK && PORTRAIT_LOCK.matches) return;   // 세로 안내가 가린 동안 Esc로 전투가 다시 돌거나 Space로 쏘지 않게
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape'){ mode === 'pause' ? closeMenu() : openMenu(); return; }
   if (mode === 'play' && (e.key === ' ' || e.key === 'Enter')){ if (!e.repeat) fire(); e.preventDefault(); }
 });
