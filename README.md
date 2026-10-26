@@ -108,6 +108,7 @@ python -m http.server 8000      # 또는 npx serve .
 ```
 index.html          DOM 골격(HUD·캔버스·오버레이) + 스크립트 로드 순서
 css/style.css       색 토큰(라이트/다크)과 레이아웃
+fonts/              픽셀 한글 글꼴 Galmuri11(SIL OFL 1.1, fonts/OFL.txt)
 js/config.js        화면 상수(W·H·COLS…), 공용 유틸($·clamp), 시드 난수 rand(s)·rnd·pickW, readColors()
 js/data.js          데이터: 몬스터·성벽·스케일·구슬·유물·스킬 트리·배지
 js/sprites.js       도트 스프라이트·아이콘·3×5 숫자 폰트와 그리기 함수
@@ -274,3 +275,6 @@ GitHub Pages, Netlify 같은 다른 정적 호스팅에도 올릴 수 있다. �
 ## 라이선스
 
 [MIT License](LICENSE) © 2026 jinikjang88
+
+게임 코드와 그림은 MIT다. 함께 들어 있는 글꼴은 별도 라이선스를 따른다.
+- `fonts/Galmuri11.woff2`, `fonts/Galmuri11-Bold.woff2`: [Galmuri](https://github.com/quiple/galmuri) v2.40.4 © 2019–2025 Lee Minseo, [SIL Open Font License 1.1](fonts/OFL.txt). 글꼴만 따로 팔 수 없고, 수정하면 이름 "Galmuri"를 쓸 수 없다.

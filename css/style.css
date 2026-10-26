@@ -11,6 +11,12 @@ html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;font-size:16px;line-height:1.5;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
+/* 게임 글꼴: 픽셀 한글 Galmuri(SIL OFL 1.1, fonts/OFL.txt). 시스템 글꼴만 쓰면 화면이 웹페이지처럼 읽혀서,
+   제목·버튼·HUD·카드 제목처럼 짧은 글자에만 쓴다. 긴 설명문은 작은 크기에서 읽기 편한 시스템 글꼴을 그대로 둔다.
+   저장소 안 파일이라 file://에서도 열리고, 못 불러와도 swap으로 시스템 글꼴이 바로 보인다 */
+@font-face{font-family:Galmuri;src:url('../fonts/Galmuri11.woff2') format('woff2');font-display:swap}
+@font-face{font-family:Galmuri;font-weight:700 900;src:url('../fonts/Galmuri11-Bold.woff2') format('woff2');font-display:swap}
+:root{--font-game:Galmuri,system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
 button{font:inherit}
 button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 
@@ -350,3 +356,8 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .node .nIc.dot{width:54%;height:54%}
 /* 피해 식은 쪼개지면 읽을 수 없으니 한 덩어리로 다음 줄에 넘긴다 */
 .orbCurrent b .dmg{display:inline-block;white-space:nowrap}
+
+/* ── 게임 글꼴 적용 범위: 짧은 글자만(위 @font-face 참고). 픽셀 글꼴은 자간을 좁히면 획이 붙으므로 0으로 */
+.big,.btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.hName,.hStage,.hCoin,.orbCurrent small,.orbCurrent b,.orbNext,.rCard b,.node small,.mapHead .t,
+.banner,.whoLbl,.who b,.tagline,.logo,.treeInfo b,.tBranch,.tNode,.bCard b,.bHead,.board,.toast,.abil{font-family:var(--font-game);letter-spacing:0}
+
