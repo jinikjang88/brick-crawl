@@ -31,6 +31,7 @@
   - 서버: Cloudflare Pages Functions(`functions/api/[[path]].js`) + D1(바인딩 이름 `DB`). 스키마는 `db/schema.sql`. 서버 코드는 브라우저에 로드되지 않으므로 ES 모듈(`export`)을 쓴다.
   - 플레이어 `id`(UUID)는 기록을 올리는 비밀 열쇠다. 화면·랭킹 응답·URL에 내보내지 않는다. 공개되는 것은 닉네임뿐.
   - 남용 방지(2026-10-26): 모든 API는 속도 제한(D1 `rate`, IP는 해시만 저장)을 거치고, 랭킹 반영값 `runs.score`는 원정 시작 표(`starts`, `/api/start`)에서 칸당 `MIN_CELL_MS` 이상 지난 기록만 진행도 그대로, 아니면 `FREE_PROGRESS`(5)까지다. 새 API를 더하면 `LIMIT`에 한도를 함께 정한다.
+  - 개인정보: 서버로 보내는 항목을 늘리거나 보관 기간·위탁처가 바뀌면 `privacy.html`(개인정보 처리방침)을 함께 고친다. 플레이어 데이터를 담는 표를 더하면 `/api/delete`(`remove`)에서도 지운다.
   - DB 구조를 바꾸면 `db/schema.sql`과 함께 `db/migrations/000N_*.sql`을 더하고, 운영 DB에는 코드 배포 **전에** 적용한다.
   - 시뮬레이터(Node)에서는 `location`이 없어 통신이 꺼진다. 봇의 원정이 실제 랭킹에 섞이지 않게 이 조건을 유지한다.
 - **소리는 음원 파일 없이 Web Audio로 합성한다**(`js/audio.js`). 외부 리소스 금지·`file://` 동작 조건 때문이다.
@@ -53,7 +54,7 @@
 | `js/audio.js` | 소리 합성: 효과음(`sfx`·`SFX`), 장면별 BGM(`bgm`·`SONGS`), 켬/끔 설정(`AUDIO`·`setAudio`) |
   | `js/save.js` | `localStorage` 저장·불러오기(원정·메타) |
   | `js/profile.js` | 임의 닉네임 생성(3음절 × 3단어), 플레이어 프로필(`PROFILE`)·`uuid()`·`runProgress()` |
-  | `js/net.js` | 기록 서버 통신: 닉네임 등록, 원정 기록 대기열·전송, 랭킹 조회 |
+  | `js/net.js` | 기록 서버 통신: 닉네임 등록, 원정 시작 표, 원정 기록 대기열·전송, 랭킹 조회, 내 기록 삭제 |
   | `js/map.js` | 원정 상태(`RUN`·`G`·`mode`), 갈림길 지도 생성·이동 가능 칸 |
   | `js/battle.js` | 전투 상태, 벽돌 줄 생성, 구슬 물리, 턴 진행, 몬스터 행동 |
   | `js/render.js` | 캔버스 `draw()`와 HUD(헤더·구슬 줄·유물 칩) |
@@ -61,8 +62,9 @@
   | `js/screens.js` | 오버레이 전환, 메인·지도 화면, 노드 진입, 전투 시작·종료 |
   | `js/rewards.js` | 보상·휴식·덜어내기·상점 화면 |
   | `js/main.js` | 메뉴(일시정지), 입력, 메인 루프 시작 — 항상 마지막 |
-  | `functions/api/[[path]].js` | (서버) 기록 API: `player`·`record`·`board` |
-  | `db/schema.sql` | (서버) D1 테이블: `players`·`runs` |
+  | `functions/api/[[path]].js` | (서버) 기록 API: `player`·`start`·`record`·`board`·`rename`·`delete`, 속도 제한 |
+  | `privacy.html` | 개인정보 처리방침(독립 페이지, 게임 스크립트를 불러오지 않는다) |
+  | `db/schema.sql` | (서버) D1 테이블: `players`·`runs`·`starts`·`rate` |
 - 연출용 무작위(파티클 등)와 게임 결과에 영향을 주는 무작위를 구분한다. 후자는 원정 시드에서 나온 흐름 `rand(s)`(`js/config.js`, `'map'`·`'reward'`·`'battle'`)를 쓰고, 전자는 흐름 없이 `Math.random`을 쓴다.
 
 ## UI·시각 규칙

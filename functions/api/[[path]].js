@@ -3,6 +3,7 @@
 //   POST /api/start   { id, rid }            원정 시작 표. 서버가 받은 시각을 남겨 기록의 최소 소요 시간을 따진다
 //   POST /api/record  { id, rid, progress, epoch }  원정 하나의 최종 도달 칸 수(epoch = 진행도 초기화 회차, 다르면 400)
 //   POST /api/board   { id }                 상위 10명 + 내 순위
+//   POST /api/delete  { id }                 내 기록 삭제: 닉네임·원정 기록·시작 표를 지운다(없는 id여도 200)
 //   POST /api/rename  { id, name }           닉네임 변경. 형식이 틀리면 400(name), 금지어 400(bad), 겹치면 409, 7일이 안 지났으면 429(nextAt)
 // 모든 요청은 속도 제한을 거친다(넘으면 429 { error:'rate' }).
 // 로그인 없는 공개 API라 조작을 완전히 막을 수는 없고, 구슬 물리가 기기 프레임에 따라 달라 서버가 원정을 재현 검증할 수도 없다.
@@ -40,7 +41,7 @@ const FREE_PROGRESS = 5;
 const MAIN_CELLS = 25;
 // 속도 제한 [최대 횟수, 창(초)]. 플레이어 id별로 세고 IP별로도 센다.
 // 국내 이동통신은 여러 사람이 IP 하나를 나눠 쓰므로(CGNAT) IP 한도는 넉넉하게 두고, 실제 제한은 id 쪽이 한다
-const LIMIT = { player:[5, 3600], start:[30, 60], record:[30, 60], board:[30, 60], rename:[10, 3600] };
+const LIMIT = { player:[5, 3600], start:[30, 60], record:[30, 60], board:[30, 60], rename:[10, 3600], delete:[5, 3600] };
 const LIMIT_IP = [300, 60], LIMIT_IP_NEW = [60, 3600];   // IP당 전체 요청 / IP당 새 플레이어 등록
 // 본문 크기 상한: 정상 요청은 200바이트 남짓이다. 큰 본문으로 파싱 비용을 키우는 것을 막는다
 const MAX_BODY = 2048;
@@ -188,5 +189,18 @@ async function board(db, { id }){
   return json({ top:top.results, total:total.n, me:me ? { name:me.name, best:me.best, runs:me.runs, rank } : null });
 }
 
+// 내 기록 삭제(개인정보 삭제 요청): 이 id의 원정 기록·시작 표·플레이어·속도 제한 행을 한 트랜잭션으로 지운다.
+// 원정(runs)이 플레이어를 참조하므로 원정부터 지운다. 이미 없는 id여도 성공으로 답한다(응답을 못 받고 다시 보낸 경우)
+async function remove(db, { id }){
+  const keys = Object.keys(LIMIT).map(r => `${r}:${id}`);
+  await db.batch([
+    db.prepare('DELETE FROM runs WHERE player_id = ?').bind(id),
+    db.prepare('DELETE FROM starts WHERE player_id = ?').bind(id),
+    db.prepare('DELETE FROM players WHERE id = ?').bind(id),
+    db.prepare(`DELETE FROM rate WHERE k IN (${keys.map(() => '?').join(',')})`).bind(...keys),
+  ]);
+  return json({ ok:true });
+}
+
 // 라우트 표: 함수 선언 뒤에 두어 이름이 모두 정의된 다음 만든다. 이 표에 없는 경로는 404
-const ROUTES = { player, start, record, board, rename };
+const ROUTES = { player, start, record, board, rename, delete:remove };

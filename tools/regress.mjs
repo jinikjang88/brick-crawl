@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   + 'catchChoice:()=>{ const got = [], orig = showChoice; showChoice = o => { got.push(o); orig(o); }; return got; },'
   + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName};';
@@ -438,4 +438,13 @@ async function renameWith(reply, prof = {}){
 { const names = []; const t = boot(PROF([], false), false, (p, b) => { if (p !== 'player') return { status:200, data:{ ok:true } }; names.push(b.name); return names.length === 1 ? { status:400, data:{ error:'bad' } } : { status:200, data:{ ok:true } }; });
   await t.flushRecords();
   ok('서버가 자동 닉네임을 거절(400 bad)하면 새로 뽑아 등록', names.length === 2 && names[0] !== names[1] && t.PROFILE.registered === true); }
+// ── 내 기록 삭제(2026-10-26): 성공하면 새 id·새 닉네임·빈 대기열, 실패하면 아무것도 바꾸지 않는다(대기열만 비움)
+{ const sent = []; const t = boot(PROF([Q(3)]), false, (p, b) => { sent.push(p + ':' + b.id); return { status:200, data:{ ok:true } }; });
+  const old = t.PROFILE.id, r = await t.deleteProfile();
+  ok('기록 삭제: 서버에 옛 id로 요청, 새 id·미등록·빈 대기열', r.ok && sent.includes('delete:' + old) && t.PROFILE.id !== old && !t.PROFILE.registered && t.PROFILE.queue.length === 0); }
+{ const t = boot(PROF([]), false, p => p === 'delete' ? null : { status:200, data:{ ok:true } });
+  const old = t.PROFILE.id, r = await t.deleteProfile();
+  ok('기록 삭제: 오프라인이면 offline, id 유지', r.error === 'offline' && t.PROFILE.id === old); }
+{ const t = boot(PROF([]), false, p => p === 'delete' ? { status:429, data:{ error:'rate' } } : { status:200, data:{ ok:true } });
+  ok('기록 삭제: 속도 제한이면 busy', (await t.deleteProfile()).error === 'busy'); }
 process.exit(fail ? 1 : 0);

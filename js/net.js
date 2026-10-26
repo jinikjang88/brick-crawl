@@ -135,6 +135,26 @@ async function doFlush(){
   }
 }
 
+// ── 내 기록 삭제: 서버의 닉네임·원정 기록을 지우고 기기에는 새 id·새 임의 닉네임을 만든다(지운 id로 다시 올라가지 않게).
+// 못 보낸 기록도 함께 버린다. 돌려주는 값 = { ok } | { error:'offline'|'busy' }
+async function deleteProfile(){
+  const p = ensureProfile();
+  p.queue = []; saveProfile();
+  // 올리는 중인 기록이 삭제 뒤에 들어가지 않게 먼저 끝까지 기다린다
+  if (flushP) await flushP;
+  if (API_BASE){
+    const r = await api('delete', { id:p.id });
+    if (!r) return { error:'offline' };
+    if (r.status === 429) return { error:'busy' };
+    if (!r.ok) return { error:'offline' };
+  }
+  PROFILE = { id:uuid(), name:makeNickname(), registered:false, queue:[], nameAt:0 }; saveProfile();
+  // 저장된 원정의 시작 표는 지운 id 것이다: 새 id로 다시 받게 표시를 지운다
+  try { const r = loadRun(); if (r && r.tk){ r.tk = false; localStorage.setItem(SAVE_KEY, JSON.stringify(r)); } } catch(e){}
+  if (RUN) RUN.tk = false;
+  return { ok:true };
+}
+
 // ── 랭킹: 상위 10명 + 내 순위. 실패하면 null
 // id는 기록용 비밀 열쇠라 주소(쿼리)에 싣지 않고 POST 본문으로 보낸다. 주소는 로그에 남는다
 async function loadBoard(){

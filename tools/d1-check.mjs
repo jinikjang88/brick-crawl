@@ -95,6 +95,14 @@ ok('큰 본문 413', (await post('board', { id:V, pad:'x'.repeat(3000) })).statu
 const bursts = []; for (let i = 0; i < 32; i++) bursts.push((await post('board', { id:V })).status);
 ok('속도 제한: 같은 id 1분 30회 넘으면 429', bursts.slice(0, 28).every(s => s === 200) && bursts.at(-1) === 429);
 ok('속도 제한 표에 원시 IP가 없다', sql(`SELECT COUNT(*) AS n FROM rate WHERE k LIKE '%127.0.0.1%' OR k LIKE '%::1%'`)[0].n === 0);
+// 9) 내 기록 삭제: 플레이어·원정·시작 표가 모두 사라지고, 다시 보내도 200
+const D = u(Date.now() % 1e9 + 31); await post('player', { id:D, name:'삭제' + RUNID.slice(0, 4) });
+await post('start', { id:D, rid:u(91) }); await post('record', { id:D, rid:u(91), progress:3 });
+const del = await post('delete', { id:D });
+const left = sql(`SELECT (SELECT COUNT(*) FROM players WHERE id='${D}') + (SELECT COUNT(*) FROM runs WHERE player_id='${D}') + (SELECT COUNT(*) FROM starts WHERE player_id='${D}') AS n`)[0].n;
+ok('기록 삭제: 플레이어·원정·시작 표 0', del.status === 200 && left === 0);
+ok('기록 삭제: 다시 보내도 200', (await post('delete', { id:D })).status === 200);
+ok('기록 삭제 뒤 같은 id 기록은 404 player', (await post('record', { id:D, rid:u(92), progress:1 })).data.error === 'player');
 // 7) 랭킹 초기화 SQL(0003): 플레이어는 남고 기록만 비운다
 sql(fs.readFileSync('db/migrations/0003_reset_ranking.sql', 'utf8').split('\n').filter(l => !l.startsWith('--')).join(' ').trim().replace(/"/g, "'"));
 const after = sql(`SELECT name, best, best_at, runs FROM players WHERE id='${P}'`)[0];

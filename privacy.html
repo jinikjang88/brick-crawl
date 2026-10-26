@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>브릭 크롤 개인정보 처리방침</title>
+<meta name="description" content="브릭 크롤이 수집하는 정보, 이용 목적, 보관 기간, 삭제 방법">
+<!-- 게임 저장소 안에서 완결: 외부 글꼴·스크립트 없이 게임과 같은 색 토큰만 옮겨 쓴다(css/style.css :root와 같은 값) -->
+<style>
+  :root{ --bg:#EFE8DA; --panel:#FFFDF8; --ink:#1B1A18; --ink2:#5B5750; --line:#D6CDBC; }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#1D1B18; --panel:#2B2823; --ink:#EEE9DF; --ink2:#B7B1A6; --line:#3E3A33; color-scheme:dark; } }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;word-break:keep-all}
+  main{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:24px;margin:0 0 4px}
+  h2{font-size:18px;margin:28px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
+  p,li{color:var(--ink)}
+  .meta{color:var(--ink2);font-size:14px;margin:0 0 16px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);font-size:15px}
+  th,td{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+  tr > :first-child{width:30%}
+  a{color:var(--ink);text-underline-offset:3px}
+  ul{padding-left:20px}
+</style>
+</head>
+<body>
+<main>
+  <h1>개인정보 처리방침</h1>
+  <p class="meta">브릭 크롤(Brick Crawl) · 시행일 2026년 10월 26일</p>
+
+  <p>브릭 크롤은 회원 가입이나 로그인 없이 즐기는 게임입니다. 이름, 이메일, 전화번호, 위치, 광고 식별자는 받지 않습니다. 랭킹 기능을 위해 아래 정보만 처리합니다.</p>
+
+  <h2>1. 처리하는 정보와 목적</h2>
+  <table>
+    <tr><th>항목</th><th>내용 · 목적</th></tr>
+    <tr><td>플레이어 식별자</td><td>기기에서 임의로 만든 번호(UUID). 랭킹 기록을 내 것으로 묶는 데만 쓰며, 화면이나 랭킹에 공개하지 않습니다.</td></tr>
+    <tr><td>닉네임</td><td>처음에 임의로 정해지고, 직접 바꿀 수 있습니다. <b>랭킹에 공개됩니다.</b></td></tr>
+    <tr><td>원정 기록</td><td>원정마다 도달한 칸 수와 시작·종료 시각. 최고 기록과 원정 횟수가 랭킹에 쓰이고, 너무 빨리 끝난 기록을 거르는 데 시각을 씁니다.</td></tr>
+    <tr><td>IP 주소</td><td>요청 남용을 막는 횟수 제한에만 씁니다. 원래 주소는 저장하지 않고, 되돌릴 수 없게 변환한 값(해시)의 일부만 짧은 시간 보관합니다.</td></tr>
+  </table>
+  <p>게임 진행도, 스킬 트리, 설정은 <b>내 기기(브라우저 저장소)에만</b> 저장되며 서버로 보내지 않습니다. 쿠키, 광고, 분석 도구는 쓰지 않습니다.</p>
+
+  <h2>2. 보관 기간</h2>
+  <ul>
+    <li>닉네임과 원정 기록: 직접 삭제할 때까지 보관합니다.</li>
+    <li>원정 시작 시각: 최대 90일.</li>
+    <li>횟수 제한용 해시 값: 제한 시간(1분~1시간)이 끝나면 삭제 대상이 되며, 정리 주기에 따라 조금 더 남을 수 있습니다.</li>
+  </ul>
+
+  <h2>3. 삭제 방법</h2>
+  <p>게임 메인 화면 맨 아래의 <b>「내 기록 삭제」</b>를 누르면 서버의 닉네임과 원정 기록이 즉시 삭제됩니다. 삭제한 뒤에는 새 닉네임으로 다시 시작하며, 되돌릴 수 없습니다. 기기에 남은 진행도는 브라우저나 앱 데이터를 지우면 함께 사라집니다.</p>
+
+  <h2>4. 처리 위탁과 국외 이전</h2>
+  <p>랭킹 서버는 Cloudflare, Inc.(미국)의 Cloudflare Pages · D1에서 운영합니다. 위 정보는 Cloudflare의 전 세계 데이터센터에서 처리될 수 있습니다. Cloudflare도 서비스 운영과 보안을 위해 접속 기록을 처리할 수 있습니다(<a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare 개인정보 처리방침</a>).</p>
+
+  <h2>5. 제3자 제공</h2>
+  <p>법령에 따른 요청이 아니면 처리하는 정보를 다른 곳에 제공하지 않습니다. 공개되는 것은 랭킹의 닉네임과 기록뿐입니다.</p>
+
+  <h2>6. 아동</h2>
+  <p>본인을 알아볼 수 있는 정보를 받지 않으므로 나이를 확인하지 않습니다. 보호자는 위 삭제 방법으로 언제든 아이의 기록을 지울 수 있습니다.</p>
+
+  <h2>7. 부적절한 닉네임 신고 · 문의</h2>
+  <p>욕설이나 사칭 같은 부적절한 닉네임, 개인정보 관련 문의는 <a href="https://github.com/jinikjang88/brick-crawl/issues" rel="noopener">GitHub Issues</a>로 보내 주세요. 확인되면 해당 닉네임을 바꾸거나 기록을 지웁니다.</p>
+
+  <h2>8. 변경</h2>
+  <p>이 방침이 바뀌면 이 페이지에 시행일과 함께 게시합니다.</p>
+
+  <p><a href="index.html">← 게임으로 돌아가기</a></p>
+</main>
+</body>
+</html>
