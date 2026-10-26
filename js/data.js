@@ -158,7 +158,7 @@ const RELICS = {
   sting:    { t:2, name:'독침',       max:1, desc:'몬스터에게 독을 걸 때마다 +1' },
   thorns:   { t:2, name:'가시 갑옷',  max:1, desc:'몬스터에게 맞을 때마다 몬스터에게 피해 1' },
   breath:   { t:2, name:'숨 고르기',  max:1, desc:'몬스터가 쉬는 턴에 체력 +2' },
-  scout:    { t:2, name:'정찰병',     max:1, desc:'지도에서 전투 칸의 몬스터가 보인다' },
+  scout:    { t:2, name:'정찰병',     max:1, desc:'지도에서 전투 방의 몬스터가 보인다' },
   // 희귀
   counter:  { t:3, name:'반격',       max:1, desc:'몬스터 공격을 방어도로 막은 양의 절반(올림)을 되돌려준다' },
   leech:    { t:3, name:'흡혈',       max:1, desc:'구슬 하나가 천장을 세 번째 칠 때 체력 +1' },
@@ -169,7 +169,7 @@ const RELICS = {
   twin:     { t:3, name:'메아리',       max:1, desc:'3턴마다 같은 구슬을 한 번 더 쏜다' },
   smith:    { t:3, name:'대장장이 망치', max:1, desc:'구슬 강화 성공률 +10%p' },
   charm:    { t:3, name:'보호 부적',  max:1, desc:'구슬 강화에 실패해도 단계가 내려가지 않는다' },
-  pouch:    { t:3, name:'깊은 주머니', max:1, desc:'구슬 주머니 +1칸 (6개)' },
+  pouch:    { t:3, name:'깊은 주머니', max:1, desc:'구슬 주머니 +1개 (6개)' },
   // 전설
   kingsword:{ t:4, name:'왕의 검',    max:1, desc:'⚔ 벽돌 효과 +2' },
   hourglass:{ t:4, name:'모래시계',   max:1, desc:'몬스터의 모든 연속 공격 -1 (최소 1)' },
@@ -207,7 +207,7 @@ const TREE = [
   // 구슬(왼쪽)
   { id:'o1', name:'숙련',       cost:2, req:'root', x:35.7, y:50, desc:'시작 폭탄 구슬이 폭탄 구슬+' },
   { id:'o2', name:'눈썰미',     cost:3, req:'o1',   x:21.3, y:50, desc:'구슬 보상 후보 +1개' },
-  { id:'o3', name:'꼼꼼한 손길', cost:3, req:'o2',   x:7,  y:35.7, desc:'보상 다시 뒤지기 +1회' },
+  { id:'o3', name:'꼼꼼한 손길', cost:3, req:'o2',   x:7,  y:35.7, desc:'보상 다시 살피기 +1회' },
   { id:'o4', name:'공명',       cost:8, req:'o3',   x:7,  y:21.3, key:true, desc:'강화(+) 구슬의 천장 타격 피해 ×2' },
   { id:'o5', name:'정조준',     cost:3, req:'o2',   x:7,  y:64.3, desc:'조준선이 15% 느려진다' },
   { id:'o6', name:'공성추',     cost:8, req:'o5',   x:7,  y:78.7, key:true, desc:'묵직한·폭탄 구슬의 천장 타격 피해 ×2' },

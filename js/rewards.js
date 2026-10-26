@@ -44,7 +44,7 @@ function addOrb(id, done, back){
 }
 function showSwap(id, done, back){
   const cnt = {}; RUN.deck.forEach(o => cnt[o] = (cnt[o] || 0) + 1);
-  showChoice({ mode:'swap', title:'구슬을 바꾼다', sub:`주머니가 가득 찼다(${deckMax()}개). ${ORBS[id].name}와 바꿀 구슬을 고른다`,
+  showChoice({ mode:'swap', title:'구슬을 바꾼다', sub:`주머니가 가득 찼다(${deckMax()}개). ${ORBS[id].name}과 바꿀 구슬을 고른다`,
     cards:Object.keys(cnt).map(o => ({ name:orbName(o), orb:o, tag:`${cnt[o]}개 → 1개 뺌`, desc:orbDesc(o),
       onPick:() => { RUN.deck[RUN.deck.indexOf(o)] = id; markSeen('orb', orbKind(id)); done(); } })),
     buttons:[{ label:'취소', onClick:back }] });
@@ -71,7 +71,7 @@ function renderReward(kind){
   if (isOrb && RUN.deck.some(o => orbLv(o) < UP_MAX))
     cards.push({ name:'구슬 강화', tag:'주머니 그대로', desc:'가진 구슬 하나를 강화한다(+)',
       onPick:() => showUpgrade(() => takeReward(() => {}, kind), () => renderReward(kind)) });
-  const buttons = [{ label:rerollLeft ? `다시 뒤지기 (${rerollLeft}회)` : '다시 뒤지기 (다 씀)', disabled:!rerollLeft || !cards.length,
+  const buttons = [{ label:rerollLeft ? `다시 살피기 (${rerollLeft}회)` : '다시 살피기 (다 씀)', disabled:!rerollLeft || !cards.length,
                      onClick:() => { RUN.reward.reroll--; RUN.reward.stock = rollReward(kind); saveRun(); renderReward(kind); } }];
   // 구슬은 안 받는 것도 전략이다: 덱이 얇을수록 좋은 구슬이 자주 나온다
   if (isOrb || !cards.length) buttons.push({ label:'건너뛰기', onClick:() => takeReward(() => {}, kind) });

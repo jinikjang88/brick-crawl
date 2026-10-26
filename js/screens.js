@@ -239,7 +239,7 @@ const TREE_TOTAL = TREE.reduce((a, n) => a + n.cost, 0);
 function showTree(back){
   treeBack = back || treeBack || showMain;
   const spent = TREE.reduce((a, n) => a + (tree(n.id) ? n.cost : 0), 0);
-  $('treeSub').textContent = `공적 ${META.pts} · 익힘 ${spent}/${TREE_TOTAL} · 방을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
+  $('treeSub').textContent = `공적 ${META.pts} · 쓴 공적 ${spent}/${TREE_TOTAL} · 방을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
   const box = $('treeBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('aria-hidden', 'true');
@@ -524,7 +524,7 @@ function victory(){
   const got = (RUN.badges || []).map(id => BADGES.find(b => b.id === id).name);
   const result = () => showChoice({
     mode:'result', title:king ? '탑이 무너졌다' : '탑을 정복했다',
-    sub:`${king ? '성벽의 왕' : '탑의 군주'}를 쓰러뜨렸다${asc ? `(고난 ${asc})` : ''}. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개.`
+    sub:`${king ? '성벽의 왕을' : '탑의 군주를'} 쓰러뜨렸다${asc ? `(고난 ${asc})` : ''}. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개.`
       + ` 이번 원정 공적 +${RUN.pts || 0}.` + (got.length ? ` 훈장: ${got.join(', ')}.` : '')
       + (firstClear ? ' 탑 입구에 심연으로 가는 문이 열렸다.' : '')
       + (opened ? ` 고난 ${META.asc}(${ASC[META.asc].name})이 열렸다.` : ''),

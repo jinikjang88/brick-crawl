@@ -165,7 +165,7 @@ img.bIc{object-fit:contain;image-rendering:auto}
 @media(prefers-reduced-motion:reduce){.rCard{transition:none}}
 /* 일러스트 구슬(<img>)은 원본이 세밀해서 도트처럼 최근접 축소하면 오히려 깨진다 */
 img.orbPortrait{image-rendering:auto;object-fit:contain}
-/* 코인 칩 앞에 일러스트 코인. 파일이 없으면 빈 칸만 남고 글자는 그대로 읽힌다 */
+/* 금화 칩 앞에 일러스트 금화. 칩은 그림 + 숫자만이라 그림을 못 불러오면 단위 없는 숫자가 된다(읽기 프로그램은 aria-label "금화 N"을 읽는다) */
 .hCoin:not(:empty){display:inline-flex;align-items:center;gap:4px}
 .hCoin:not(:empty)::before{content:'';width:16px;height:16px;flex:none;background:url('../assets/game/coin.png') center/contain no-repeat}
 /* 일러스트 UI 조각(assets/game/ui_*). 이미지가 고정색이라 글자·바탕색도 테마와 무관하게 고정한다.
