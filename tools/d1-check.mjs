@@ -16,6 +16,8 @@ const sql = q => JSON.parse(execSync(`npx wrangler d1 execute DB --local --json 
 // 실행마다 다른 접두어: runs.rid는 전역 고유라 이전 실행의 rid와 겹치면 안 된다
 const RUNID = Math.floor(Math.random() * 1e8).toString(16).padStart(8, '0');
 const u = n => `${RUNID}-0000-4000-8000-${String(n).padStart(12, '0')}`;
+// 같은 시간에 여러 번 돌리면 IP당 등록 한도(시간당 60)가 차서 실패한다: 로컬 DB의 속도 제한 기록을 비우고 시작한다
+sql('DELETE FROM rate');
 let fail = 0; const ok = (n, c) => { console.log((c ? '통과 ' : '실패 ') + n); if (!c) fail++; };
 const P = u(Date.now() % 1e9), me = () => sql(`SELECT runs, best, best_at FROM players WHERE id='${P}'`)[0];
 const nm = ['가나다','라마바','사아자','차카타','파하거','너더러'].sort(() => Math.random() - .5).slice(0, 3).join(' ');
