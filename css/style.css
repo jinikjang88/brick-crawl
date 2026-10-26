@@ -12,10 +12,9 @@ html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;font-size:16px;line-height:1.5;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 /* 게임 글꼴: 픽셀 한글 Galmuri(SIL OFL 1.1, fonts/OFL.txt). 시스템 글꼴만 쓰면 화면이 웹페이지처럼 읽혀서,
-   제목·버튼·HUD·카드 제목처럼 짧은 글자에만 쓴다. 긴 설명문은 작은 크기에서 읽기 편한 시스템 글꼴을 그대로 둔다.
+   크게 보이는 제목에만 쓴다(적용 범위·크기 규칙은 파일 끝 "게임 글꼴 적용 범위"). 제목은 모두 굵은 글씨라 Bold 파일 하나만 둔다.
    저장소 안 파일이라 file://에서도 열리고, 못 불러와도 swap으로 시스템 글꼴이 바로 보인다 */
-@font-face{font-family:Galmuri;src:url('../fonts/Galmuri11.woff2') format('woff2');font-display:swap}
-@font-face{font-family:Galmuri;font-weight:700 900;src:url('../fonts/Galmuri11-Bold.woff2') format('woff2');font-display:swap}
+@font-face{font-family:Galmuri;font-weight:400 900;src:url('../fonts/Galmuri11-Bold.woff2') format('woff2');font-display:swap}
 :root{--font-game:Galmuri,system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
 button{font:inherit}
 button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
@@ -357,9 +356,15 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 /* 피해 식은 쪼개지면 읽을 수 없으니 한 덩어리로 다음 줄에 넘긴다 */
 .orbCurrent b .dmg{display:inline-block;white-space:nowrap}
 
-/* ── 게임 글꼴 적용 범위: 짧은 글자만(위 @font-face 참고). 픽셀 글꼴은 자간을 좁히면 획이 붙으므로 0으로 */
-.big,.btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.hName,.hStage,.hCoin,.orbCurrent small,.orbCurrent b,.orbNext,.rCard b,.node small,.mapHead .t,
-.banner,.whoLbl,.who b,.tagline,.logo,.treeInfo b,.tBranch,.tNode,.bCard b,.bHead,.board,.toast,.abil{font-family:var(--font-game);letter-spacing:0}
+/* ── 게임 글꼴 적용 범위: 크게 보이는 제목만. Galmuri11은 11px 격자로 그린 글꼴이라 22·33px(정수배)에서만 도트가 또렷하고,
+   12~18px처럼 어중간한 크기에서는 획이 뭉개져 읽기 어려웠다(HUD·카드 제목에 썼다가 되돌림). 그래서 크기도 22·33px로 맞춘다.
+   작은 글자(HUD·카드·버튼·라벨)는 시스템 글꼴. 픽셀 글꼴은 자간을 좁히면 획이 붙으므로 0으로 */
+.big,.mapHead .t,.banner .b2,.btn.hero{font-family:var(--font-game);letter-spacing:0}
+.big{font-size:33px}
+.banner .b2{font-size:33px}
+.btn.hero{font-size:22px}
+.btn.hero small{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+@media(max-width:360px){ .big{font-size:22px} }
 
 /* ── 전투 화면 = 폰 한 화면(2026-10 출시 검토 P0): 발사대가 화면 아래로 밀려 잘리던 문제.
    전투 중에는 브랜드 띠·조작 힌트를 숨기고 위쪽 줄을 납작하게 해 세로를 판에 돌려준다(조작은 첫 판에서 몸으로 익힌다) */
