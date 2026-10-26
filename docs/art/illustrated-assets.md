@@ -22,7 +22,7 @@
 | `bat` | 짙은 날개와 붉은 눈으로 공격성을 표현한 박쥐 | <img src="../../assets/illustrated/characters/bat.png" width="200" alt="박쥐"> |
 | `golem` | 던전 석조 구조를 이어받은 육중한 골렘 | <img src="../../assets/illustrated/characters/golem.png" width="200" alt="골렘"> |
 | `shroom` | 붉은 독성 무늬와 뿌리 발을 가진 독버섯 | <img src="../../assets/illustrated/characters/shroom.png" width="200" alt="독버섯"> |
-| `boss` | 성당형 왕관과 철퇴를 가진 탑의 주인 | <img src="../../assets/illustrated/characters/boss.png" width="200" alt="탑의 주인"> |
+| `boss` | 성당형 왕관과 철퇴를 가진 탑의 수문장 | <img src="../../assets/illustrated/characters/boss.png" width="200" alt="탑의 수문장"> |
 
 ## 적용 기준
 

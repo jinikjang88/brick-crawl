@@ -194,7 +194,7 @@ function drawAbyssFx(t){
 // ── HUD
 function setHeader(stage, name){ $('hStage').textContent = stage; $('hName').textContent = name; }
 // 전투 중에는 main.js가 줄인 글자("120 · 3턴")와 따로 읽기용 이름을 단다. 전투 밖에서는 글자 그대로를 이름으로 덮어 옛 턴 수가 읽히지 않게
-function renderCoins(){ const h = $('hCoin'), t = RUN && mode !== 'main' ? `코인 ${RUN.coins}` : ''; h.textContent = t; h.setAttribute('aria-label', t); }
+function renderCoins(){ const h = $('hCoin'), on = RUN && mode !== 'main'; h.textContent = on ? `${RUN.coins}` : ''; h.setAttribute('aria-label', on ? `금화 ${RUN.coins}` : ''); }
 function deckSummary(){
   const cnt = {}; RUN.deck.forEach(o => cnt[o] = (cnt[o] || 0) + 1);
   return Object.keys(cnt).map(o => `${orbName(o).replace(' 구슬', '')} ${cnt[o]}`).join(', ');
@@ -207,7 +207,7 @@ function renderOrbBar(){
     const label = document.createElement('div');
     // 쏜 순간부터 다음 턴 조준 전까지 "발사!": 누른 입력이 먹혔다는 걸 바로 보여준다
     const fired = G.phase !== 'aim';
-    const small = document.createElement('small'); small.textContent = fired ? '발사!' : '발사 대기';
+    const small = document.createElement('small'); small.textContent = fired ? '발사!' : '조준';
     if (fired) small.className = 'fired';
     const name = document.createElement('b'); name.textContent = orbName(G.orb);
     // 피해 = 기사 ⚔ + 구슬 보정을 식으로 보여 준다. ⚔ 벽돌을 깨면 왼쪽 숫자가, 센 구슬을 쓰면 오른쪽 숫자가 오른다.
@@ -218,14 +218,14 @@ function renderOrbBar(){
     // 분열은 갈래 수로 나눈 값이 갈래 하나의 피해다: (⚔2 + 0) ÷3 = 1
     const expr = hp.k !== 1 ? `(${sum}) ×${+hp.k.toFixed(2)}` : sum;
     dmg.textContent = hp.div > 1 ? `(${expr}) ÷${hp.div} = ${hp.v}` : `${expr} = ${hp.v}`;
-    dmg.title = '천장 타격 피해 = (기사 공격력 + 구슬 보정) × 스킬 트리 배율' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
+    dmg.title = '천장 타격 피해 = (기사 공격력 + 구슬 위력) × 비기' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
     name.append(dmg);
     label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
     const next = document.createElement('div'); next.className = 'orbNext';
     const text = document.createElement('span'); text.textContent = '다음';
     next.append(text, orbPortrait(orbKind(nextOrb())), orbName(nextOrb()).replace(' 구슬', ''));
     el.append(current, next); el.title = orbDesc(G.orb);
-  } else el.append(`구슬 덱 ${RUN.deck.length}/${deckMax()}: ${deckSummary()}`);
+  } else el.append(`구슬 주머니 ${RUN.deck.length}/${deckMax()}: ${deckSummary()}`);
 }
 function renderAbil(){
   const box = $('abil'); box.textContent = '';

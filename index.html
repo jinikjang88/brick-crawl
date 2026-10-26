@@ -23,7 +23,7 @@
     </div>
     <div class="hRight">
       <span class="hCoin" id="hCoin"></span>
-      <button class="iconBtn" id="btnMenu" aria-label="메뉴">II</button>
+      <button class="iconBtn" id="btnMenu" aria-label="일시정지">II</button>
     </div>
   </header>
   <div class="orbBar" id="orbBar"></div>
@@ -39,9 +39,9 @@
       <div class="logo">브릭 크롤</div>
       <div class="orbShowcase" id="orbShowcase" aria-hidden="true"></div>
       <p class="tagline">성벽을 깨고, 운명을 튕겨라.</p>
-      <div class="whoRow"><div class="who"><span class="whoLbl">플레이어</span><b id="mName"></b></div><button class="renameBtn" id="mRename" aria-label="닉네임 변경">변경</button></div>
+      <div class="whoRow"><div class="who"><span class="whoLbl">기사</span><b id="mName"></b></div><button class="renameBtn" id="mRename" aria-label="기사 이름 변경">변경</button></div>
       <form class="renameForm" id="renameForm" hidden>
-        <label for="nameIn">새 닉네임 (한글·영문·숫자 2~12자, 일주일에 한 번)</label>
+        <label for="nameIn">새 기사 이름 (한글·영문·숫자 2~12자, 일주일에 한 번)</label>
         <input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false">
         <div class="renameBtns"><button class="btn primary" id="nameSave" type="submit">바꾸기</button><button class="btn" id="nameCancel" type="button">취소</button></div>
         <p class="renameMsg" id="nameMsg" aria-live="polite"></p>
@@ -54,29 +54,29 @@
         <button class="btn abyssBtn" id="mAbyss">심연으로</button>
       </div>
       <div class="subBtns">
-        <button class="subBtn" id="mTree">스킬 트리</button>
+        <button class="subBtn" id="mTree">수련</button>
         <button class="subBtn" id="mBadge">도감</button>
       </div>
       <div class="board mini" id="mBoard" aria-live="polite"></div>
-      <button class="linkbtn" id="mRank">랭킹 전체 보기</button>
+      <button class="linkbtn" id="mRank">명예의 전당 전체 보기</button>
       <div class="sndRow"><button class="sndBtn" id="mBgm"></button><button class="sndBtn" id="mSfx"></button><button class="sndBtn" id="mTheme"></button></div>
       <div class="legalRow"><a class="linkbtn" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a><button class="linkbtn" id="mDelete" aria-expanded="false" aria-controls="deleteForm">내 기록 삭제</button></div>
       <div class="deleteForm" id="deleteForm" hidden>
-        <p>랭킹 서버에서 닉네임과 원정 기록을 지운다. 이 기기의 진행도(스킬 트리·도감)는 그대로 남고, 닉네임은 새로 정해진다. 되돌릴 수 없다.</p>
-        <div class="renameBtns"><button class="btn danger" id="deleteGo" type="button">서버 기록 지우기</button><button class="btn" id="deleteCancel" type="button">취소</button></div>
+        <p>명예의 전당에서 기사 이름과 원정 기록을 지운다. 이 기기의 진행도(수련·도감)는 그대로 남고, 기사 이름은 새로 정해진다. 되돌릴 수 없다.</p>
+        <div class="renameBtns"><button class="btn danger" id="deleteGo" type="button">명예의 전당 기록 지우기</button><button class="btn" id="deleteCancel" type="button">취소</button></div>
         <p class="renameMsg" id="deleteMsg" aria-live="polite"></p>
       </div>
     </div>
 
     <div class="ov" id="ovRank">
-      <div class="big">랭킹</div>
+      <div class="big">명예의 전당</div>
       <p class="sub" id="rankSub"></p>
       <ol class="board" id="rankList"></ol>
       <button class="btn" id="rankBack">돌아가기</button>
     </div>
 
     <div class="ov ovTree" id="ovTree">
-      <div class="big">스킬 트리</div>
+      <div class="big">수련</div>
       <p class="sub" id="treeSub"></p>
       <div class="treeBox" id="treeBox"></div>
       <div class="treeInfo" id="treeInfo" aria-live="polite"></div>
@@ -106,9 +106,9 @@
   </div></div>
   <!-- 일시정지는 판(.stageWrap, 크기 컨테이너) 밖에 둔다: 컨테이너 안의 position:fixed는 화면이 아니라 컨테이너를 기준으로 잡혀 전체 화면을 덮지 못한다(css-contain-3) -->
   <div class="ov" id="ovPause">
-    <div class="big">메뉴</div>
+    <div class="big">일시정지</div>
     <button class="btn primary" id="pResume">계속하기</button>
-    <button class="btn" id="pMain">메인 화면<small id="pMainSub"></small></button>
+    <button class="btn" id="pMain">탑 입구<small id="pMainSub"></small></button>
     <div class="sndRow"><button class="sndBtn" id="pBgm"></button><button class="sndBtn" id="pSfx"></button><button class="sndBtn" id="pTheme"></button></div>
     <button class="linkbtn" id="pGiveup">원정 포기</button>
   </div>

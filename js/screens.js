@@ -67,7 +67,7 @@ function showMain(){
   if (saved){
     const where = saved.pending ? saved.pending : saved.pos;
     const step = (saved.abyss ? '심연 ' : '') + (where ? `${saved.s + 1}-${where.r + 1}` : `${saved.s + 1}-출발`);
-    c.textContent = '이어하기';
+    c.textContent = '원정 이어 가기';
     const sm = document.createElement('small'); sm.textContent = `${step}, 체력 ${saved.hp}/${saved.maxHp}, 구슬 ${saved.deck.length}개`;
     c.append(sm);
   }
@@ -77,12 +77,12 @@ function showMain(){
   // 심연은 본편을 한 번 깨야 열린다. 닫혀 있을 때도 자리를 보여 줘 "끝에 무언가 있다"는 걸 알린다
   renderAsc();
   ab.disabled = !abyssOpen(); ab.dataset.arm = '';
-  ab.textContent = abyssOpen() ? '심연으로' : '심연 · 5층을 깨면 열린다';
+  ab.textContent = abyssOpen() ? '심연으로' : '심연 · 탑을 정복하면 열린다';
   if (abyssOpen() && META.abyssBest){ const sm = document.createElement('small'); sm.textContent = `최고 ${progLabel(MAIN_CELLS + META.abyssBest)}`; ab.append(sm); }
   $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 방이 없다' : '첫 원정을 떠나 보자')
-    + (META.runs ? ` · 원정 ${META.runs}회` : '') + (META.clears ? ` · 완주 ${META.clears}회` : '');
-  $('mTree').textContent = '스킬 트리';
-  const tp = document.createElement('small'); tp.textContent = `포인트 ${META.pts}`; $('mTree').append(tp);
+    + (META.runs ? ` · 원정 ${META.runs}회` : '') + (META.clears ? ` · 정복 ${META.clears}회` : '');
+  $('mTree').textContent = '수련';
+  const tp = document.createElement('small'); tp.textContent = `공적 ${META.pts}`; $('mTree').append(tp);
   // 도감: 구슬·유물·배지를 한 화면에서 모은다. 버튼에는 모은 총수만
   $('mBadge').textContent = '도감';
   const total = Object.keys(ORBS).length + Object.keys(RELICS).length + BADGES.length;
@@ -125,9 +125,9 @@ $('renameForm').onsubmit = async e => {
   $('nameSave').disabled = true; $('nameMsg').textContent = '바꾸는 중…';
   const r = await renameProfile($('nameIn').value);
   $('nameSave').disabled = false;
-  const msg = { name:'한글·영문·숫자 2~12자로 쓴다(앞뒤·연속 공백 없이)', bad:'쓸 수 없는 단어가 들어 있다', taken:'이미 누가 쓰는 닉네임이다', offline:'서버에 연결해야 바꿀 수 있다', busy:'요청이 많다. 잠시 뒤 다시 해 본다',
+  const msg = { name:'한글·영문·숫자 2~12자로 쓴다(앞뒤·연속 공백 없이)', bad:'쓸 수 없는 단어가 들어 있다', taken:'이미 누가 쓰는 기사 이름이다', offline:'인터넷에 연결해야 바꿀 수 있다', busy:'요청이 많다. 잠시 뒤 다시 해 보자',
                 wait:`${r.nextAt ? fmtDate(r.nextAt) : '일주일 뒤'}부터 다시 바꿀 수 있다` };
-  if (r.ok){ $('mName').textContent = PROFILE.name; $('renameForm').hidden = true; sfx('badge'); toast(`닉네임 변경 · ${PROFILE.name}`); refreshBoard(); $('mRename').focus(); }
+  if (r.ok){ $('mName').textContent = PROFILE.name; $('renameForm').hidden = true; sfx('badge'); toast(`기사 이름 변경 · ${PROFILE.name}`); refreshBoard(); $('mRename').focus(); }
   else $('nameMsg').textContent = msg[r.error] || msg.offline;
 };
 // ── 내 기록 삭제: 두 번 눌러야 지운다(되돌릴 수 없다). 서버에 연결돼야 지울 수 있다
@@ -135,7 +135,7 @@ $('mDelete').onclick = () => {
   if (mode !== 'main') return;
   const f = $('deleteForm'); f.hidden = !f.hidden;
   $('mDelete').setAttribute('aria-expanded', String(!f.hidden));
-  delete $('deleteGo').dataset.arm; $('deleteGo').textContent = '서버 기록 지우기'; $('deleteMsg').textContent = '';
+  delete $('deleteGo').dataset.arm; $('deleteGo').textContent = '명예의 전당 기록 지우기'; $('deleteMsg').textContent = '';
   if (!f.hidden) $('deleteGo').focus();
 };
 $('deleteCancel').onclick = () => { $('deleteForm').hidden = true; $('mDelete').setAttribute('aria-expanded', 'false'); $('mDelete').focus(); };
@@ -145,11 +145,11 @@ $('deleteGo').onclick = async () => {
   if (!b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 지워진다'; return; }
   b.disabled = true; $('deleteMsg').textContent = '지우는 중…';
   const r = await deleteProfile();
-  b.disabled = false; delete b.dataset.arm; b.textContent = '서버 기록 지우기';
+  b.disabled = false; delete b.dataset.arm; b.textContent = '명예의 전당 기록 지우기';
   if (r.ok){
     $('deleteForm').hidden = true; $('mDelete').setAttribute('aria-expanded', 'false');
-    $('mName').textContent = PROFILE.name; BOARD = null; toast('서버 기록을 지웠다'); refreshBoard(); $('mDelete').focus();
-  } else $('deleteMsg').textContent = r.error === 'busy' ? '요청이 많다. 잠시 뒤 다시 해 본다' : '서버에 연결해야 지울 수 있다';
+    $('mName').textContent = PROFILE.name; BOARD = null; toast('명예의 전당에서 기록을 지웠다'); refreshBoard(); $('mDelete').focus();
+  } else $('deleteMsg').textContent = r.error === 'busy' ? '요청이 많다. 잠시 뒤 다시 해 보자' : '인터넷에 연결해야 지울 수 있다';
 };
 // 고난 단계 버튼: 한 번이라도 완주해야 보인다. 누를 때마다 다음 단계로(열린 단계까지 돌고 0으로)
 function renderAsc(){
@@ -218,7 +218,7 @@ function renderBoard(){
   const mini = $('mBoard'), list = $('rankList');
   mini.textContent = ''; list.textContent = '';
   $('mRank').hidden = !BOARD;
-  if (!BOARD){ $('rankSub').textContent = '기록 서버에 연결하지 못했다'; return; }
+  if (!BOARD){ $('rankSub').textContent = '명예의 전당을 불러오지 못했다'; return; }
   const me = BOARD.me, top = BOARD.top || [];
   const isMe = t => me && t.name === me.name;
   top.slice(0, 3).forEach((t, i) => mini.append(boardRow(i + 1, t.name, t.best, isMe(t))));
@@ -239,7 +239,7 @@ const TREE_TOTAL = TREE.reduce((a, n) => a + n.cost, 0);
 function showTree(back){
   treeBack = back || treeBack || showMain;
   const spent = TREE.reduce((a, n) => a + (tree(n.id) ? n.cost : 0), 0);
-  $('treeSub').textContent = `포인트 ${META.pts} · 찍음 ${spent}/${TREE_TOTAL} · 방을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
+  $('treeSub').textContent = `공적 ${META.pts} · 쓴 공적 ${spent}/${TREE_TOTAL} · 방을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
   const box = $('treeBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('aria-hidden', 'true');
@@ -253,7 +253,7 @@ function showTree(back){
   }
   box.append(svg);
   // 갈래 이름은 노드가 없는 네 귀퉁이 안쪽에 둔다
-  for (const [t, x, y] of [['공격', 70, 26], ['방어', 30, 76], ['구슬', 27, 28], ['경제', 73, 73]]){
+  for (const [t, x, y] of [['공격', 70, 26], ['방어', 30, 76], ['구슬', 27, 28], ['재물', 73, 73]]){
     const s = document.createElement('span'); s.className = 'tBranch'; s.textContent = t;
     s.style.left = x + '%'; s.style.top = y + '%'; box.append(s);
   }
@@ -262,7 +262,7 @@ function showTree(back){
     b.className = `tNode ${st}${n.key ? ' key' : ''}${n.id === 'root' ? ' root' : ''}${treePick === n.id ? ' pick' : ''}`;
     b.style.left = n.x + '%'; b.style.top = n.y + '%';
     const t = document.createElement('span'); t.textContent = n.id === 'root' ? '★' : st === 'own' ? '✓' : n.cost; b.append(t);
-    b.setAttribute('aria-label', `${n.name}: ${n.desc}. ${st === 'own' ? '찍음' : st === 'lock' ? '앞 노드를 먼저 찍어야 한다' : `포인트 ${n.cost}`}`);
+    b.setAttribute('aria-label', `${n.name}: ${n.desc}. ${st === 'own' ? '익힘' : st === 'lock' ? '앞 수련을 먼저 익혀야 열린다' : `공적 ${n.cost}`}`);
     b.onclick = () => { if (mode !== 'tree') return; treePick = n.id; sfx('pick'); showTree(); };
     box.append(b);
   }
@@ -270,16 +270,16 @@ function showTree(back){
   const n = TREE.find(t => t.id === treePick);
   if (n){
     const st = treeState(n), h = document.createElement('b'), d = document.createElement('span');
-    h.textContent = n.name + (n.key ? ' · 핵심' : ''); d.textContent = n.desc;
+    h.textContent = n.name + (n.key ? ' · 비기' : ''); d.textContent = n.desc;
     info.append(h, d);
     if (st === 'open' || st === 'poor'){
       const buy = document.createElement('button'); buy.className = 'btn primary'; buy.disabled = st === 'poor';
-      buy.textContent = st === 'poor' ? `포인트 ${n.cost} 필요` : `찍기 (포인트 ${n.cost})`;
+      buy.textContent = st === 'poor' ? `공적 ${n.cost} 필요` : `익히기 (공적 ${n.cost})`;
       buy.onclick = () => { if (mode !== 'tree' || treeState(n) !== 'open') return;
         META.pts -= n.cost; META.tree[n.id] = 1; saveMeta(); sfx('coin'); showTree(); };
       info.append(buy);
-    } else if (st === 'lock'){ const l = document.createElement('small'); l.textContent = '앞 노드를 먼저 찍어야 열린다'; info.append(l); }
-  } else { const d = document.createElement('span'); d.textContent = '노드를 눌러 효과를 본다. 갈래는 두 가지로 갈라지고, 가지 끝 마름모(핵심)만 곱연산이다.'; info.append(d); }
+    } else if (st === 'lock'){ const l = document.createElement('small'); l.textContent = '앞 수련을 먼저 익혀야 열린다'; info.append(l); }
+  } else { const d = document.createElement('span'); d.textContent = '수련을 눌러 효과를 본다. 갈래는 두 가지로 갈라지고, 가지 끝 마름모는 비기다. 공격 비기는 피해를 몇 배로 키운다.'; info.append(d); }
   setMode('tree', 'ovTree');
 }
 $('mTree').onclick = () => { treePick = null; showTree(showMain); };
@@ -313,14 +313,14 @@ function showBadges(){
   const box = $('badgeBox'); box.textContent = '';
   const orbs = Object.keys(ORBS), relics = Object.keys(RELICS);
   const gotB = BADGES.filter(b => META.badges[b.id]).length;
-  $('badgeSub').textContent = `구슬 ${seenCount('orb')}/${orbs.length} · 유물 ${seenCount('relic')}/${relics.length} · 배지 ${gotB}/${BADGES.length}`;
+  $('badgeSub').textContent = `구슬 ${seenCount('orb')}/${orbs.length} · 유물 ${seenCount('relic')}/${relics.length} · 훈장 ${gotB}/${BADGES.length}`;
   // 등급 순(기본 → 전설)으로 늘어놓는다: 아래로 갈수록 귀한 것
   box.append(bookHead('구슬'));
   for (const k of orbs.slice().sort((a, b) => ORBS[a].rar - ORBS[b].rar)){
     const o = ORBS[k], own = !!META.seen.orb[k], open = orbOpen(k);
     const icon = own ? orbPortrait(k, 'bIc') : badgeIcon(UNKNOWN, false);
     box.append(bookRow(icon, own ? o.name : '???', RARITY[o.rar].name + (open ? '' : ' · 잠김'),
-      own ? o.desc : open ? '보상이나 상점에서 만날 수 있다' : lockText(o.lock), own));
+      own ? o.desc : open ? '보상이나 상인에게서 만날 수 있다' : lockText(o.lock), own));
   }
   box.append(bookHead('유물'));
   for (const k of relics.slice().sort((a, b) => RELICS[a].t - RELICS[b].t)){
@@ -333,7 +333,7 @@ function showBadges(){
     box.append(bookRow(badgeIcon({ icon:'dots' }, own), own ? st.title : '???', own ? '' : '아직 못 봄',
       own ? st.text.replace(/\n+/g, ' ') : '탑을 더 오르면 알게 된다', own));
   }
-  box.append(bookHead('배지'));
+  box.append(bookHead('훈장'));
   for (const b of BADGES){
     const n = META.badges[b.id] || 0, li = document.createElement('li');
     li.className = 'bCard' + (n ? ' own' : '');
@@ -342,7 +342,7 @@ function showBadges(){
     const d = document.createElement('span'); d.textContent = b.desc;
     const body = document.createElement('div'); body.append(t, d);
     li.append(badgeIcon(b, n > 0), body);
-    li.setAttribute('aria-label', `${b.name}${n ? ` 획득 ${n}회` : ' 아직 못 땀'}: ${b.desc}`);
+    li.setAttribute('aria-label', `${b.name}${n ? ` 받음 ${n}회` : ' 아직 못 받음'}: ${b.desc}`);
     box.append(li);
   }
   setMode('badge', 'ovBadge');
@@ -368,7 +368,7 @@ function resumeRun(){
 // 갈래 수는 지도마다 읽는다: 3갈래로 만든 이전 저장 지도도 그대로 그려지게
 const ROW_Y = [88, 68, 48, 28, 8];
 const nodeX = n => n.t === 'boss' ? 50 : (n.l + .5) / RUN.map[0].length * 100;
-// 칸 메달 그림: 휴식은 모닥불, 상점은 상인, 보스는 탑의 주인.
+// 칸 메달 그림: 휴식은 모닥불, 상점은 상인, 보스는 탑의 수문장.
 // 전투·정예는 어떤 몬스터인지 들어가기 전까지 모르게 도트 아이콘(칼·해골)만 보여 준다(긴장감·선택의 불확실성)
 function nodeIcon(n){
   // 정찰병 유물: 전투 칸에 어떤 몬스터인지 그림을 보여 준다
@@ -397,7 +397,7 @@ function showMap(note){
   // 본편은 "세션 2 / 5"처럼 남은 거리를, 심연은 층만 보여 준다(끝이 없다)
   $('mapTitle').textContent = RUN.abyss ? stageName(RUN.s) : `${stageName(RUN.s)} / ${SESSIONS}`;
   $('ovMap').classList.toggle('abyss', !!RUN.abyss);
-  $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  코인 ${RUN.coins}  구슬 ${RUN.deck.length}/${deckMax()}`;
+  $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  금화 ${RUN.coins}  구슬 ${RUN.deck.length}/${deckMax()}`;
   // 일반 전투는 보상 화면 없이 지도로 돌아오므로, 얻은 코인을 부제 앞에 한 번 보여 준다
   if (note) $('mapSub').textContent = `${note} · ${$('mapSub').textContent}`;
   if (RUN.asc) $('mapTitle').textContent += ` · 고난 ${RUN.asc}`;
@@ -462,7 +462,7 @@ function completeNode(){
 }
 function finishNonBattle(){
   completeNode(); RUN.shop = null; saveRun();
-  if (RUN.lastPts) toast(`스킬 포인트 +${RUN.lastPts} · 첫 돌파`);
+  if (RUN.lastPts) toast(`공적 +${RUN.lastPts} · 첫 돌파`);
   showMap();
 }
 
@@ -498,7 +498,7 @@ function battleEnd(win){
   completeNode();
   sfx('win'); bgm(calmSong());
   // 구슬 보상은 정예·보스(유물 다음)와 상점에서만: 매 전투마다 덱이 불면 구슬 하나하나의 무게가 가벼워진다
-  if (n.t === 'battle'){ RUN.pendingReward = null; saveRun(); if (RUN.lastPts) toast(`스킬 포인트 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 코인 +${gain}` + (RUN.lastPts ? ` · 스킬 포인트 +${RUN.lastPts}` : '')); return; }
+  if (n.t === 'battle'){ RUN.pendingReward = null; saveRun(); if (RUN.lastPts) toast(`공적 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 금화 +${gain}` + (RUN.lastPts ? ` · 공적 +${RUN.lastPts}` : '')); return; }
   RUN.pendingReward = n.t;
   saveRun();
   showReward(RUN.pendingReward);
@@ -523,12 +523,12 @@ function victory(){
   sfx('win'); bgm('calm');
   const got = (RUN.badges || []).map(id => BADGES.find(b => b.id === id).name);
   const result = () => showChoice({
-    mode:'result', title:king ? '탑이 무너졌다' : '원정 완료!',
-    sub:`${king ? '성벽의 왕' : '탑의 군주'}를 쓰러뜨렸다${asc ? `(고난 ${asc})` : ''}. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개.`
-      + ` 이번 원정 스킬 포인트 +${RUN.pts || 0}.` + (got.length ? ` 배지: ${got.join(', ')}.` : '')
-      + (firstClear ? ' 메인 화면에 심연으로 가는 문이 열렸다.' : '')
+    mode:'result', title:king ? '탑이 무너졌다' : '탑을 정복했다',
+    sub:`${king ? '성벽의 왕을' : '탑의 군주를'} 쓰러뜨렸다${asc ? `(고난 ${asc})` : ''}. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개.`
+      + ` 이번 원정 공적 +${RUN.pts || 0}.` + (got.length ? ` 훈장: ${got.join(', ')}.` : '')
+      + (firstClear ? ' 탑 입구에 심연으로 가는 문이 열렸다.' : '')
       + (opened ? ` 고난 ${META.asc}(${ASC[META.asc].name})이 열렸다.` : ''),
-    cards:[], buttons:[{ label:'메인 화면', primary:true, onClick:showMain }],
+    cards:[], buttons:[{ label:'탑 입구', primary:true, onClick:showMain }],
   });
   // 이야기: 진 엔딩 > 고난 n 첫 완주 조각 > 첫 완주 결말
   if (king) return storyOnce('end', result);
@@ -540,13 +540,13 @@ function runOver(){
   if (!G.ended){ G.ended = true; clearRun(); endRun(RUN); }   // 보통은 setLose가 이미 했다
   bgm(null); sfx('lose');
   showChoice({
-    mode:'result', title:'원정 실패',
-    sub:`${stageName(RUN.s)} ${n.r + 1}번째 방, ${G.cfg.name}에게 쓰러졌다. 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개를 모았다. 이번 원정 스킬 포인트 +${RUN.pts || 0} (가진 포인트 ${META.pts})`,
+    mode:'result', title:'기사가 쓰러졌다',
+    sub:`${stageName(RUN.s)} ${n.r + 1}번째 방, ${G.cfg.name}에게 쓰러졌다. 구슬 ${RUN.deck.length}개, 유물 ${Object.keys(RUN.relics).length}개를 모았다. 이번 원정 공적 +${RUN.pts || 0} (가진 공적 ${META.pts})`,
     cards:[], buttons:[
       // 쓰러진 곳이 심연이면 다시 심연으로(버튼이 인자 없이 부르므로 감싼다)
       { label:RUN.abyss ? '다시 심연으로' : '새 원정', primary:true, onClick:() => startNewRun(RUN.abyss) },
-      { label:'스킬 트리', onClick:() => { treePick = null; showTree(showMain); } },
-      { label:'메인 화면', onClick:showMain },
+      { label:'수련', onClick:() => { treePick = null; showTree(showMain); } },
+      { label:'탑 입구', onClick:showMain },
     ],
   });
   $('cTitle').className = 'big lose';

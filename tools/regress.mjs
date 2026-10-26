@@ -395,7 +395,7 @@ async function renameWith(reply, prof = {}){
   ok('닉네임 변경: 7일 안이면 폼이 잠기고 날짜 안내(서버에 안 보냄)', els.nameSave.disabled === true && els.nameIn.disabled === true && /다시 바꿀 수 있다/.test(els.nameMsg.textContent) && !sent.includes('rename')); }
 { const { t } = await renameWith(() => null);
   els.nameIn.value = '하람'; await els.renameForm.onsubmit({ preventDefault(){} });
-  ok('닉네임 변경: 오프라인이면 안내·이름 유지', /서버에 연결/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
+  ok('닉네임 변경: 오프라인이면 안내·이름 유지', /인터넷에 연결/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
 
 // ── 닉네임 금지어
 { const t = boot();
@@ -414,8 +414,12 @@ async function renameWith(reply, prof = {}){
   ok(`금지어: 정상 이름은 통과${wrong2.length ? ' 잘못 막음 ' + wrong2.join(',') : ''}`, wrong2.length === 0);
   // 자동 닉네임(약 15만 개)은 하나도 걸리면 안 된다: 처음 접속 때 서버 등록이 막힌다
   let hits = [];
-  for (const a of t.NICK_A) for (const b of t.NICK_B) for (const c of t.NICK_C){ const n = a + ' ' + b + ' ' + c; if (t.badName(n)) hits.push(n); }
-  ok(`금지어: 자동 닉네임 ${t.NICK_A.length * t.NICK_B.length * t.NICK_C.length}개 중 걸린 것 ${hits.length}개${hits.length ? ' 예: ' + hits.slice(0, 3).join(' / ') : ''}`, hits.length === 0);
+  for (const a of t.NICK_A) for (const b of t.NICK_B) for (const c of t.NICK_C){ const n = a + ' ' + b + ' ' + c; if (t.badName(n) || !t.validName(n)) hits.push(n); }
+  // 사물 낱말은 정확히 3음절 한글(세 묶음 길이를 맞춰 이름 폭이 고르게, 12자 상한 안에 들게)
+  const all = [...t.NICK_A, ...t.NICK_B, ...t.NICK_C];
+  const odd = all.filter(w => !/^[가-힣]{3}$/.test(w)).concat(all.filter((w, i) => all.indexOf(w) !== i));
+  ok(`자동 기사 이름 낱말(세 묶음 모두): 3음절·중복 없음${odd.length ? ' 어긋남 ' + odd.join(',') : ''}`, odd.length === 0);
+  ok(`금지어·형식: 자동 닉네임 ${t.NICK_A.length * t.NICK_B.length * t.NICK_C.length}개 중 걸린 것 ${hits.length}개${hits.length ? ' 예: ' + hits.slice(0, 3).join(' / ') : ''}`, hits.length === 0);
 }
 { const { t, sent } = await renameWith(() => ({ status:200, data:{ ok:true } }));
   els.nameIn.value = '시1발'; await els.renameForm.onsubmit({ preventDefault(){} });
@@ -473,4 +477,39 @@ async function renameWith(reply, prof = {}){
 { const t = boot({ [META_KEY]:'{"__proto__":{"polluted":1},"pts":3}' });
   const M2 = t.META();
   ok('메타 불러오기: "__proto__" 키가 프로토타입을 바꾸지 않음', M2.pts === 3 && Object.getPrototypeOf(M2) === Object.prototype && M2.polluted === undefined); }
+// ── 화면 용어(docs/GLOSSARY.md "쓰지 않는 말"): 화면 문구에 시스템 용어가 다시 들어오지 않게(2026-10-26 CTO 리뷰).
+// 주석은 개발 용어를 허용하므로 건너뛰고, 한글이 든 문자열·템플릿 리터럴(${} 안 코드는 제외)과 index.html의 글자·읽기용 속성만 본다.
+// privacy.html은 법적 문서라 "닉네임·서버·플레이어 식별자"를 그대로 쓰므로 검사하지 않는다. GLOSSARY의 "쓰지 않는 말"을 고치면 여기도 함께 고친다
+{
+  const BANNED = /코인|골드|배지|업적|랭킹|리더보드|스킬\s?트리|포인트|닉네임|메인\s?화면|메뉴|휴식|상점|판매됨|덜어내기|다시 뽑기|다시 뒤지기|리롤|노드|핵심|곱연산|완주|이어하기|플레이어|유저|서버|세션|페이즈|덱|탑의 주인/;
+  const BS = '\\';
+  function literals(src){
+    const out = []; let i = 0, line = 1;
+    while (i < src.length){
+      const c = src[i], d = src[i + 1];
+      if (c === '\n'){ line++; i++; continue; }
+      if (c === '/' && d === '/'){ while (i < src.length && src[i] !== '\n') i++; continue; }
+      if (c === '/' && d === '*'){ i += 2; while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')){ if (src[i] === '\n') line++; i++; } i += 2; continue; }
+      if (c === '"' || c === "'" || c === '`'){
+        const q = c, at = line; let s = ''; i++;
+        while (i < src.length && src[i] !== q){
+          if (src[i] === BS){ s += src[i + 1]; i += 2; continue; }
+          if (q === '`' && src[i] === '$' && src[i + 1] === '{'){ let dep = 1; i += 2; s += ' '; while (i < src.length && dep){ if (src[i] === '{') dep++; else if (src[i] === '}') dep--; i++; } continue; }
+          if (src[i] === '\n') line++;
+          s += src[i++];
+        }
+        i++; out.push({ line:at, s }); continue;
+      }
+      i++;
+    }
+    return out;
+  }
+  const hits = [];
+  for (const f of srcs) for (const { line, s } of literals(fs.readFileSync(path.join(ROOT, f), 'utf8')))
+    if (/[가-힣]/.test(s) && BANNED.test(s)) hits.push(`${f}:${line} "${s.slice(0, 40)}"`);
+  const body = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<!--[\s\S]*?-->/g, '');
+  for (const t of [...body.matchAll(/>([^<]+)</g)].map(m => m[1]).concat([...body.matchAll(/(?:aria-label|title|placeholder|alt)="([^"]*)"/g)].map(m => m[1])))
+    if (BANNED.test(t)) hits.push(`index.html "${t.trim().slice(0, 40)}"`);
+  ok(`화면 용어: 쓰지 않는 말 ${hits.length}건${hits.length ? ' — ' + hits.slice(0, 5).join(' / ') : ''}`, hits.length === 0);
+}
 process.exit(fail ? 1 : 0);
