@@ -27,7 +27,8 @@ RES = 4
 # 원본 시트의 줄별 조각 순서(왼쪽→오른쪽). None은 쓰지 않는 조각
 SHEET_ORDER = [
     ['orb_basic', 'orb_bomb', 'orb_drill', 'orb_guard', 'orb_split', 'orb_venom', 'orb_heavy'],
-    ['brick_n', 'brick_stone', 'brick_atk', 'brick_def', 'brick_heal', 'brick_poison'],
+    # 벽돌은 bricks.png(build_bricks)로 옮겼다. 조각 수 검사를 위해 자리만 남긴다
+    [None] * 6,
     ['ui_panel', 'ui_frame', 'coin', 'spark', 'rubble', 'ui_bar'],
 ]
 # 조각별 저장 크기(px). 구슬은 발사대 9px·HUD 48px 표시를 모두 감당하도록 넉넉히
@@ -120,6 +121,42 @@ def build_sheet():
             save(img, name)
 
 
+BRICK_GRID = [['brick_n', 'brick_stone', 'brick_atk'], ['brick_def', 'brick_heal', 'brick_poison']]
+
+
+def build_bricks():
+    """bricks.png(3×2 격자, 평평한 회색 배경)에서 벽돌 6장을 잘라 투명 배경으로 만든다.
+
+    collection.png 벽돌은 일반·특수 벽돌 질감이 비슷해 판에서 구분이 약했다. 배경색은 위·아래 가장자리
+    중앙값으로 잡고, 칸마다 전경이 충분한 행·열 범위로 벽돌 경계를 찾는다(흩어진 잡음 픽셀 무시).
+    """
+    im = np.asarray(Image.open(SRC / 'bricks.png').convert('RGB')).astype(int)
+    h, w, _ = im.shape
+    bg = np.median(np.concatenate([im[:8].reshape(-1, 3), im[-8:].reshape(-1, 3)]), axis=0)
+    fg = np.abs(im - bg).sum(axis=2) > 30
+    rows_n, cols_n = len(BRICK_GRID), len(BRICK_GRID[0])
+    for r, names in enumerate(BRICK_GRID):
+        for c, name in enumerate(names):
+            y0, x0 = r * h // rows_n, c * w // cols_n
+            m = fg[y0:(r + 1) * h // rows_n, x0:(c + 1) * w // cols_n]
+            ys = np.where(m.sum(axis=1) > m.shape[1] * .25)[0]
+            xs = np.where(m.sum(axis=0) > m.shape[0] * .25)[0]
+            assert len(ys) and len(xs), f'{name}: 벽돌을 찾지 못했다(bricks.png 배치 확인)'
+            by0, by1, bx0, bx1 = ys[0], ys[-1] + 1, xs[0], xs[-1] + 1
+            crop, mask = im[y0 + by0:y0 + by1, x0 + bx0:x0 + bx1], m[by0:by1, bx0:bx1]
+            # 바깥 테두리에서 이어진 배경만 투명으로(벽돌 안쪽의 회색 무늬는 지킨다)
+            ch, cw = mask.shape; out = np.zeros_like(mask)
+            q = deque([(y, x) for y in range(ch) for x in (0, cw - 1)] + [(y, x) for x in range(cw) for y in (0, ch - 1)])
+            while q:
+                y, x = q.popleft()
+                if y < 0 or x < 0 or y >= ch or x >= cw or out[y, x] or mask[y, x]:
+                    continue
+                out[y, x] = True; q.extend(((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)))
+            rgba = np.dstack([crop.astype(np.uint8), np.where(out, 0, 255).astype(np.uint8)])
+            # 원본(약 2:1)을 게임 벽돌(22:12) 비율로 맞춘다
+            save(Image.fromarray(rgba, 'RGBA').resize(SHEET_SIZE['brick'], Image.LANCZOS), name)
+
+
 def build_chars():
     for n in CHARS:
         img = Image.open(SRC / 'characters' / f'{n}.png').convert('RGBA')
@@ -154,6 +191,7 @@ def save(img, name):
 
 if __name__ == '__main__':
     build_sheet()
+    build_bricks()
     build_chars()
     build_bg()
     build_items()

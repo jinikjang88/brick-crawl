@@ -4,6 +4,15 @@
   "runtimeAssets": "assets/game (tools/build_game_assets.py)",
   "assets": [
     {
+      "path": "assets/illustrated/bricks.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB",
+      "alpha": false,
+      "bytes": 1810964,
+      "sha256": "132c887ec615670aab382ed451ddb653227a3b9f86fd966d78cdb1e710cf2c62"
+    },
+    {
       "path": "assets/illustrated/characters/bat.png",
       "width": 1254,
       "height": 1254,

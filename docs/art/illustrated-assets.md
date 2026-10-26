@@ -6,6 +6,7 @@
 
 - [던전 배경](../../assets/illustrated/dungeon.png): 사용자 제공 PNG를 그대로 보존.
 - [구슬·벽돌·UI 컬렉션](../../assets/illustrated/collection.png): 사용자 제공 PNG를 그대로 보존. 불규칙한 배치이므로 균등 격자 아틀라스로 취급하지 않는다.
+- [벽돌 6종](../../assets/illustrated/bricks.png) (2026-10-26 교체): Figma AI `generate_image`(gpt-image-2.5-sunburst)로 만든 3×2 시트. collection.png 벽돌은 일반·특수 벽돌 질감이 비슷해 판에서 구분이 약했다. 특수 벽돌(공격·방어·회복)은 상아 대리석 + 큰 청동 문양, 독은 붉은 균열 + 해골로 바꿨다. 프롬프트·약관 근거는 prompts.json `bricks`. Figma AI 약관상 Output은 사용자 소유이고 상업적 사용 제한 조항이 없다.
 - 캐릭터: 내장 imagegen으로 생성한 투명 배경 PNG. 생성 프롬프트는 [prompts.json](../../assets/illustrated/prompts.json), 크기·알파·체크섬은 [manifest.json](../../assets/illustrated/manifest.json)에 기록한다.
 
 ![던전 배경](../../assets/illustrated/dungeon.png)
@@ -36,7 +37,7 @@
 | `dungeon.png` | `dungeon.png` 720×1360, 128색 | 캔버스 전체 배경. 벽돌판은 `--field`로 45% 덮어 조준선 대비 확보, 다크 모드는 `--bg`로 78~84% 덮음 |
 | `characters/*.png` | 최대 256px | 전투 캐릭터. 발밑을 y=90에 맞추고 `ART_BOX` 상자 안에 비율대로 그린다 |
 | `collection.png` 구슬 7종 | `orb_*.png` 96px | 날아가는 구슬·발사대·HUD·보상 카드·메인 진열 |
-| `collection.png` 벽돌 6종 | `brick_*.png` 176×96 | 벽돌(n·stone·atk·def·heal·poison). 원본 3:2를 22:12로 늘림 |
+| `bricks.png` 벽돌 6종 | `brick_*.png` 176×96 | 벽돌(n·stone·atk·def·heal·poison). 회색 배경을 바깥에서부터 지워 투명화, 원본 약 2:1을 22:12로 맞춤 (`build_bricks`) |
 | `collection.png` 코인·불꽃 | `coin.png`·`spark.png` | 코인 칩 아이콘, 구슬 충돌 불꽃 |
 | `collection.png` 돌 파편 | `rubble.png` | 성벽 벽돌이 부서질 때 튀어 오르며 도는 파편 |
 | `collection.png` 패널 | `ui_panel.png` | 전투 시작 배너(몬스터 이름) `border-image` |
