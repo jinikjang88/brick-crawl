@@ -23,6 +23,9 @@ function fitCanvas(){
 }
 cv.width = W * RES; cv.height = H * RES;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// 데이터 표(ORBS·MON·RELICS…)에 그 id가 직접 있는지. 저장에서 읽은 문자열로 표를 찾을 때 쓴다:
+// 그냥 ORBS[k]로 보면 'constructor'·'toString' 같은 상속 키도 참이 되어 깨진 저장이 검사를 통과한다
+const hasKey = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
 // ── 난수. 게임 결과를 바꾸는 뽑기는 원정 시드에서 나온 흐름(s)을 쓴다:
 //   'map'    세션 지도(genMap 안에서만, 시드·세션으로 정해진다)
 //   'reward' 보상·상점·강화·코인(원정 내내 이어지고 RUN.rng에 저장된다. 새로고침으로 다시 뽑지 못하게)

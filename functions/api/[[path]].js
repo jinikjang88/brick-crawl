@@ -106,7 +106,9 @@ async function player(db, { id, name }, now){
   const cur = await db.prepare('SELECT name FROM players WHERE id = ?').bind(id).first();
   // 이미 등록된 id(응답을 못 받고 다시 보낸 경우 등)면 서버에 있는 이름이 정답이다
   if (cur) return json({ ok:true, name:cur.name });
-  const r = await db.prepare('INSERT OR IGNORE INTO players (id, name, created_at) VALUES (?, ?, ?)').bind(id, name, now).run();
+  // 대소문자만 다른 이름(Abc·ABC)도 같은 이름으로 본다: 공개 랭킹에서 남을 사칭하지 못하게. 검사와 삽입을 한 문장으로 해 동시 요청에도 하나만 들어간다
+  const r = await db.prepare(`INSERT OR IGNORE INTO players (id, name, created_at)
+      SELECT ?1, ?2, ?3 WHERE NOT EXISTS (SELECT 1 FROM players WHERE name = ?2 COLLATE NOCASE)`).bind(id, name, now).run();
   return r.meta.changes ? json({ ok:true, name }) : json({ error:'name taken' }, 409);
 }
 
@@ -163,7 +165,9 @@ async function rename(db, { id, name }, now){
   if (p.name_at && now - p.name_at < RENAME_GAP) return json({ error:'wait', nextAt:p.name_at + RENAME_GAP }, 429);
   let r;
   try {
-    r = await db.prepare('UPDATE players SET name = ?1, name_at = ?2 WHERE id = ?3 AND (name_at IS NULL OR name_at <= ?4)')
+    // 대소문자만 다른 남의 이름도 막는다(내 이름의 대소문자만 바꾸는 것은 된다)
+    r = await db.prepare(`UPDATE players SET name = ?1, name_at = ?2 WHERE id = ?3 AND (name_at IS NULL OR name_at <= ?4)
+        AND NOT EXISTS (SELECT 1 FROM players WHERE name = ?1 COLLATE NOCASE AND id != ?3)`)
       .bind(name, now, id, now - RENAME_GAP).run();
   } catch(e){
     if (/UNIQUE/i.test(String(e && e.message))) return json({ error:'name taken' }, 409);
@@ -171,6 +175,8 @@ async function rename(db, { id, name }, now){
   }
   // 동시에 보낸 다른 변경이 먼저 반영됐다: 그 시각 기준으로 다음 가능 시각을 알려 준다
   if (!r.meta.changes){
+    const taken = await db.prepare('SELECT 1 AS x FROM players WHERE name = ?1 COLLATE NOCASE AND id != ?2').bind(name, id).first();
+    if (taken) return json({ error:'name taken' }, 409);
     const cur = await db.prepare('SELECT name_at FROM players WHERE id = ?').bind(id).first();
     return json({ error:'wait', nextAt:((cur && cur.name_at) || now) + RENAME_GAP }, 429);
   }

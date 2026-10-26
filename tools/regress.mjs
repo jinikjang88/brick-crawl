@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   + 'catchChoice:()=>{ const got = [], orig = showChoice; showChoice = o => { got.push(o); orig(o); }; return got; },'
   + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName};';
@@ -108,6 +108,10 @@ const cases = {
   '잘못된 상점': mut(r => r.shop = [{ k:'orb', id:'nope', price:10 }]),
   '유물 보상에 구슬 후보': mut(r => { r.pendingReward = 'boss'; r.reward = { kind:'boss', stock:['bomb'], reroll:0 }; }),
   '대기 전투 칸의 몬스터 없음': mut(r => { const n = r.map[0][0]; n.t = 'battle'; n.mon = 'nope'; r.pending = { r:0, l:n.l }; }),
+  // 상속 키(코드 리뷰 2026-10-26): ORBS['constructor'] 같은 조회가 참이라 검사를 통과하고 전투가 끝나지 않았다
+  '상속 키 몬스터(toString)': mut(r => { const n = r.map[0][0]; n.t = 'battle'; n.mon = 'toString'; r.pending = { r:0, l:n.l }; }),
+  '상속 키 구슬·유물': mut(r => { r.deck = ['constructor', 'basic']; r.relics = { toString:1 }; }),
+  '모르는 배지 id': mut(r => { r.badges = ['nope', 'final']; }),
 };
 for (const [name, data] of Object.entries(cases)){
   let t, err = null;
@@ -448,8 +452,25 @@ async function renameWith(reply, prof = {}){
 { const t = boot(PROF([]), false, p => p === 'delete' ? { status:429, data:{ error:'rate' } } : { status:200, data:{ ok:true } });
   ok('기록 삭제: 속도 제한이면 busy', (await t.deleteProfile()).error === 'busy'); }
 { // 올리는 중에 삭제를 누르면: 지금 보내는 기록까지만 가고, 다음 기록은 지울 id로 보내지 않는다
-  const sent = []; let release; const gate = new Promise(f => release = f);
+  const sent = [];
   const t = boot(PROF([Q(1), Q(2)]), false, (p, b) => { sent.push(p + ':' + (b.rid || '')); return { status:200, data:{ ok:true } }; });
   const f = t.flushRecords(); const d = t.deleteProfile(); await f; const r = await d;
   ok('기록 삭제: 전송 중이면 다음 기록은 멈추고 삭제', r.ok && sent.filter(x => x.startsWith('record')).length <= 1 && sent.includes('delete:')); }
+// ── 코드 리뷰(2026-10-26) 회귀
+{ // 패배가 확정되는 순간 저장이 지워진다: 쓰러지는 연출 중 메뉴·새로고침으로 진 전투를 되돌릴 수 없다
+  const store = {}; const t = boot(store); click('mNew'); t.startBattle(BATTLE);
+  const had = !!store[RUN_KEY]; t.setLose(t.G);
+  const before = t.mode; t.openMenu();
+  ok('패배 확정: 저장 즉시 삭제 + 연출 중 메뉴 안 열림', had && !store[RUN_KEY] && t.mode === before && t.PROFILE.queue.length === 1); }
+{ const t = boot(); click('mNew'); t.startBattle(BATTLE); t.G.phase = 'win'; const m = t.mode; t.openMenu();
+  ok('승리 연출 중 메뉴 안 열림', t.mode === m); }
+{ const t = boot({ [RUN_KEY]:mut(r => { r.badges = ['nope', 'final']; r.relics = { toString:1, whetstone:1 }; r.deck = ['constructor', 'basic']; }) });
+  const R = t.loadRun();
+  ok('저장 보정: 상속 키 구슬·유물·모르는 배지 제거', R && R.deck.join() === 'basic' && JSON.stringify(R.relics) === '{"whetstone":1}' && R.badges.join() === 'final'); }
+{ const t = boot({ [RUN_KEY]:mut(r => { r.asc = 6; r.s = 4; r.king = true; r.pending = { r:4, l:99 }; }) });
+  const R = t.loadRun();
+  ok('저장 보정: 깨진 pending이면 근원 표시도 지움', R && R.pending === null && R.king === false); }
+{ const t = boot({ [META_KEY]:'{"__proto__":{"polluted":1},"pts":3}' });
+  const M2 = t.META();
+  ok('메타 불러오기: "__proto__" 키가 프로토타입을 바꾸지 않음', M2.pts === 3 && Object.getPrototypeOf(M2) === Object.prototype && M2.polluted === undefined); }
 process.exit(fail ? 1 : 0);

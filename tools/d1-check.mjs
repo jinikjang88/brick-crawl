@@ -65,6 +65,13 @@ ok('닉네임 변경: 남이 쓰는 이름은 409', (await post('rename', { id:P
 const both = await Promise.all(['갑' + RUNID.slice(0, 3), '을' + RUNID.slice(0, 3)].map(n => post('rename', { id:P, name:n })));
 ok('닉네임 변경: 동시 요청은 한 번만 반영(200 하나, 429 하나 + 다음 가능 시각)', both.filter(r => r.status === 200).length === 1 && both.filter(r => r.status === 429 && r.data.nextAt > Date.now()).length === 1);
 ok('닉네임 변경: 직접 입력 형식으로도 등록 가능', (await post('player', { id:u(Date.now() % 1e9 + 9), name:'Knight ' + RUNID.slice(0, 3) })).status === 200);
+// 6-1) 대소문자만 다른 이름은 같은 이름(사칭 방지)
+const KN = 'Knight' + RUNID.slice(0, 4), K1 = u(Date.now() % 1e9 + 41), K2 = u(Date.now() % 1e9 + 42);
+await post('player', { id:K1, name:KN });
+ok('등록: 대소문자만 다른 이름은 409', (await post('player', { id:K2, name:KN.toUpperCase() })).status === 409);
+await post('player', { id:K2, name:'Other' + RUNID.slice(0, 4) });
+ok('변경: 대소문자만 다른 남의 이름은 409', (await post('rename', { id:K2, name:KN.toLowerCase() })).status === 409);
+ok('변경: 내 이름의 대소문자만 바꾸기는 200', (await post('rename', { id:K1, name:KN.toUpperCase() })).status === 200);
 // 8) 남용 방지(2026-10-26): 시작 표 없이·너무 빨리 끝난 기록은 랭킹에 5칸까지만, 충분히 지나면 그대로
 const V = u(Date.now() % 1e9 + 21); await post('player', { id:V, name:'검증' + RUNID.slice(0, 4) });
 const best = () => sql(`SELECT best FROM players WHERE id='${V}'`)[0].best;

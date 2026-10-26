@@ -84,7 +84,7 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .sndRow{display:flex;gap:6px;justify-content:center}
 .sndBtn{min-height:44px;min-width:84px;padding:0 10px;border:2px solid var(--ink);border-bottom-width:4px;border-radius:0;background:var(--panel);color:var(--ink);font-size:13px;font-weight:800;cursor:pointer}
 .sndBtn:active{border-bottom-width:2px;transform:translateY(2px)}
-.sndBtn.off{border-style:dashed;border-color:var(--ink3);color:var(--ink3)}
+.sndBtn.off{border-style:dashed;border-color:var(--ink3);color:var(--ink2)}  /* 글자가 --ink3이면 대비 2.6:1(AA 미달). 꺼짐은 점선 테두리로 구분 */
 .mainBtns{display:flex;flex-direction:column;gap:8px;width:100%;max-width:260px}
 .mainBtns .btn{min-height:56px}
 .btnRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
@@ -157,11 +157,9 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .cardBody{flex:1;min-width:0}
 .rCard{transition:background .15s}
 .rCard:hover:not(:disabled),.btn:hover:not(:disabled){background:var(--field)}
-.btn.primary:hover:not(:disabled){background:var(--ink2)}
 .rCard span{display:block;margin-top:4px;line-height:1.5}
 .mapHead{width:100%;padding:4px 0 10px;border-bottom:1px solid var(--ink3)}
 .playHint{display:none;text-align:center;margin:0;font-size:12px;color:var(--ink2)}
-.app[data-mode="play"] .playHint{display:block}
 .app[data-mode="main"] .hud,.app[data-mode="main"] .orbBar,.app[data-mode="main"] .abil{display:none}
 .app[data-mode="main"] .stage{width:clamp(240px,calc((100svh - 80px) * .5294),100%)}
 .abil .none{color:var(--ink2)}
@@ -289,7 +287,7 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 /* 심연 버튼: 위험한 곳이라 붉은 테 + 어두운 석판. 잠겨 있으면 점선 */
 .btn.abyssBtn{min-height:52px;color:#ECE4DA;background:#141113;border-color:var(--accent);letter-spacing:.08em}
 .btn.abyssBtn:hover:not(:disabled){background:#2A2225}
-.btn.abyssBtn:disabled{opacity:1;color:var(--ink3);background:var(--panel);border-color:var(--ink3);border-style:dashed;letter-spacing:0;font-size:14px}
+.btn.abyssBtn:disabled{opacity:1;color:var(--ink2);background:var(--panel);border-color:var(--ink3);border-style:dashed;letter-spacing:0;font-size:14px}
 /* 보조 버튼: 얇은 테·작은 글씨, 나란히. 시작 버튼과 모양부터 다르게 */
 .subBtns{display:flex;gap:8px;width:100%;max-width:280px}
 .subBtn{flex:1;min-height:48px;border:2px solid var(--ink3);border-radius:0;background:var(--panel);color:var(--ink);font-size:14px;font-weight:800;cursor:pointer;padding:4px 6px;line-height:1.25}
