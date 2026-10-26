@@ -20,6 +20,11 @@ function fitCanvas(){
   // 0.05 여유: 테두리 반올림으로 6.01배처럼 살짝 넘칠 때 한 단계 큰 배율(=더 많이 축소)로 튀지 않게
   const n = clamp(Math.ceil(px / W - 0.05), 2, 8);
   if (n !== RES || cv.width !== W * n){ RES = n; cv.width = W * n; cv.height = H * n; }
+  // 전투 중 열 폭을 판 폭에 맞추는 CSS 변수(css "레이아웃 시스템"). 판 폭이 아니라 판이 쓸 수 있는 높이(.stageWrap)에서 9:17로 계산한다:
+  // 판 폭을 그대로 쓰면 열이 줄고 → 판이 줄고 → 열이 또 주는 순환으로 판이 몇 px까지 쪼그라들었다. 값이 바뀔 때만 써서 매 프레임 스타일을 건드리지 않는다
+  const wrap = cv.parentNode && cv.parentNode.parentNode, bh = wrap && wrap.clientHeight;
+  const bw = bh ? Math.floor(bh * 9 / 17) : 0;
+  if (bw && bw !== fitCanvas.bw){ fitCanvas.bw = bw; try { document.documentElement.style.setProperty('--board-w', bw + 'px'); } catch(e){} }
 }
 cv.width = W * RES; cv.height = H * RES;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
