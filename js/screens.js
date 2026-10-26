@@ -75,15 +75,7 @@ function showMain(){
   nw.classList.toggle('hero', !saved);
   nw.textContent = '새 원정'; nw.dataset.arm = '';
   // 심연은 본편을 한 번 깨야 열린다. 닫혀 있을 때도 자리를 보여 줘 "끝에 무언가 있다"는 걸 알린다
-  // 고난 단계: 한 번이라도 완주해야 보인다. 누를 때마다 다음 단계로(열린 단계까지 돌고 0으로)
-  const as = $('mAsc'); as.hidden = !META.asc;
-  if (META.asc){
-    const k = META.ascPick;
-    as.textContent = k ? `고난 ${k} · ${ASC[k].name}` : '고난 없음';
-    const sm = document.createElement('small');
-    sm.textContent = k ? `${ASC[k].desc}${k > 1 ? ` (+ 고난 1~${k - 1} 규칙)` : ''}` : `누르면 고난 단계를 고른다 · 열린 단계 ${META.asc}/${ASC_MAX}`;
-    as.append(sm);
-  }
+  renderAsc();
   ab.disabled = !abyssOpen(); ab.dataset.arm = '';
   ab.textContent = abyssOpen() ? '심연으로' : '심연 · 5층을 깨면 열린다';
   if (abyssOpen() && META.abyssBest){ const sm = document.createElement('small'); sm.textContent = `최고 ${progLabel(MAIN_CELLS + META.abyssBest)}`; ab.append(sm); }
@@ -159,10 +151,21 @@ $('deleteGo').onclick = async () => {
     $('mName').textContent = PROFILE.name; BOARD = null; toast('서버 기록을 지웠다'); refreshBoard(); $('mDelete').focus();
   } else $('deleteMsg').textContent = r.error === 'busy' ? '요청이 많다. 잠시 뒤 다시 해 본다' : '서버에 연결해야 지울 수 있다';
 };
-$('mAsc').onclick = () => { if (mode !== 'main') return; META.ascPick = (META.ascPick + 1) % (META.asc + 1); saveMeta(); sfx('pick'); showMain(); $('mAsc').focus(); };
+// 고난 단계 버튼: 한 번이라도 완주해야 보인다. 누를 때마다 다음 단계로(열린 단계까지 돌고 0으로)
+function renderAsc(){
+  const as = $('mAsc'); as.hidden = !META.asc;
+  if (!META.asc) return;
+  const k = META.ascPick;
+  as.textContent = k ? `고난 ${k} · ${ASC[k].name}` : '고난 없음';
+  const sm = document.createElement('small');
+  sm.textContent = k ? `${ASC[k].desc}${k > 1 ? ` (+ 고난 1~${k - 1} 규칙)` : ''}` : `누르면 고난 단계를 고른다 · 열린 단계 ${META.asc}/${ASC_MAX}`;
+  as.append(sm);
+}
+// 메인 전체를 다시 만들면(배경 전투·랭킹 요청까지) 연타 한 번마다 서버 요청이 나갔다: 버튼 글자만 바꾼다
+$('mAsc').onclick = () => { if (mode !== 'main') return; META.ascPick = (META.ascPick + 1) % (META.asc + 1); saveMeta(); sfx('pick'); renderAsc(); };
 $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 // 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
-try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); }); } catch(e){}
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); else if (mode === 'map') showMap(); else if (mode === 'pause') themeDirty = true; }); } catch(e){}
 function startNewRun(abyss){
   RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => markSeen('orb', orbKind(o))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
   // 첫 원정에는 이야기의 시작을 먼저 보여 준다(한 번만)
@@ -192,9 +195,13 @@ function endRun(r){ recordRun(r); }
 
 // ── 랭킹: 밀린 기록을 먼저 올리고 받아 온다. 서버가 없거나 실패하면 조용히 비워 둔다(게임은 오프라인으로도 돈다)
 let BOARD = null;
+let boardSeq = 0;
 async function refreshBoard(){
+  const seq = ++boardSeq;
   await flushRecords();
-  BOARD = await loadBoard() || BOARD;
+  const b = await loadBoard();
+  if (seq !== boardSeq) return;   // 그사이 더 새 요청이 나갔다: 늦게 온 옛 응답으로 덮지 않는다
+  BOARD = b || BOARD;
   if (PROFILE) $('mName').textContent = PROFILE.name;   // 등록 중 이름이 겹쳐 다시 뽑혔을 수 있다
   renderBoard();
 }
@@ -529,7 +536,8 @@ function victory(){
   storyOnce('end1', result);
 }
 function runOver(){
-  const n = G.node; clearRun(); endRun(RUN);
+  const n = G.node;
+  if (!G.ended){ G.ended = true; clearRun(); endRun(RUN); }   // 보통은 setLose가 이미 했다
   bgm(null); sfx('lose');
   showChoice({
     mode:'result', title:'원정 실패',

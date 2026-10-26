@@ -65,6 +65,7 @@
   | `functions/api/[[path]].js` | (서버) 기록 API: `player`·`start`·`record`·`board`·`rename`·`delete`, 속도 제한 |
   | `privacy.html` | 개인정보 처리방침(독립 페이지, 게임 스크립트를 불러오지 않는다) |
   | `db/schema.sql` | (서버) D1 테이블: `players`·`runs`·`starts`·`rate` |
+- 저장에서 읽은 문자열로 데이터 표(`ORBS`·`MON`·`RELICS`…)를 찾을 때는 `hasKey(표, id)`를 쓴다(`ORBS[id]`는 `constructor` 같은 상속 키도 참이 된다). 저장된 객체를 `Object.assign`으로 통째로 덮지 말고 아는 키만 옮긴다.
 - 연출용 무작위(파티클 등)와 게임 결과에 영향을 주는 무작위를 구분한다. 후자는 원정 시드에서 나온 흐름 `rand(s)`(`js/config.js`, `'map'`·`'reward'`·`'battle'`)를 쓰고, 전자는 흐름 없이 `Math.random`을 쓴다.
 
 ## UI·시각 규칙

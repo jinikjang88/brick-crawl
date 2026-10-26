@@ -2,14 +2,25 @@
 'use strict';
 
 // ── 메뉴(일시정지)
+// 메뉴가 없는 화면. 도감(badge)에서 Esc로 메뉴가 열리면 "원정 포기"가 메인 배경용 가짜 원정을 기록으로 올렸다
+const NO_MENU = ['main', 'pause', 'result', 'tree', 'badge'];
 function openMenu(){
-  if (mode === 'main' || mode === 'pause' || mode === 'result' || mode === 'tree') return;
+  if (NO_MENU.includes(mode)) return;
+  // 승패가 정해진 뒤의 연출 중에는 열지 않는다(곧 결과·보상 화면으로 넘어간다)
+  if (mode === 'play' && G && (G.phase === 'win' || G.phase === 'lose')) return;
   prevMode = mode; mode = 'pause';
   $('pMainSub').textContent = prevMode === 'play' ? '이번 전투는 처음부터 다시 시작된다' : '진행은 저장되어 있다';
   $('pGiveup').textContent = '원정 포기'; $('pGiveup').dataset.arm = '';
   $('ovPause').classList.add('on'); $('pResume').focus();
 }
-function closeMenu(){ if (mode !== 'pause') return; $('ovPause').classList.remove('on'); mode = prevMode; }
+// 메뉴에서 테마를 바꿨다면 돌아갈 때 지도를 다시 그린다: 지도 아이콘·길은 그릴 때의 색을 박아 둬 옛 테마 색이 남는다
+let themeDirty = false;
+function closeMenu(){
+  if (mode !== 'pause') return;
+  $('ovPause').classList.remove('on'); mode = prevMode;
+  if (themeDirty && mode === 'map') showMap();
+  themeDirty = false;
+}
 $('btnMenu').onclick = () => mode === 'pause' ? closeMenu() : openMenu();
 $('pResume').onclick = closeMenu;
 $('pMain').onclick = () => { $('ovPause').classList.remove('on'); showMain(); };
@@ -39,6 +50,7 @@ function renderTheme(){ ['mTheme', 'pTheme'].forEach(id => { $(id).textContent =
   try { localStorage.setItem(THEME_KEY, THEME); } catch(e){}
   applyTheme(); readColors(); renderTheme();
   if (mode === 'main') drawLogo($('logoCv'));
+  if (mode === 'pause') themeDirty = true;
 });
 renderTheme();
 document.addEventListener('pointerdown', unlockAudio, true);
@@ -58,13 +70,13 @@ addEventListener('keydown', e => {
 // ── 메인 루프
 let last = performance.now();
 function frame(now){
+  requestAnimationFrame(frame);   // 먼저 예약: 아래에서 예외가 나도 다음 프레임은 돈다(한 번의 오류로 화면이 영구 정지하지 않게)
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (G && mode === 'play') update(dt);
   draw(); drawScene(dt);
   // 전투 중에는 코인 그림(::before)이 "코인"을 대신해 글자를 줄인다(한 줄 헤더에서 몬스터 이름 자리를 지키려고). 읽기 프로그램용 이름은 따로 단다
   if (G && mode === 'play'){ const h = $('hCoin'), t = `${RUN.coins} · ${G.turn}턴`;
     if (h.textContent !== t){ h.textContent = t; h.setAttribute('aria-label', `코인 ${RUN.coins}, ${G.turn}턴`); } }
-  requestAnimationFrame(frame);
 }
 showMain();
 requestAnimationFrame(frame);

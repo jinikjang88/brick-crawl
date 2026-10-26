@@ -18,7 +18,7 @@ let META = META_BASE();
   try {
     const m = JSON.parse(localStorage.getItem(META_KEY));
     // best 하나가 깨졌다고 통째로 버리면 다음 saveMeta()가 정상 포인트·트리·배지까지 덮어쓴다. 칸별 보정은 아래에서
-    if (m && typeof m === 'object' && !Array.isArray(m)){ META = Object.assign(META_BASE(), m); return; }
+    if (m && typeof m === 'object' && !Array.isArray(m)){ META = META_BASE(); for (const k of Object.keys(META)) if (hasKey(m, k)) META[k] = m[k]; return; }
   } catch(e){}
 })();
 // 메타는 원정보다 소중하다(포인트·배지·도감): 버리지 않고 깨진 칸만 기본값으로 메운다
@@ -53,9 +53,9 @@ function fixMap(map){
     const row = map[r];
     if (!Array.isArray(row) || !row.length) return false;
     for (const n of row){
-      if (!isObj(n) || n.r !== r || !isInt(n.l, 0, LANES - 1) || !NODE_NAME[n.t] || !Array.isArray(n.to)) return false;
+      if (!isObj(n) || n.r !== r || !isInt(n.l, 0, LANES - 1) || !hasKey(NODE_NAME, n.t) || !Array.isArray(n.to)) return false;
       // 싸우는 칸은 몬스터가 있어야 이어하기에서 전투를 만들 수 있다
-      if ((n.t === 'battle' || n.t === 'elite' || n.t === 'boss') && !(typeof n.mon === 'string' && MON[n.mon])) return false;
+      if ((n.t === 'battle' || n.t === 'elite' || n.t === 'boss') && !hasKey(MON, n.mon)) return false;
       // 다음 줄에 없는 칸으로 이어지면 지도에서 길이 끊긴다
       if (r < 4 && (!n.to.length || n.to.some(l => !map[r + 1].some(m => m && m.l === l)))) return false;
     }
@@ -70,16 +70,14 @@ function fixRun(r){
   if (!isObj(r.rng) || !isInt(r.rng.reward, 0, 4294967295)) r.rng = { reward:seedOf(r.seed, 'reward') };
 
   if (!Array.isArray(r.deck)) return null;
-  r.deck = r.deck.filter(o => typeof o === 'string' && ORBS[orbKind(o)] && orbLv(o) <= UP_MAX);
+  r.deck = r.deck.filter(o => typeof o === 'string' && hasKey(ORBS, orbKind(o)) && orbLv(o) <= UP_MAX);
   if (!r.deck.length) return null;
   const relics = {};
   if (isObj(r.relics)) for (const k in r.relics)
-    if (RELICS[k] && isInt(r.relics[k], 1, 99)) relics[k] = Math.min(r.relics[k], RELICS[k].max || 1);
+    if (hasKey(RELICS, k) && isInt(r.relics[k], 1, 99)) relics[k] = Math.min(r.relics[k], RELICS[k].max || 1);
   r.relics = relics;
   r.abyss = !!r.abyss;
   r.asc = r.abyss ? 0 : isInt(r.asc, 0, ASC_MAX) ? r.asc : 0;
-  // 근원 표시는 고난 6·마지막 층·최종 보스 칸 대기 중일 때만 뜻이 있다. 그 밖이면 중간 층 보스가 근원으로 바뀌어 원정이 잘못 끝난다
-  r.king = r.king === true && r.asc >= ASC_MAX && r.s === FINAL_S && !!r.pending && r.pending.r === 4;
   r.s = isInt(r.s, 0, r.abyss ? 9999 : SESSIONS - 1) ? r.s : 0;
   r.maxHp = Math.round(numOr(r.maxHp, 24, 1));
   r.hp = Math.max(1, Math.min(r.maxHp, Math.round(numOr(r.hp, r.maxHp))));
@@ -90,9 +88,14 @@ function fixRun(r){
   r.pos = cellOk(r.map, r.pos) ? { r:r.pos.r, l:r.pos.l } : null;
   r.pending = cellOk(r.map, r.pending) ? { r:r.pending.r, l:r.pending.l } : null;
   r.path = Array.isArray(r.path) ? r.path.filter(p => Array.isArray(p) && cellOk(r.map, { r:p[0], l:p[1] })) : [];
+  // 근원 표시는 고난 6·마지막 층·최종 보스 칸 대기 중일 때만 뜻이 있다. 그 밖이면 중간 층 보스가 근원으로 바뀌어 원정이 잘못 끝난다.
+  // pending을 검사한 뒤에 본다: 깨진 pending이 지워지기 전에 판정하면 근원 표시만 남아 군주를 건너뛰었다
+  r.king = r.king === true && r.asc >= ASC_MAX && r.s === FINAL_S && !!r.pending && r.pending.r === 4;
+  // 이번 원정 배지: 모르는 id가 섞이면 완주 화면이 이름을 못 찾아 멈춘다
+  r.badges = Array.isArray(r.badges) ? r.badges.filter(id => BADGES.some(b => b.id === id)) : [];
   if (typeof r.pendingReward !== 'string') r.pendingReward = null;
   // 보상 후보·상점 진열은 다시 뽑으면 된다: 하나라도 이상하면 통째로 비운다
-  const idOk = (k, id) => k === 'orb' ? !!ORBS[id] : k === 'relic' ? !!RELICS[id] : ['heal', 'upgrade', 'remove'].includes(k);
+  const idOk = (k, id) => k === 'orb' ? hasKey(ORBS, id) : k === 'relic' ? hasKey(RELICS, id) : ['heal', 'upgrade', 'remove'].includes(k);
   // 구슬 보상엔 구슬만, 유물 보상엔 유물만: 엇갈리면 보상 화면이 다른 표에서 이름을 찾다 멈춘다
   if (!(isObj(r.reward) && typeof r.reward.kind === 'string' && Array.isArray(r.reward.stock)
     && r.reward.stock.every(id => (isOrbReward(r.reward.kind) ? ORBS : RELICS)[id]))) r.reward = null;

@@ -407,7 +407,7 @@ function update(dt){
   // 몬스터는 구슬 말고도 반격·독 같은 간접 피해로 몬스터 턴 중에 쓰러질 수 있다.
   // 그대로 두면 몬스터 턴이 끝까지 돌고 조준까지 넘어가 구슬을 한 번 더 쏴야 승리가 났다. 어느 경로든 여기서 바로 끝낸다.
   // 같은 공격에 기사도 쓰러졌다면 패배: 체력 0으로 원정을 이어갈 수는 없다
-  if (g.m.dead && (g.phase === 'enemy' || g.phase === 'aim')){ g.phase = g.p.hp > 0 ? 'win' : 'lose'; g.timer = 0; }
+  if (g.m.dead && (g.phase === 'enemy' || g.phase === 'aim')){ if (g.p.hp > 0){ g.phase = 'win'; g.timer = 0; } else setLose(g); }
 
   if (g.phase === 'aim'){
     // 조준선은 일정 속도로 좌우를 왕복한다(삼각파). 가장자리에서 느려지지 않아야 타이밍이 공정하다
@@ -443,12 +443,19 @@ function update(dt){
   }
 }
 
+// 패배는 확정되는 순간 저장을 지우고 기록을 올린다. 쓰러지는 연출(0.8초) 동안 메뉴로 나가거나
+// 새로고침·앱 전환을 하면 저장이 전투 전 상태로 남아 진 전투를 처음부터 다시 할 수 있었다(퍼마데스 우회, 기록 부풀리기)
+function setLose(g){
+  g.phase = 'lose'; g.timer = 0;
+  if (!g.ended){ g.ended = true; clearRun(); endRun(RUN); }
+}
+
 function endPlayerTurn(){
   const g = G, m = g.m;
   if (g.nextLx !== null) g.lx = g.nextLx;
   g.nextLx = null;
   if (m.dead){ g.phase = 'win'; g.timer = 0; return; }
-  if (g.p.hp <= 0){ g.phase = 'lose'; g.timer = 0; return; }
+  if (g.p.hp <= 0){ setLose(g); return; }
   g.phase = 'enemy'; g.timer = 0; g.eStep = 0;
   if (g.turn === 1 && rel('buckler')){ const v = defGain(3); g.p.def += v; pop(PX + 12, 88, '+' + v, C.ink, 'shield'); }
   // 몬스터 독: 몬스터가 행동하기 직전에 방어도를 무시하고 들어간다
@@ -534,7 +541,7 @@ function enemyUpdate(dt){
     else if (g.cur.t === 'stun'){}
     else if (g.cur.t === 'atk' && ++m.ai < atkN(g.cur)){} else { m.ai = 0; m.pi++; }
     g.mirror = 0;
-    if (p.hp <= 0){ g.phase = 'lose'; g.timer = 0; return; }
+    if (p.hp <= 0){ setLose(g); return; }
     // phase를 먼저 바꾼다: drawOrb가 구슬 줄을 다시 그릴 때 "발사!"가 "발사 대기"로 돌아오게
     g.phase = 'aim'; g.turn++; g.cur = null;
     if (g.sealNext){ g.seal = g.sealNext; g.sealNext = sealShift(g.seal); }
