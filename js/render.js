@@ -193,7 +193,8 @@ function drawAbyssFx(t){
 
 // ── HUD
 function setHeader(stage, name){ $('hStage').textContent = stage; $('hName').textContent = name; }
-function renderCoins(){ $('hCoin').textContent = RUN && mode !== 'main' ? `코인 ${RUN.coins}` : ''; }
+// 전투 중에는 main.js가 줄인 글자("120 · 3턴")와 따로 읽기용 이름을 단다. 전투 밖에서는 글자 그대로를 이름으로 덮어 옛 턴 수가 읽히지 않게
+function renderCoins(){ const h = $('hCoin'), t = RUN && mode !== 'main' ? `코인 ${RUN.coins}` : ''; h.textContent = t; h.setAttribute('aria-label', t); }
 function deckSummary(){
   const cnt = {}; RUN.deck.forEach(o => cnt[o] = (cnt[o] || 0) + 1);
   return Object.keys(cnt).map(o => `${orbName(o).replace(' 구슬', '')} ${cnt[o]}`).join(', ');

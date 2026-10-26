@@ -444,8 +444,9 @@ function startBattle(n){
   if (n.t === 'boss' && RUN.king) n = Object.assign({}, n, { mon:'king' });
   newBattle(n);
   const label = `${stageName(RUN.s)} · ${n.r + 1}번째 방`;
-  // 공백 두 칸은 HTML에서 하나로 줄어 "세션 11-1"처럼 붙어 읽혔다. 구분점으로 나눈다
-  setHeader(`${stageName(RUN.s)} · ${n.r + 1}번째 방 ${G.cfg.final ? '최종 보스' : NODE_NAME[n.t]}`, G.cfg.name);
+  // 전투 헤더는 한 줄 폭에 몬스터 이름이 먼저 다 보여야 해서 위치는 "1-5 보스"·"심연 2-3 정예"처럼 줄인다.
+  // 긴 표기("1층 · 5번째 방")는 시작 배너가 크게 보여 준다
+  setHeader(`${RUN.abyss ? '심연 ' : ''}${RUN.s + 1}-${n.r + 1} ${G.cfg.final ? '최종 보스' : NODE_NAME[n.t]}`, G.cfg.name);
   setMode('play', null);
   banner(G.cfg.final ? '최종 보스' : n.t === 'boss' ? `${stageName(RUN.s)} 보스` : label, G.cfg.name, n.t !== 'battle');
   bgm(n.t === 'boss' ? 'boss' : RUN.abyss ? 'deep' : 'battle');

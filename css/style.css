@@ -361,3 +361,27 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .big,.btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.hName,.hStage,.hCoin,.orbCurrent small,.orbCurrent b,.orbNext,.rCard b,.node small,.mapHead .t,
 .banner,.whoLbl,.who b,.tagline,.logo,.treeInfo b,.tBranch,.tNode,.bCard b,.bHead,.board,.toast,.abil{font-family:var(--font-game);letter-spacing:0}
 
+/* ── 전투 화면 = 폰 한 화면(2026-10 출시 검토 P0): 발사대가 화면 아래로 밀려 잘리던 문제.
+   전투 중에는 브랜드 띠·조작 힌트를 숨기고 위쪽 줄을 납작하게 해 세로를 판에 돌려준다(조작은 첫 판에서 몸으로 익힌다) */
+.app[data-mode="play"] .brandStrip,.app[data-mode="play"] .playHint{display:none}
+.app[data-mode="play"]{padding-top:6px;padding-bottom:8px;gap:6px}
+/* 헤더 한 줄: [층-방 표기 위 · 몬스터 이름 아래 | 코인·턴 | 메뉴]. 이름이 가장 중요하므로 줄이지 않고, 표기는 "1-5 보스"처럼 짧게 둔다 */
+.app[data-mode="play"] .hud{min-height:40px;padding:0;gap:8px}
+.app[data-mode="play"] .hud > div:first-child{min-width:0}
+.app[data-mode="play"] .hStage{font-size:12px;min-height:0;line-height:1.2;white-space:nowrap}
+.app[data-mode="play"] .hName{font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app[data-mode="play"] .hRight{gap:6px;flex:none}
+.app[data-mode="play"] .hCoin{font-size:13px}
+.app[data-mode="play"] .iconBtn{height:40px}
+/* 구슬 줄: 높이 60 → 48 */
+.app[data-mode="play"] .orbBar:not(:empty){min-height:48px;padding:3px 8px}
+.app[data-mode="play"] .orbCurrent .orbPortrait{width:46px;height:46px;border-width:7px}
+.app[data-mode="play"] .orbCurrent b{font-size:15px}
+/* 유물: 한 줄 가로 스크롤. 유물이 늘어 줄이 바뀌면 판이 아래로 밀려 다시 잘리므로 높이를 고정한다 */
+.app[data-mode="play"] .abil{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;min-height:26px;scrollbar-width:none}
+.app[data-mode="play"] .abil span{flex:none;white-space:nowrap}
+/* 판 크기: 위 줄들(약 156px)과 안전 영역을 뺀 세로에 9:17로 맞춘 폭. 폭이 모자라면 100%가 이긴다 */
+.app[data-mode="play"] .stage{width:min(100%,calc((100svh - 156px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)) * .5294))}
+
+/* ── 선택 카드·트리 설명: 양피지 그림의 놋쇠 장식이 테두리 폭(26px)보다 안쪽까지 그려져 있어 글자가 장식에 겹쳤다. 안쪽 여백으로 비킨다 */
+.rCard,.treeInfo{padding:8px 22px 8px 16px}
