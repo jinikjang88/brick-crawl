@@ -19,7 +19,8 @@ body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:
 button{font:inherit}
 button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 
-.app{max-width:var(--col);margin:0 auto;padding:10px 12px 14px;display:flex;flex-direction:column;gap:6px}
+/* 앱 = 화면 높이 그대로의 세로 열. 위쪽 줄이 쓰고 남은 높이를 .stageWrap이 갖는다(파일 끝 "레이아웃 시스템") */
+.app{max-width:var(--col);margin:0 auto;padding:16px 12px 14px;display:flex;flex-direction:column;gap:8px;height:calc(100vh - var(--safe));height:calc(100dvh - var(--safe))}
 .hud{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px}
 .hStage{font-size:14px;color:var(--ink2);font-weight:600;min-height:21px}
 .hName{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
@@ -37,8 +38,8 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 .relicMini{width:22px;height:22px;object-fit:contain;order:-1}
 img.bIc{object-fit:contain;image-rendering:auto}
 
-.stageWrap{display:flex;justify-content:center}
-.stage{position:relative}
+.stageWrap{flex:1;min-height:320px;container-type:size;display:flex;justify-content:center;align-items:flex-start}
+.stage{position:relative;width:100%;height:100%}
 /* 캔버스 백버퍼는 표시 크기 이상(fitCanvas)이라 축소만 일어난다. 최근접 축소는 도트를 들쭉날쭉 지우므로 기본 보간을 쓴다 */
 #cv{position:absolute;top:0;left:50%;height:100%;width:auto;max-width:100%;aspect-ratio:9/17;transform:translateX(-50%);display:block;border:2px solid var(--ink);border-bottom-width:4px;border-radius:0;touch-action:none;cursor:pointer}
 
@@ -128,7 +129,6 @@ img.bIc{object-fit:contain;image-rendering:auto}
 @media (prefers-reduced-motion: reduce){ .banner{transition:none} .node,.node.reach{animation:none} .btn:active,.rCard:active,.iconBtn:active{transform:none} }
 
 /* 얇은 인쇄선과 단차로 원정 장비 같은 무게감을 준다. */
-.app{gap:8px;padding-top:16px}
 .brandStrip{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ink3);padding-bottom:8px;font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--ink2)}
 .brandStrip span:last-child{letter-spacing:0;font-weight:500}
 .hud{padding:4px 0}
@@ -399,9 +399,7 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
    - --col = 열 최대 폭. 폰은 화면 폭 그대로, 태블릿·PC는 600px까지 넓혀 메뉴 글자가 한 줄에 들어오게 한다.
    - --content = 카드·버튼 묶음 최대 폭. 줄이 너무 길면 읽기 어렵다 */
 :root{--col:600px;--content:420px;--safe:calc(env(safe-area-inset-top,0px) + env(safe-area-inset-bottom,0px))}
-.app{height:calc(100vh - var(--safe));height:calc(100dvh - var(--safe))}
-.stageWrap{flex:1;min-height:320px;container-type:size;display:flex;justify-content:center;align-items:flex-start}
-.stage{width:100%;height:100%}
+/* .app 높이·.stageWrap(크기 컨테이너)·.stage 기본 크기는 각 선택자의 원래 자리에서 정한다. 여기에는 모드별 변경만 둔다 */
 /* 앞 줄은 컨테이너 쿼리(cqw·cqh)를 모르는 브라우저(iOS 15·오래된 WebView)용 어림값. 아는 브라우저는 뒷줄이 덮는다 */
 .app[data-mode="play"] .stage{height:auto;aspect-ratio:9/17;width:min(100%,calc((100vh - 170px - var(--safe)) * .5294));width:min(100cqw,100cqh * 9 / 17)}
 /* 전투판 캔버스는 전투 때만 보인다(일시정지 중에도 data-mode는 play로 남는다). 다른 화면에서는 오버레이 가장자리 틈으로 판 테두리가 잔선처럼 비쳤다 */
