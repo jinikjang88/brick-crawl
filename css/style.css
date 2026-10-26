@@ -19,7 +19,7 @@ body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:
 button{font:inherit}
 button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 
-.app{max-width:460px;margin:0 auto;padding:10px 12px 14px;display:flex;flex-direction:column;gap:6px}
+.app{max-width:var(--col);margin:0 auto;padding:10px 12px 14px;display:flex;flex-direction:column;gap:6px}
 .hud{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px}
 .hStage{font-size:14px;color:var(--ink2);font-weight:600;min-height:21px}
 .hName{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
@@ -38,9 +38,9 @@ button:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
 img.bIc{object-fit:contain;image-rendering:auto}
 
 .stageWrap{display:flex;justify-content:center}
-.stage{position:relative;aspect-ratio:9/17;width:clamp(240px,calc((100vh - 160px) * .5294),100%);width:clamp(240px,calc((100svh - 160px) * .5294),100%)}
+.stage{position:relative}
 /* 캔버스 백버퍼는 표시 크기 이상(fitCanvas)이라 축소만 일어난다. 최근접 축소는 도트를 들쭉날쭉 지우므로 기본 보간을 쓴다 */
-#cv{position:absolute;inset:0;width:100%;height:100%;display:block;border:2px solid var(--ink);border-bottom-width:4px;border-radius:0;touch-action:none;cursor:pointer}
+#cv{position:absolute;top:0;left:50%;height:100%;width:auto;max-width:100%;aspect-ratio:9/17;transform:translateX(-50%);display:block;border:2px solid var(--ink);border-bottom-width:4px;border-radius:0;touch-action:none;cursor:pointer}
 
 .ov{position:absolute;inset:2px 2px 4px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:18px;text-align:center;background:var(--bg);background:color-mix(in srgb,var(--bg) 97%,transparent);overflow:auto;z-index:5}
 .ov.on{display:flex}
@@ -52,7 +52,7 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .ovMain .logo{font-size:15px;font-weight:800;letter-spacing:.4em;color:var(--ink2);margin:-4px 0 4px;padding-left:.4em}
 .who{display:flex;align-items:stretch;border:2px solid var(--ink);background:var(--panel);font-size:15px;max-width:100%}
 .whoLbl{background:var(--ink);color:var(--bg);font-size:12px;font-weight:800;padding:0 7px;display:flex;align-items:center}
-.who b{padding:3px 10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who b{display:flex;align-items:center;padding:3px 10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 닉네임 변경: 탭 타겟 44px, 붉은색 없이(위험이 아니다) */
 .whoRow{display:flex;align-items:stretch;gap:6px;max-width:100%}
 .renameBtn{min-width:44px;min-height:44px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);font-weight:800;font-size:14px;padding:0 10px;cursor:pointer}
@@ -89,11 +89,11 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .mainBtns .btn{min-height:56px}
 .btnRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 
-.cards{display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px}
+.cards{display:flex;flex-direction:column;gap:8px;width:100%;max-width:var(--content)}
 .rCard{display:block;width:100%;text-align:left;padding:9px 14px;border:2px solid var(--ink);border-bottom-width:4px;background:var(--panel);color:var(--ink);border-radius:0;cursor:pointer;min-height:56px}
 .rCard:active{border-bottom-width:2px;transform:translateY(2px)}
 .rCard:disabled{opacity:.4;cursor:default}
-.rCard b{display:flex;justify-content:space-between;gap:8px;font-size:18px;font-weight:800;line-height:1.3}
+.rCard b{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:0 8px;font-size:18px;font-weight:800;line-height:1.3;word-break:keep-all}
 .rCard b em{font-style:normal;font-size:14px;font-weight:700;color:var(--ink2);white-space:nowrap}
 .rCard span{font-size:14px;color:var(--ink2)}
 .rCard.rare{border-color:var(--accent)}  /* 그림 테두리를 못 불러왔을 때의 폴백: 그림이 있으면 붉은 이름으로만 구분 */
@@ -133,7 +133,6 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .brandStrip span:last-child{letter-spacing:0;font-weight:500}
 .hud{padding:4px 0}
 #cv{border:3px solid var(--ink);border-bottom-width:6px}
-.stage{width:clamp(240px,calc((100svh - 220px) * .5294),100%)}
 .ov{inset:3px 3px 6px;background:var(--bg);padding:18px 14px}
 .ovMain{gap:10px;background:var(--field);border:6px double var(--line)}
 .logoCv{width:155px;height:110px}
@@ -161,7 +160,6 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .mapHead{width:100%;padding:4px 0 10px;border-bottom:1px solid var(--ink3)}
 .playHint{display:none;text-align:center;margin:0;font-size:12px;color:var(--ink2)}
 .app[data-mode="main"] .hud,.app[data-mode="main"] .orbBar,.app[data-mode="main"] .abil{display:none}
-.app[data-mode="main"] .stage{width:clamp(240px,calc((100svh - 80px) * .5294),100%)}
 .abil .none{color:var(--ink2)}
 @media(max-width:360px){.orbCurrent b{font-size:14px}.orbCurrent .orbPortrait{width:38px;height:38px}.orbNext{gap:3px}.ov{padding:12px 10px}.big{font-size:25px}}
 @media(prefers-reduced-motion:reduce){.rCard{transition:none}}
@@ -211,7 +209,6 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .orbCurrent b .dmg{font-style:normal;font-size:12px;font-weight:800;margin-left:6px;padding:0 5px;border:1px solid var(--ink3);color:var(--ink2);vertical-align:2px}
 /* 스킬 트리: 십자 갈래(위 공격·아래 방어·왼쪽 구슬·오른쪽 경제). 핵심 노드는 마름모 */
 .app[data-mode="tree"] .hud,.app[data-mode="tree"] .orbBar,.app[data-mode="tree"] .abil{display:none}
-.app[data-mode="tree"] .stage{width:clamp(240px,calc((100svh - 80px) * .5294),100%)}
 .ovTree{justify-content:flex-start;gap:6px}
 .treeBox{position:relative;width:100%;max-width:320px;aspect-ratio:1/1.05;flex:none;margin:6px 0}
 .treeBox svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
@@ -298,7 +295,6 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 
 /* ── 배지 화면 */
 .app[data-mode="badge"] .hud,.app[data-mode="badge"] .orbBar,.app[data-mode="badge"] .abil{display:none}
-.app[data-mode="badge"] .stage{width:clamp(240px,calc((100svh - 80px) * .5294),100%)}
 .ovBadge{gap:8px}
 .badgeBox{list-style:none;margin:0;padding:0;width:100%;max-width:320px;display:flex;flex-direction:column;gap:6px}
 .bCard{display:flex;align-items:center;gap:10px;text-align:left;padding:6px 10px;border:2px dashed var(--ink3);background:var(--panel);color:var(--ink2)}
@@ -389,8 +385,60 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 /* 유물: 한 줄 가로 스크롤. 유물이 늘어 줄이 바뀌면 판이 아래로 밀려 다시 잘리므로 높이를 고정한다 */
 .app[data-mode="play"] .abil{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;min-height:26px;scrollbar-width:none}
 .app[data-mode="play"] .abil span{flex:none;white-space:nowrap}
-/* 판 크기: 위 줄들(약 160px, 메뉴 버튼은 탭 타겟 44px을 지킨다)과 안전 영역을 뺀 세로에 9:17로 맞춘 폭. 폭이 모자라면 100%가 이긴다 */
-.app[data-mode="play"] .stage{width:min(100%,calc((100svh - 160px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)) * .5294))}
 
 /* ── 선택 카드·트리 설명: 양피지 그림의 놋쇠 장식이 테두리 폭(26px)보다 안쪽까지 그려져 있어 글자가 장식에 겹쳤다. 안쪽 여백으로 비킨다 */
 .rCard,.treeInfo{padding:8px 22px 8px 16px}
+
+/* ── 레이아웃 시스템(2026-10-26 UI/UX): 판 크기 규칙을 여기 한 곳에 모은다.
+   - 앱은 화면 높이 그대로의 세로 열이고, 위쪽 줄(브랜드 띠·헤더·구슬 줄·유물 줄)이 쓰고 남은 높이를 .stageWrap이 전부 갖는다.
+     판 크기는 그 남은 공간을 컨테이너 쿼리(cqw·cqh)로 재서 정한다: 위쪽 줄 높이를 숫자로 가정하지 않으므로
+     구슬 줄이 두 줄로 꺾이거나 유물이 늘어도 판이 화면 밖으로 밀리지 않는다(예전 "100svh - 160px"는 짧은 폰에서 5px 넘쳤다).
+   - 세로 고정 게임: 전투판(#cv)만 9:17을 지키고, 지도·보상·상점·메뉴 같은 오버레이는 열 폭과 남은 높이를 다 쓴다.
+     (오버레이가 9:17 판 안에 갇혀 있어 짧은 화면에서 폭이 240px까지 줄고 카드 이름이 한 글자씩 꺾였다)
+   - --col = 열 최대 폭. 폰은 화면 폭 그대로, 태블릿·PC는 600px까지 넓혀 메뉴 글자가 한 줄에 들어오게 한다.
+   - --content = 카드·버튼 묶음 최대 폭. 줄이 너무 길면 읽기 어렵다 */
+:root{--col:600px;--content:420px;--safe:calc(env(safe-area-inset-top,0px) + env(safe-area-inset-bottom,0px))}
+.app{height:calc(100vh - var(--safe));height:calc(100dvh - var(--safe))}
+.stageWrap{flex:1;min-height:320px;container-type:size;display:flex;justify-content:center;align-items:flex-start}
+.stage{width:100%;height:100%}
+.app[data-mode="play"] .stage{height:auto;aspect-ratio:9/17;width:min(100cqw,100cqh * 9 / 17)}
+/* 전투판 캔버스는 전투(와 그 위 일시정지) 때만 보인다. 다른 화면에서는 오버레이 가장자리 틈으로 판 테두리가 잔선처럼 비쳤다 */
+.app:not([data-mode="play"]):not([data-mode="pause"]) #cv{visibility:hidden}
+/* 전투 중에는 열을 판 폭에 가깝게 줄여 헤더·구슬 줄이 판 가장자리와 같은 선에 서게 한다(위쪽 줄 약 170px을 뺀 어림값. 어긋나도 판 크기에는 영향 없다).
+   단, 헤더가 한 줄에 들어가는 320px 아래로는 줄이지 않는다 */
+.app[data-mode="play"]{max-width:clamp(320px,calc((100dvh - 170px - var(--safe)) * .5294 + 24px),var(--col))}
+
+/* ── 세로 고정: 가로로 눕힌 폰(낮은 화면 + 손가락 입력)에서는 판이 손가락 두 개 폭으로 줄어 플레이할 수 없다.
+   게임을 가리고 세로로 세우라고 알린다(전투 중이면 main.js가 일시정지한다). 태블릿·PC 가로는 세로 열을 가운데 두고 그대로 쓴다 */
+.rotateHint{display:none}
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
+  .rotateHint{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--bg);color:var(--ink);text-align:center;padding:24px}
+  .rotateHint .ri{width:56px;height:88px;border:4px solid var(--ink);border-bottom-width:8px;animation:riTurn 1.6s ease-in-out infinite}
+  .rotateHint b{font-size:20px}
+  .rotateHint span{font-size:14px;color:var(--ink2)}
+  .app{visibility:hidden}
+}
+@keyframes riTurn{0%,30%{transform:rotate(-90deg)}60%,100%{transform:rotate(0)}}
+
+/* ── 상호작용: 누를 수 있는 것은 모두 같은 규칙으로 반응한다(마우스 올림 = 살짝 떠오름, 누름 = 눌려 내려감, 키보드 = 같은 초점 테).
+   손가락 기기에는 올림 효과가 없다(hover가 눌린 채 남는 문제) */
+@media (hover:hover) and (pointer:fine){
+  .btn:hover:not(:disabled),.subBtn:hover,.sndBtn:hover,.renameBtn:hover,.iconBtn:hover,.rCard:hover:not(:disabled){transform:translateY(-1px)}
+}
+.btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.rCard,.linkbtn{transition:transform .12s ease-out,filter .12s,background-color .12s}
+.btn:active:not(:disabled),.subBtn:active,.sndBtn:active,.renameBtn:active,.iconBtn:active,.rCard:active:not(:disabled){transform:translateY(2px)}
+.linkbtn:active{opacity:.6}
+:is(.btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.rCard,.linkbtn,.node,.tNode,a):focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
+/* 화면 전환: 오버레이가 열릴 때 짧게 떠오르며 나타난다(어느 화면으로 바뀌었는지 눈이 따라가게) */
+.ov.on{animation:ovIn .18s ease-out}
+@keyframes ovIn{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion: reduce){
+  .ov.on,.rotateHint .ri{animation:none}
+  .btn,.subBtn,.sndBtn,.renameBtn,.iconBtn,.rCard,.linkbtn{transition:none}
+  .btn:active,.subBtn:active,.sndBtn:active,.renameBtn:active,.iconBtn:active,.rCard:active{transform:none}
+}
+
+/* ── 정렬 규칙(어정쩡한 위치 금지): 오버레이 = 제목·부제·버튼 가운데 / 카드 안 = 왼쪽 정렬 / 위쪽 줄 = 왼쪽 정렬.
+   판 위쪽 줄(구슬 줄 상자·유물 줄)은 같은 왼쪽 선에 선다: "유물 없음"이 상자 안쪽 글자보다 7px 들어가 있던 것을 맞춘다 */
+.abil .none{padding:0}
+.ov .sub,.ov .big{max-width:var(--content)}

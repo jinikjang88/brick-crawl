@@ -30,6 +30,8 @@ $('pGiveup').onclick = e => {
   $('ovPause').classList.remove('on'); clearRun(); endRun(RUN); showMain();
 };
 document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') openMenu(); });
+// 폰을 가로로 눕히면 세로 안내가 게임을 가린다(css "세로 고정"과 같은 조건). 전투 중이면 그 사이 몬스터가 움직이지 않게 멈춘다
+try { matchMedia('(orientation: landscape) and (max-height: 520px) and (pointer: coarse)').addEventListener('change', e => { if (e.matches && mode === 'play') openMenu(); }); } catch(e){}
 
 // ── 소리 켬/끔(메인·메뉴 두 곳에 같은 버튼). 브라우저는 첫 입력 전에 소리를 막으므로 첫 탭·키에서 연다
 const SND_BTNS = [['mBgm','bgm'], ['mSfx','sfx'], ['pBgm','bgm'], ['pSfx','sfx']];
