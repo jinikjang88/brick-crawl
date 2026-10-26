@@ -442,9 +442,14 @@ async function renameWith(reply, prof = {}){
 { const sent = []; const t = boot(PROF([Q(3)]), false, (p, b) => { sent.push(p + ':' + b.id); return { status:200, data:{ ok:true } }; });
   const old = t.PROFILE.id, r = await t.deleteProfile();
   ok('기록 삭제: 서버에 옛 id로 요청, 새 id·미등록·빈 대기열', r.ok && sent.includes('delete:' + old) && t.PROFILE.id !== old && !t.PROFILE.registered && t.PROFILE.queue.length === 0); }
-{ const t = boot(PROF([]), false, p => p === 'delete' ? null : { status:200, data:{ ok:true } });
+{ const t = boot(PROF([Q(3)]), false, p => p === 'delete' || p === 'record' ? null : { status:200, data:{ ok:true } });
   const old = t.PROFILE.id, r = await t.deleteProfile();
-  ok('기록 삭제: 오프라인이면 offline, id 유지', r.error === 'offline' && t.PROFILE.id === old); }
+  ok('기록 삭제: 오프라인이면 offline, id·못 보낸 기록 유지', r.error === 'offline' && t.PROFILE.id === old && t.PROFILE.queue.map(q => q.rid).join() === 'r3'); }
 { const t = boot(PROF([]), false, p => p === 'delete' ? { status:429, data:{ error:'rate' } } : { status:200, data:{ ok:true } });
   ok('기록 삭제: 속도 제한이면 busy', (await t.deleteProfile()).error === 'busy'); }
+{ // 올리는 중에 삭제를 누르면: 지금 보내는 기록까지만 가고, 다음 기록은 지울 id로 보내지 않는다
+  const sent = []; let release; const gate = new Promise(f => release = f);
+  const t = boot(PROF([Q(1), Q(2)]), false, (p, b) => { sent.push(p + ':' + (b.rid || '')); return { status:200, data:{ ok:true } }; });
+  const f = t.flushRecords(); const d = t.deleteProfile(); await f; const r = await d;
+  ok('기록 삭제: 전송 중이면 다음 기록은 멈추고 삭제', r.ok && sent.filter(x => x.startsWith('record')).length <= 1 && sent.includes('delete:')); }
 process.exit(fail ? 1 : 0);
