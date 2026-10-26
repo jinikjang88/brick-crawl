@@ -80,6 +80,14 @@ await post('start', { id:V, rid:u(84) });
 sql(`UPDATE starts SET started_at = started_at - ${40 * 5000 + 1000} WHERE rid='${u(84)}'`);
 const n4 = await post('record', { id:V, rid:u(84), progress:40 }, true);
 ok('칸당 5초 이상 지난 기록: 그대로 반영(40)', n4.data.verified === true && best() === 40);
+// 심연: 본편 완주를 인정받은 플레이어(V, best 40)는 심연 첫 칸(26) 기록에 한 칸 시간만 요구한다
+await post('start', { id:V, rid:u(85) });
+sql(`UPDATE starts SET started_at = started_at - 6000 WHERE rid='${u(85)}'`);
+ok('심연 첫 칸: 본편 완주자는 한 칸 시간이면 검증(26)', (await post('record', { id:V, rid:u(85), progress:26 }, true)).data.verified === true);
+const W = u(Date.now() % 1e9 + 22); await post('player', { id:W, name:'심연' + RUNID.slice(0, 4) });
+await post('start', { id:W, rid:u(86) }); sql(`UPDATE starts SET started_at = started_at - 6000 WHERE rid='${u(86)}'`);
+const n6 = await post('record', { id:W, rid:u(86), progress:26 }, true);
+ok('심연 첫 칸 위장: 본편 완주 전이면 26칸 시간 필요(미검증, 5칸)', n6.data.verified === false && sql(`SELECT best FROM players WHERE id='${W}'`)[0].best === 5);
 ok('없는 경로 404', (await post('nope', { id:V })).status === 404);
 ok('큰 본문 413', (await post('board', { id:V, pad:'x'.repeat(3000) })).status === 413);
 const bursts = []; for (let i = 0; i < 32; i++) bursts.push((await post('board', { id:V })).status);

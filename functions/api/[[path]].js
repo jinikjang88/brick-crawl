@@ -36,6 +36,8 @@ const MIN_CELL_MS = 5000;
 // 검증 못 한 기록(오프라인에서 시작한 원정·옛 버전·너무 빠른 기록)도 1세션 보스(5칸)까지는 랭킹에 반영한다:
 // 오프라인 플레이어를 통째로 빼지 않되, 위조로 상위권을 차지하지는 못하게
 const FREE_PROGRESS = 5;
+// 본편 칸 수(js/save.js MAIN_CELLS = 5세션 × 5칸). 심연 기록은 이 위에 이어 센다(js/profile.js runProgress)
+const MAIN_CELLS = 25;
 // 속도 제한 [최대 횟수, 창(초)]. 플레이어 id별로 세고 IP별로도 센다.
 // 국내 이동통신은 여러 사람이 IP 하나를 나눠 쓰므로(CGNAT) IP 한도는 넉넉하게 두고, 실제 제한은 id 쪽이 한다
 const LIMIT = { player:[5, 3600], start:[30, 60], record:[30, 60], board:[30, 60], rename:[10, 3600] };
@@ -127,7 +129,10 @@ async function record(db, { id, rid, progress, epoch }, now){
   // 랭킹에 쓰는 값(score): 이 플레이어가 시작 표를 받았고 칸당 최소 시간이 지났으면 진행도 그대로, 아니면 FREE_PROGRESS까지만.
   // 원래 진행도(progress)도 남겨 나중에 기준을 바꿔도 다시 셀 수 있게 한다
   const t = await db.prepare('SELECT started_at FROM starts WHERE rid = ? AND player_id = ?').bind(rid, id).first();
-  const verified = !!t && now - t.started_at >= progress * MIN_CELL_MS;
+  // 심연 원정은 본편 25칸을 더해 보내지만 이번 원정에서 실제로 지나간 칸은 그 위뿐이다. 본편 가산을 시간 검증에서 빼 준다.
+  // 단 서버가 이미 본편 완주(best ≥ 25)를 인정한 플레이어만: 아니면 "심연 1칸"이라 속여 26칸을 5초에 얻을 수 있다
+  const played = progress > MAIN_CELLS && p.best >= MAIN_CELLS ? progress - MAIN_CELLS : progress;
+  const verified = !!t && now - t.started_at >= played * MIN_CELL_MS;
   const score = verified ? progress : Math.min(progress, FREE_PROGRESS);
   // 원정 행 삽입과 플레이어 집계를 batch(한 트랜잭션)로 묶는다: 삽입만 되고 집계가 실패하면
   // 재전송이 "중복"으로 끝나 집계가 영영 빠졌다(R03).
