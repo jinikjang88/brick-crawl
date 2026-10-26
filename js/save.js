@@ -86,6 +86,7 @@ function fixRun(r){
   r.coins = Math.floor(numOr(r.coins, 0));
   r.pts = Math.floor(numOr(r.pts, 0));
   if (typeof r.rid !== 'string') r.rid = uuid();
+  r.tk = r.tk === true;   // 서버가 원정 시작 표를 받았는지(net.js ticketRun). 모르면 다시 보낸다
   r.pos = cellOk(r.map, r.pos) ? { r:r.pos.r, l:r.pos.l } : null;
   r.pending = cellOk(r.map, r.pending) ? { r:r.pending.r, l:r.pending.l } : null;
   r.path = Array.isArray(r.path) ? r.path.filter(p => Array.isArray(p) && cellOk(r.map, { r:p[0], l:p[1] })) : [];

@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   + 'catchChoice:()=>{ const got = [], orig = showChoice; showChoice = o => { got.push(o); orig(o); }; return got; },'
   + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName};';
@@ -420,4 +420,22 @@ async function renameWith(reply, prof = {}){
   els.nameIn.value = '평범한이름'; await els.renameForm.onsubmit({ preventDefault(){} });
   ok('닉네임 변경: 서버가 금지어로 거절(400 bad)하면 같은 안내', /쓸 수 없는 단어/.test(els.nameMsg.textContent)); }
 
+// ── 원정 시작 표(2026-10-26 남용 방지): 받으면 기억해 다시 보내지 않고, 실패하면 다음에 다시 보낸다
+{ const sent = [];
+  const t = boot(PROF([]), false, (p, b) => { sent.push(p); return p === 'start' ? { status:200, data:{ ok:true } } : { status:200, data:{ ok:true } }; });
+  const r = { rid:'11111111-1111-4111-8111-111111111111' };
+  await t.ticketRun(r); await t.ticketRun(r);
+  ok('시작 표: 성공하면 r.tk, 두 번째는 보내지 않음', r.tk === true && sent.filter(x => x === 'start').length === 1); }
+{ const t = boot(PROF([]), false, p => p === 'start' ? null : { status:200, data:{ ok:true } });
+  const r = { rid:'11111111-1111-4111-8111-111111111112' }; await t.ticketRun(r);
+  ok('시작 표: 통신 실패면 tk 없음(다음에 다시)', !r.tk); }
+{ const t = boot(PROF([]), false, p => p === 'start' ? { status:429, data:{ error:'rate' } } : { status:200, data:{ ok:true } });
+  const r = { rid:'11111111-1111-4111-8111-111111111113' }; await t.ticketRun(r);
+  ok('시작 표: 속도 제한(429)이면 tk 없음', !r.tk); }
+{ let n = 0; const t = boot(PROF([], false), false, p => { if (p === 'player') n++; return { status:200, data:{ ok:true } }; });
+  await Promise.all([t.ticketRun({ rid:'11111111-1111-4111-8111-111111111114' }), t.ticketRun({ rid:'11111111-1111-4111-8111-111111111114' }), t.flushRecords()]);
+  ok('동시에 불러도 닉네임 등록 요청은 하나', n === 1); }
+{ const names = []; const t = boot(PROF([], false), false, (p, b) => { if (p !== 'player') return { status:200, data:{ ok:true } }; names.push(b.name); return names.length === 1 ? { status:400, data:{ error:'bad' } } : { status:200, data:{ ok:true } }; });
+  await t.flushRecords();
+  ok('서버가 자동 닉네임을 거절(400 bad)하면 새로 뽑아 등록', names.length === 2 && names[0] !== names[1] && t.PROFILE.registered === true); }
 process.exit(fail ? 1 : 0);
