@@ -106,6 +106,6 @@ function fixRun(r){
 function clearRun(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
 // 칸 번호 → 화면 표기. 본편은 1~25("세션-칸"), 그 위는 심연(26 = 심연 1층 1칸)
 const MAIN_CELLS = SESSIONS * 5;
-const progLabel = p => p > MAIN_CELLS ? `심연 ${Math.floor((p - MAIN_CELLS - 1) / 5) + 1}-${(p - MAIN_CELLS - 1) % 5 + 1}`
+const progLabel = p => p > MAIN_CELLS ? `심층부 ${Math.floor((p - MAIN_CELLS - 1) / 5) + 1}-${(p - MAIN_CELLS - 1) % 5 + 1}`
   : `${Math.floor((p - 1) / 5) + 1}-${(p - 1) % 5 + 1}`;
 const abyssOpen = () => META.clears > 0;

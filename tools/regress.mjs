@@ -9,7 +9,7 @@ const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode
   + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   + 'catchChoice:()=>{ const got = [], orig = showChoice; showChoice = o => { got.push(o); orig(o); }; return got; },'
-  + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName};';
+  + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName,MON,STORY};';
 // 프롤로그(첫 원정의 이야기)는 따로 검사한다. 다른 검사는 새 원정 → 바로 지도를 기대하므로 본 것으로 둔다
 let FRESH_STORY = false;
 const code = '(() => {' + srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n' + EXPOSE + '})();';
@@ -276,19 +276,19 @@ function seeded(mathSeed, seed = 777){
   const store = {}; const t = boot(store); const M = t.META(); M.asc = 6; M.ascPick = 6; click('mNew');
   const R = t.RUN; R.s = 4; R.map = t.genMap(4, false, R.seed); R.pos = { r:3, l:2 }; t.saveRun();
   const got = t.catchChoice(); t.enterNode(R.map[4][0]);
-  ok('고난 6: 5층 보스는 먼저 탑의 군주', t.G.cfg.name === '탑의 군주');
+  ok('고난 6: 5층 보스는 먼저 최종 보스(lord)', t.G.cfg.name === t.MON.lord.name);
   t.G.p.hp = 17; t.battleEnd(true);
   const st = got.find(o => o.mode === 'story');
-  ok('고난 6: 군주 격파 → 근원 이야기 → 저장에 근원 표시', R.king === true && st && st.title === '근원' && JSON.parse(store[RUN_KEY]).king === true);
+  ok('고난 6: 군주 격파 → 근원 이야기 → 저장에 근원 표시', R.king === true && st && st.title === t.STORY.root.title && JSON.parse(store[RUN_KEY]).king === true);
   st.buttons[0].onClick();
-  ok('근원: 성벽의 왕, 천장 2칸 봉인, 체력 이어짐', t.G.cfg.name === '성벽의 왕' && t.G.seal.length === 2 && t.G.p.hp === 17);
+  ok('근원: 근원 보스(king), 천장 2칸 봉인, 체력 이어짐', t.G.cfg.name === t.MON.king.name && t.G.seal.length === 2 && t.G.p.hp === 17);
   const u = boot(store); click('mContinue');
-  ok('근원 중 새로고침 → 성벽의 왕부터 이어하기', !!u.G && u.G.cfg.name === '성벽의 왕');
+  ok('근원 중 새로고침 → 근원 보스부터 이어하기', !!u.G && u.G.cfg.name === u.MON.king.name);
   const got2 = u.catchChoice(); u.G.m.hp = 0; u.G.m.dead = true; u.battleEnd(true);
   const M2 = u.META();
-  ok('근원 격파: 진 엔딩 이야기·아침 배지·고난 6 완주 기록', got2.some(o => o.mode === 'story' && o.title === '성벽이 내려간 아침') && M2.badges.root >= 1 && M2.ascClear[6] === 1);
+  ok('근원 격파: 진 엔딩 이야기·아침 배지·고난 6 완주 기록', got2.some(o => o.mode === 'story' && o.title === u.STORY.end.title) && M2.badges.root >= 1 && M2.ascClear[6] === 1);
   const fin = got2.find(o => o.mode === 'story'); fin.buttons[0].onClick();
-  ok('진 엔딩 → 결과 화면 "탑이 무너졌다"', got2.some(o => o.mode === 'result' && o.title === '탑이 무너졌다'));
+  ok('진 엔딩 → 결과 화면 "알고리즘이 멈췄다"', got2.some(o => o.mode === 'result' && o.title === '알고리즘이 멈췄다'));
 }
 { // 근원 페이즈: 2페이즈부터 다음 봉인 예고·턴마다 이동, 3페이즈 봉인 3칸
   const t = boot(); click('mNew'); t.newBattle({ r:4, l:2, t:'boss', mon:'king' }); const G = t.G;
@@ -310,18 +310,18 @@ function seeded(mathSeed, seed = 777){
   const t = boot(); const M = t.META(); M.asc = 1; M.ascPick = 1; M.story = { intro:1, end1:1 }; click('mNew');
   const R = t.RUN; t.newBattle({ r:4, l:2, t:'boss', mon:'lord' }); R.pending = { r:4, l:2 };
   const got = t.catchChoice(); t.victory();
-  ok('고난 1 완주: 고난 2 열림·골라짐, 조각 a1', M.asc === 2 && M.ascPick === 2 && M.story.a1 === 1 && got.some(o => o.title === '첫 번째 조각 · 성주'));
+  ok('고난 1 완주: 고난 2 열림·골라짐, 조각 a1', M.asc === 2 && M.ascPick === 2 && M.story.a1 === 1 && got.some(o => o.title === t.STORY.a1.title));
   const t2 = boot(); const M2 = t2.META(); M2.asc = 3; M2.ascPick = 1; M2.story = { intro:1, end1:1, a1:1 }; click('mNew');
   t2.newBattle({ r:4, l:2, t:'boss', mon:'lord' }); t2.RUN.pending = { r:4, l:2 }; const g2 = t2.catchChoice(); t2.victory();
   ok('낮은 단계 재완주: 해금 없음·이미 본 조각은 다시 안 보임', M2.asc === 3 && !g2.some(o => o.mode === 'story'));
   const t3 = boot(); const M3 = t3.META(); click('mNew');
   t3.newBattle({ r:4, l:2, t:'boss', mon:'lord' }); t3.RUN.pending = { r:4, l:2 }; const g3 = t3.catchChoice(); t3.victory();
-  ok('첫 완주: 결말 1 "빈 갑옷" → 고난 1 열림', M3.asc === 1 && g3.some(o => o.title === '빈 갑옷'));
+  ok('첫 완주: 결말 1(end1) → 고난 1 열림', M3.asc === 1 && g3.some(o => o.title === t3.STORY.end1.title));
 }
 { // 첫 원정: 프롤로그 → 지도. 두 번째 원정은 바로 지도
   FRESH_STORY = true;
   const store = {}; const t = boot(store); const got = t.catchChoice(); click('mNew');
-  ok('첫 원정: 프롤로그', t.mode === 'story' && got[0] && got[0].title === '성벽이 내려온 밤');
+  ok('첫 원정: 프롤로그', t.mode === 'story' && got[0] && got[0].title === t.STORY.intro.title);
   got[0].buttons[0].onClick(); ok('프롤로그 → 지도', t.mode === 'map');
   const u = boot(store); click('mNew'); click('mNew'); ok('두 번째 원정: 프롤로그 없이 지도', u.mode === 'map');
   FRESH_STORY = false;
@@ -353,7 +353,7 @@ function seeded(mathSeed, seed = 777){
   const R = t.RUN; R.relics.medkit = 2; R.s = 4; R.map = t.genMap(4, false, R.seed); R.pos = { r:3, l:2 };
   const got = t.catchChoice(); t.enterNode(R.map[4][0]); t.G.p.hp = 9; t.battleEnd(true);
   got.find(o => o.mode === 'story').buttons[0].onClick();
-  ok('근원 전환: 회복 없이 군주전 체력 그대로(9)', t.G.cfg.name === '성벽의 왕' && t.G.p.hp === 9);
+  ok('근원 전환: 회복 없이 군주전 체력 그대로(9)', t.G.cfg.name === t.MON.king.name && t.G.p.hp === 9);
   M.tree = {};
 }
 { // 리뷰 반영: 성벽의 왕 2페이즈는 체력 절반부터(2/3 아님)
@@ -368,7 +368,7 @@ function seeded(mathSeed, seed = 777){
   ok('근원 표시 보정: 조건 밖이면 지움', bad.RUN.king === false);
   const keep = mut(r => { r.king = true; r.asc = 6; r.s = 4; r.map = JSON.parse(JSON.stringify(goodRun.map)); r.map[4] = [{ r:4, l:2, t:'boss', mon:'lord', to:[] }]; r.map[3].forEach(n => n.to = [2]); r.pending = { r:4, l:2 }; });
   const ok2 = boot({ [RUN_KEY]:keep }); click('mContinue');
-  ok('근원 표시 보정: 조건 안이면 유지 → 성벽의 왕', ok2.RUN.king === true && !!ok2.G && ok2.G.cfg.name === '성벽의 왕');
+  ok('근원 표시 보정: 조건 안이면 유지 → 근원 보스', ok2.RUN.king === true && !!ok2.G && ok2.G.cfg.name === ok2.MON.king.name);
 }
 
 // ── 닉네임 변경(일주일에 한 번)
@@ -378,9 +378,9 @@ async function renameWith(reply, prof = {}){
     (path, body) => { sent.push(path); return reply(path, body); });
   click('mRename'); return { t, sent };
 }
-{ const { t, sent } = await renameWith(p => p === 'rename' ? { status:200, data:{ ok:true, name:'새 기사', nameAt:Date.now() } } : { status:200, data:{} });
-  els.nameIn.value = '  새   기사 '; await els.renameForm.onsubmit({ preventDefault(){} });
-  ok('닉네임 변경: 공백 정리 후 서버 반영·화면·저장', t.PROFILE.name === '새 기사' && els.mName.textContent === '새 기사' && els.renameForm.hidden === true && sent.includes('rename') && t.PROFILE.nameAt > 0); }
+{ const { t, sent } = await renameWith(p => p === 'rename' ? { status:200, data:{ ok:true, name:'새 디버거', nameAt:Date.now() } } : { status:200, data:{} });
+  els.nameIn.value = '  새   디버거 '; await els.renameForm.onsubmit({ preventDefault(){} });
+  ok('닉네임 변경: 공백 정리 후 서버 반영·화면·저장', t.PROFILE.name === '새 디버거' && els.mName.textContent === '새 디버거' && els.renameForm.hidden === true && sent.includes('rename') && t.PROFILE.nameAt > 0); }
 { const { t, sent } = await renameWith(() => ({ status:200, data:{} }));
   for (const bad of ['a', '열세글자를넘는아주긴닉네임', '<b>', '이모지🙂']){ els.nameIn.value = bad; await els.renameForm.onsubmit({ preventDefault(){} }); }
   ok('닉네임 변경: 형식이 틀리면 서버에 보내지 않고 안내', !sent.includes('rename') && /2~12자/.test(els.nameMsg.textContent) && t.PROFILE.name === '바삭한 우울한 냉장고'); }
@@ -406,7 +406,7 @@ async function renameWith(reply, prof = {}){
   const cli = fs.readFileSync(path.join(ROOT, 'js/profile.js'), 'utf8'), sv = fs.readFileSync(path.join(ROOT, 'functions/api/[[path]].js'), 'utf8');
   ok('금지어 판정 코드(normName·badName): 서버와 클라이언트가 같다', ['normName', 'badName'].every(n => line(cli, n) && line(cli, n).trim() === line(sv, n).trim()));
   const bad = ['시발놈', '씨 발', '시1발', '병신같이', '개새끼', 'FuCk you', 'f u c k', '운영자', 'Admin', '미친놈아', '좆밥', 'sex123', '시a발', 'f한uck', '병X신', 'S하e나x'];
-  const good = ['새 기사', '하람', '바삭한 우울한 냉장고', 'Knight 7', '성벽의 왕', '구슬장인', '시바견', '보리차'];
+  const good = ['새 디버거', '하람', '바삭한 우울한 냉장고', 'Knight 7', '성벽의 왕', '구슬장인', '시바견', '보리차'];
   const missed = bad.filter(n => !t.badName(n)), wrong = good.filter(n => t.badName(n));
   ok(`금지어: 우회(공백·숫자·대소문자)까지 거름${missed.length ? ' 놓침 ' + missed.join(',') : ''}`, missed.length === 0);
   // '시바견'처럼 금지어를 품은 정상 단어는 막혀도 어쩔 수 없다(목록에 '시바'가 있다). 아래는 막히면 안 되는 이름만 본다
@@ -481,7 +481,8 @@ async function renameWith(reply, prof = {}){
 // 주석은 개발 용어를 허용하므로 건너뛰고, 한글이 든 문자열·템플릿 리터럴(${} 안 코드는 제외)과 index.html의 글자·읽기용 속성만 본다.
 // privacy.html은 법적 문서라 "닉네임·서버·플레이어 식별자"를 그대로 쓰므로 검사하지 않는다. GLOSSARY의 "쓰지 않는 말"을 고치면 여기도 함께 고친다
 {
-  const BANNED = /코인|골드|배지|업적|랭킹|리더보드|스킬\s?트리|포인트|닉네임|메인\s?화면|메뉴|휴식|상점|판매됨|덜어내기|다시 뽑기|다시 뒤지기|리롤|노드|핵심|곱연산|완주|이어하기|플레이어|유저|서버|세션|페이즈|덱|탑의 주인/;
+  // 시스템 용어 + 2026-10-28 세계관 전환 전의 중세 화면 이름. '서버'는 세계관 단어(들어가는 곳)가 되어 뺐다
+  const BANNED = /코인|골드|배지|업적|랭킹|리더보드|스킬\s?트리|포인트|닉네임|메인\s?화면|메뉴|휴식|상점|판매됨|덜어내기|다시 뽑기|다시 뒤지기|리롤|노드|핵심|곱연산|완주|이어하기|플레이어|유저|세션|페이즈|덱|기사|탑(?!재)|원정|몬스터|성벽|금화|훈장|수련|비기|공적|상인|모닥불|고난|심연|명예의 전당|유물|도감|붕괴|주머니|익히기|다시 살피기/;
   const BS = '\\';
   function literals(src){
     const out = []; let i = 0, line = 1;

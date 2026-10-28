@@ -132,7 +132,7 @@ function earnBadge(id){
   const first = !META.badges[id];
   META.badges[id] = (META.badges[id] || 0) + 1; saveMeta();
   if (RUN) (RUN.badges = RUN.badges || []).includes(id) || RUN.badges.push(id);
-  if (first){ toast(`훈장 받음 · ${b.name}`); sfx('badge'); }
+  if (first){ toast(`트로피 받음 · ${b.name}`); sfx('badge'); }
 }
 function toast(msg){
   const t = $('toast'); if (!t) return;
@@ -252,7 +252,7 @@ function checkRage(){
       if (next === 3){ const free = [...Array(COLS).keys()].filter(c => !G.seal.includes(c)); G.seal = G.seal.concat(free[rnd(free.length, 'battle')]).sort((a, b) => a - b); }
       G.sealNext = sealShift(G.seal);
     }
-    banner(cfg.king ? (next === 3 ? '왕이 마지막 성벽을 세운다' : '봉인이 움직이기 시작한다') : next === 3 ? '군주가 마지막 힘을 끌어낸다' : '보스가 분노했다', '조준이 빨라진다', true); sfx('rage');
+    banner(cfg.king ? (next === 3 ? '알고리즘이 마지막 데이터 벽을 세운다' : '잠금이 풀리기 시작한다') : next === 3 ? '관리자가 마지막 자원을 끌어낸다' : '보스가 분노했다', '조준이 빨라진다', true); sfx('rage');
   } else if (cfg.elite && !m.rage && m.hp <= m.max / 2){
     m.rage = true; G.shake = 5;
     banner('정예가 날뛴다', '조준이 빨라진다', true); sfx('rage');
@@ -377,15 +377,15 @@ function update(dt){
   // 불사조(핵심 노드): 원정마다 한 번, 체력 0이 되는 순간 30%로 일어난다. 쓰러짐 판정보다 먼저 본다
   // 두 번째 심장(전투마다) → 불사조(트리) → 불멸의 반지(원정마다) 순서로 쓴다: 싼 것부터 소모되게
   if (g.p.hp <= 0 && rel('heart') && !g.heart){
-    g.heart = true; g.p.hp = 1; g.p.poison = 0; pop(PX, 30, '1', C.ink, 'heart'); banner('두 번째 심장', '버텨 낸다'); sfx('heal');
+    g.heart = true; g.p.hp = 1; g.p.poison = 0; pop(PX, 30, '1', C.ink, 'heart'); banner('백업 전원', '버텨 낸다'); sfx('heal');
   }
   if (g.p.hp <= 0 && rel('ring') && !RUN.ringUsed && (!tree('e6') || RUN.revived)){
     RUN.ringUsed = true; g.p.hp = Math.ceil(g.p.max * .5); g.p.poison = 0;
-    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner('불멸의 반지', '다시 일어선다'); sfx('heal');
+    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner('영구 라이선스', '다시 켜진다'); sfx('heal');
   }
   if (g.p.hp <= 0 && tree('e6') && !RUN.revived){
     RUN.revived = true; g.p.hp = Math.ceil(g.p.max * .3); g.p.poison = 0;
-    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner('불사조', '다시 일어선다'); sfx('heal');
+    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner('재부팅', '다시 켜진다'); sfx('heal');
   }
   if (g.p.hp <= 0 && g.p.artAction !== 'death') artPose(g.p, 'death');
   if (g.m.dead && g.m.artAction !== 'death') artPose(g.m, 'death');

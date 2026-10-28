@@ -9,8 +9,8 @@ function openMenu(){
   // 승패가 정해진 뒤의 연출 중에는 열지 않는다(곧 결과·보상 화면으로 넘어간다)
   if (mode === 'play' && G && (G.phase === 'win' || G.phase === 'lose')) return;
   prevMode = mode; mode = 'pause';
-  $('pMainSub').textContent = prevMode === 'play' ? '원정은 저장된다 · 이번 전투는 처음부터' : '진행은 저장되어 있다';
-  $('pGiveup').textContent = '원정 포기'; $('pGiveup').dataset.arm = '';
+  $('pMainSub').textContent = prevMode === 'play' ? '접속은 저장된다 · 이번 전투는 처음부터' : '진행은 저장되어 있다';
+  $('pGiveup').textContent = '접속 포기'; $('pGiveup').dataset.arm = '';
   $('ovPause').classList.add('on'); $('pResume').focus();
 }
 // 메뉴에서 테마를 바꿨다면 돌아갈 때 지도를 다시 그린다: 지도 아이콘·길은 그릴 때의 색을 박아 둬 옛 테마 색이 남는다
@@ -26,7 +26,7 @@ $('pResume').onclick = closeMenu;
 $('pMain').onclick = () => { $('ovPause').classList.remove('on'); showMain(); };
 $('pGiveup').onclick = e => {
   const b = e.currentTarget;
-  if (!b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 원정이 끝난다'; return; }
+  if (!b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 접속이 끝난다'; return; }
   $('ovPause').classList.remove('on'); clearRun(); endRun(RUN); showMain();
 };
 document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') openMenu(); });
@@ -87,7 +87,7 @@ function frame(now){
   draw(); drawScene(dt);
   // 전투 중에는 코인 그림(::before)이 "코인"을 대신해 글자를 줄인다(한 줄 헤더에서 몬스터 이름 자리를 지키려고). 읽기 프로그램용 이름은 따로 단다
   if (G && mode === 'play'){ const h = $('hCoin'), t = `${RUN.coins} · ${G.turn}턴`;
-    if (h.textContent !== t){ h.textContent = t; h.setAttribute('aria-label', `금화 ${RUN.coins}, ${G.turn}턴`); } }
+    if (h.textContent !== t){ h.textContent = t; h.setAttribute('aria-label', `크레딧 ${RUN.coins}, ${G.turn}턴`); } }
 }
 showMain();
 requestAnimationFrame(frame);
