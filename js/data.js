@@ -5,34 +5,34 @@
 // 공격은 배율 없이 {t:'atk', n}: n턴 연속으로 매 턴 공격력만큼 때린다.
 // 배율(×2.5 등)을 두면 화면의 ⚔ 숫자와 실제 피해가 어긋나 읽히지 않아서, 피해는 항상 ⚔ 숫자 그대로다
 const MON = {
-  slime: { name:'슬라임', spr:'slime', hp:6, atk:1, def:0, sweep:.9,
+  slime: { name:'메모리 누수', spr:'slime', hp:6, atk:1, def:0, sweep:.9,
     pattern:[{t:'atk',n:2},{t:'wait'}],
     row:{ d:.55, hard:0, stat:.5, w:{ atk:1 } } },
-  bat: { name:'박쥐', spr:'bat', hp:8, atk:1, def:0, sweep:1.0,
+  bat: { name:'스팸봇', spr:'bat', hp:8, atk:1, def:0, sweep:1.0,
     pattern:[{t:'atk',n:3},{t:'wait'}],
     row:{ d:.6, hard:.2, stat:.4, w:{ atk:1, def:1 } } },
-  golem: { name:'골렘', spr:'golem', hp:9, atk:1, def:2, sweep:1.15,
+  golem: { name:'방화벽', spr:'golem', hp:9, atk:1, def:2, sweep:1.15,
     pattern:[{t:'atk',n:2},{t:'guard',v:2}],
     row:{ d:.6, hard:.25, stat:.4, w:{ atk:2, def:1 } } },
-  shroom: { name:'독버섯', spr:'shroom', hp:9, atk:1, def:1, sweep:1.3,
+  shroom: { name:'바이러스', spr:'shroom', hp:9, atk:1, def:1, sweep:1.3,
     // 독 행동의 v를 비워 두면 독 양 = 몬스터 ⚔ 공격력: 머리 위 숫자 그대로 독이 쌓이고, 층이 깊어질수록 함께 세진다
     pattern:[{t:'atk',n:2},{t:'poison'},{t:'atk',n:2},{t:'spore'}],
     row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 }, poison:.2 } },
   // 체력 20 → 14(2026-10-07): 일반 전투 구슬 보상을 없애 1층 보스 전 덱이 얇아졌다. 시뮬레이터 300회 1층 돌파 18% → 32%
-  boss: { name:'탑의 수문장', spr:'boss', hp:14, atk:1, def:1, sweep:1.4, boss:true,
+  boss: { name:'문지기 데몬', spr:'boss', hp:14, atk:1, def:1, sweep:1.4, boss:true,
     // 세션마다 공격력이 +1씩 오르므로 연속 턴이 길면 후반 한 묶음 피해가 최대 체력을 넘는다(3세션 2페이즈 4×6=24). 턴 수로 묶음 크기를 누른다
     pattern:[{t:'atk',n:3},{t:'summon'}],
     pattern2:[{t:'atk',n:4},{t:'summon'}],
     row:{ d:.62, hard:.35, stat:.35, w:{ atk:1, def:1, heal:1 }, poison:.3 } },
   // 세션 5 최종 보스: 같은 그림에 붉은 테. 3페이즈(체력 2/3·1/3)마다 공격이 길어지고 조준선이 빨라진다
-  lord: { name:'탑의 군주', spr:'boss', hp:24, atk:1, def:1, sweep:1.4, boss:true, final:true,
+  lord: { name:'관리자 프로세스', spr:'boss', hp:24, atk:1, def:1, sweep:1.4, boss:true, final:true,
     pattern:[{t:'atk',n:2},{t:'summon'},{t:'guard',v:3}],
     pattern2:[{t:'atk',n:3},{t:'summon'}],
     pattern3:[{t:'atk',n:3},{t:'poison',v:2},{t:'summon'}],
     row:{ d:.64, hard:.4, stat:.35, w:{ atk:1, def:1, heal:1 }, poison:.3 } },
   // 근원(고난 6): 탑의 군주를 쓰러뜨린 바로 다음, 같은 체력으로 이어 싸운다. 숫자가 아니라 천장 봉인(seal)으로 핵심 규칙을 비튼다
   // seal = 1페이즈 봉인 칸 수. 2페이즈부터 봉인이 매 턴 옆으로 옮기고, 3페이즈에 한 칸 늘어난다
-  king: { name:'성벽의 왕', spr:'boss', hp:30, atk:1, def:1, sweep:1.4, boss:true, final:true, king:true, seal:2,
+  king: { name:'화요일의 알고리즘', spr:'boss', hp:30, atk:1, def:1, sweep:1.4, boss:true, final:true, king:true, seal:2,
     pattern:[{t:'atk',n:2},{t:'summon'},{t:'guard',v:2}],
     pattern2:[{t:'atk',n:2},{t:'spore'},{t:'summon'}],
     pattern3:[{t:'atk',n:3},{t:'summon'}],
@@ -51,11 +51,11 @@ const FINAL_S = 4, SESSIONS = FINAL_S + 1;
 const ABYSS = { base:1, hp:1.25, atk:1 };
 const isAbyss = () => !!(RUN && RUN.abyss);
 // 탑을 오르는 원정이라 본편 단위는 "층", 층 안의 칸은 "방"이라 부른다(코드의 s·r은 그대로)
-const stageName = (s, abyss = isAbyss()) => abyss ? `심연 ${s + 1}층` : `${s + 1}층`;
+const stageName = (s, abyss = isAbyss()) => abyss ? `심층부 ${s + 1}층` : `${s + 1}층`;
 function monCfg(id, s, elite, abyss){
   const b = MON[id], dp = abyss ? s + 1 : 0, lv = abyss ? s + ABYSS.base : s;
   return Object.assign({}, b, {
-    id, elite:!!elite, name:(abyss ? '심연의 ' : '') + (elite ? '정예 ' : '') + b.name,
+    id, elite:!!elite, name:(abyss ? '심층부 ' : '') + (elite ? '정예 ' : '') + b.name,
     hp: Math.max(3, Math.round(b.hp * WALL.hpMul * (1 + SCALE.hp * lv) * (elite ? SCALE.elite : 1) * Math.pow(ABYSS.hp, dp))),
     atk: b.atk + SCALE.atk * lv + ABYSS.atk * dp,
     def: b.def + SCALE.def * lv + (elite ? 1 : 0),
@@ -74,35 +74,35 @@ const RARITY = [
 ];
 // ── 구슬: 덱에서 한 턴에 하나씩 꺼내 쏜다. 구슬마다 손맛이 달라야 한다
 // rar = 등급(RARITY). lock = 해금 조건(배지 id 또는 심연 칸): 메타에 영구로 풀리고, 풀리기 전에는 보상·상점에 나오지 않는다
-// 디버프 구슬(약화·무장해제·부식·기절·시간)은 몬스터를 직접 약하게 한다: 깎는 대신 막는 길도 덱으로 고를 수 있게
+// 디버프 구슬(약화·무장해제·포맷·기절·시간)은 몬스터를 직접 약하게 한다: 깎는 대신 막는 길도 덱으로 고를 수 있게
 const ORBS = {
   basic:  { name:'기본 구슬',     rar:0, desc:'특별한 효과 없음', up:'천장을 한 번 더 칠 수 있다' },
   bomb:   { name:'폭탄 구슬',     rar:1, desc:'처음 부순 벽돌의 주변 8칸이 함께 터진다', up:'주변 8칸에 2씩 피해' },
   drill:  { name:'송곳 구슬',     rar:1, desc:'어떤 벽돌이든 3개까지 한 번에 뚫는다', up:'어떤 벽돌이든 5개까지 뚫는다' },
-  guard:  { name:'방패 구슬',     rar:1, desc:'벽돌을 부술 때마다 방어도 +1', up:'벽돌을 부술 때마다 방어도 +2' },
+  guard:  { name:'실드 구슬',     rar:1, desc:'벽돌을 부술 때마다 방어도 +1', up:'벽돌을 부술 때마다 방어도 +2' },
   bounce: { name:'탄력 구슬',     rar:1, desc:'이 구슬은 천장을 한 번 더 칠 수 있다', up:'이 구슬은 천장을 두 번 더 칠 수 있다' },
-  herb:   { name:'약초 구슬',     rar:1, desc:'처음 천장을 칠 때 체력 +1', up:'처음 천장을 칠 때 체력 +2' },
-  thorn:  { name:'가시 구슬',     rar:1, desc:'벽돌 2개를 부술 때마다 몬스터에게 피해 1', up:'벽돌을 부술 때마다 몬스터에게 피해 1' },
-  weaken: { name:'약화 구슬',     rar:2, desc:'천장을 치면 몬스터의 남은 연속 공격 -1 (발사마다 1번, 최소 1)', up:'남은 연속 공격 -1을 발사마다 2번까지' },
-  disarm: { name:'무장해제 구슬', rar:2, desc:'천장을 치면 이번 전투 몬스터 ⚔ -1 (전투마다 3번, 최소 1)', up:'몬스터 ⚔ -1을 전투마다 4번까지' },
-  rust:   { name:'부식 구슬',     rar:2, desc:'천장을 치면 몬스터 방어도가 0이 된다', up:'방어도를 0으로 + 몬스터의 다음 수비 행동이 헛돈다' },
+  herb:   { name:'패치 구슬',     rar:1, desc:'처음 천장을 칠 때 체력 +1', up:'처음 천장을 칠 때 체력 +2' },
+  thorn:  { name:'가시 구슬',     rar:1, desc:'벽돌 2개를 부술 때마다 버그에게 피해 1', up:'벽돌을 부술 때마다 버그에게 피해 1' },
+  weaken: { name:'약화 구슬',     rar:2, desc:'천장을 치면 버그의 남은 연속 공격 -1 (발사마다 1번, 최소 1)', up:'남은 연속 공격 -1을 발사마다 2번까지' },
+  disarm: { name:'무장해제 구슬', rar:2, desc:'천장을 치면 이번 전투 버그 ⚔ -1 (전투마다 3번, 최소 1)', up:'버그 ⚔ -1을 전투마다 4번까지' },
+  rust:   { name:'포맷 구슬',     rar:2, desc:'천장을 치면 버그 방어도가 0이 된다', up:'방어도를 0으로 + 버그의 다음 수비 행동이 헛돈다' },
   magnet: { name:'자석 구슬',     rar:2, desc:'바닥에 닿으면 한 번 다시 튀어 오른다', up:'바닥에서 두 번 다시 튀어 오른다' },
   hammer: { name:'망치 구슬',     rar:2, desc:'돌 벽돌에 피해 3', up:'돌 벽돌에 피해 5' },
   split:  { name:'분열 구슬',     rar:3, desc:'세 갈래로 갈라져 발사된다(갈래 피해 ÷3)', up:'다섯 갈래로 갈라져 발사된다(갈래 피해 ÷5)' },
-  venom:  { name:'독 구슬',       rar:3, desc:'천장을 칠 때마다 몬스터에게 독 +1', up:'천장을 칠 때마다 몬스터에게 독 +2' },
+  venom:  { name:'독 구슬',       rar:3, desc:'천장을 칠 때마다 버그에게 독 +1', up:'천장을 칠 때마다 버그에게 독 +2' },
   heavy:  { name:'묵직한 구슬',   rar:3, desc:'한 방이 무겁다', up:'한 방이 더 무겁다' },
   chain:  { name:'사슬 구슬',     rar:3, desc:'같은 구슬의 천장 타격마다 피해 +1씩 쌓인다', up:'천장 타격마다 피해 +2씩 쌓인다' },
-  stun:   { name:'기절 구슬',     rar:3, desc:'천장을 2번 치면 몬스터가 다음 행동을 건너뛴다(전투마다 1번)', up:'천장을 1번만 쳐도 기절(전투마다 1번)' },
+  stun:   { name:'기절 구슬',     rar:3, desc:'천장을 2번 치면 버그가 다음 행동을 건너뛴다(전투마다 1번)', up:'천장을 1번만 쳐도 기절(전투마다 1번)' },
   vamp:   { name:'흡혈 구슬',     rar:3, desc:'천장을 2번 칠 때마다 체력 +1', up:'천장을 칠 때마다 체력 +1' },
-  toxin:  { name:'맹독 구슬',     rar:3, lock:{ badge:'venom' },    desc:'천장을 칠 때마다 독 +1, 이번 전투 몬스터 독이 줄지 않는다', up:'독 +2, 몬스터 독이 줄지 않는다' },
-  mirror: { name:'거울 구슬',     rar:3, lock:{ badge:'counter' },  desc:'쏜 턴에 몬스터 공격 피해의 절반(올림)을 되돌린다', up:'쏜 턴에 몬스터 공격 피해를 그대로 되돌린다' },
+  toxin:  { name:'맹독 구슬',     rar:3, lock:{ badge:'venom' },    desc:'천장을 칠 때마다 독 +1, 이번 전투 버그 독이 줄지 않는다', up:'독 +2, 버그 독이 줄지 않는다' },
+  mirror: { name:'거울 구슬',     rar:3, lock:{ badge:'counter' },  desc:'쏜 턴에 버그 공격 피해의 절반(올림)을 되돌린다', up:'쏜 턴에 버그 공격 피해를 그대로 되돌린다' },
   wreck:  { name:'철거 구슬',     rar:3, lock:{ badge:'demolish' }, desc:'천장 타격 피해 + 이 구슬이 부순 벽돌 수 ÷ 3', up:'천장 타격 피해 + 부순 벽돌 수 ÷ 2' },
   comet:  { name:'혜성 구슬',     rar:4, lock:{ badge:'oneshot' },  desc:'모든 벽돌을 뚫고 천장을 한 번만 친다', up:'모든 벽돌을 뚫고, 더 무겁다' },
-  time:   { name:'시간 구슬',     rar:4, lock:{ abyss:15 },         desc:'천장을 치면 몬스터 행동이 처음으로 돌아가고 연속 공격 -2 (전투마다 1번)', up:'처음으로 되돌리기를 전투마다 2번' },
-  crown:  { name:'왕관 구슬',     rar:4, lock:{ badge:'rich' },     desc:'추가 피해 = 가진 금화 ÷ 25', up:'추가 피해 = 가진 금화 ÷ 15' },
+  time:   { name:'시간 구슬',     rar:4, lock:{ abyss:15 },         desc:'천장을 치면 버그 행동이 처음으로 돌아가고 연속 공격 -2 (전투마다 1번)', up:'처음으로 되돌리기를 전투마다 2번' },
+  crown:  { name:'관리자 구슬',   rar:4, lock:{ badge:'rich' },     desc:'추가 피해 = 가진 크레딧 ÷ 25', up:'추가 피해 = 가진 크레딧 ÷ 15' },
 };
 // 해금 조건 문구(도감·잠긴 카드에 보여 줘 목표가 되게 한다)
-const lockText = l => l.badge ? `"${BADGES.find(b => b.id === l.badge).name}" 훈장을 받으면 풀린다` : `심연 ${Math.ceil(l.abyss / 5)}층 보스를 쓰러뜨리면 풀린다`;
+const lockText = l => l.badge ? `"${BADGES.find(b => b.id === l.badge).name}" 트로피를 받으면 풀린다` : `심층부 ${Math.ceil(l.abyss / 5)}층 보스를 쓰러뜨리면 풀린다`;
 const orbOpen = k => { const l = ORBS[k].lock; return !l || (l.badge ? !!(META.badges && META.badges[l.badge]) : (META.abyssBest || 0) >= l.abyss); };
 // 천장 타격 피해 = 기사 공격력(⚔) + 구슬 보정. 공격력은 1에서 시작해 ⚔ 벽돌로 전투 중에만 오르고,
 // 구슬 보정은 구슬마다 고정이다. 두 숫자를 더한 값이 피해라서 "⚔을 올릴지, 센 구슬을 쓸지"가 한 식으로 이어진다
@@ -137,50 +137,50 @@ const orbDesc = o => (orbBonus(o) ? `피해 ⚔+${orbBonus(o)} · ` : '') + (orb
 // 원정 안의 보상에는 곱연산을 두지 않는다(곱은 스킬 트리 핵심 노드만): 효과는 덧셈이거나 규칙을 바꾸는 것
 const RELICS = {
   // 일반
-  whetstone:{ t:1, name:'숫돌',       max:1, desc:'전투를 시작할 때 ⚔ +1' },
-  buckler:  { t:1, name:'가죽 방패',  max:1, desc:'첫 몬스터 턴 직전에 방어도 +3' },
-  wallet:   { t:1, name:'묵직한 돈주머니', max:1, desc:'전투에서 이길 때마다 금화 +3' },
-  bandage:  { t:1, name:'붕대',       max:1, desc:'모닥불 회복 +3' },
-  luckycoin:{ t:1, name:'행운 동전',  max:1, desc:'상인 가격 -10%' },
-  callus:   { t:1, name:'굳은살',     max:1, desc:'전투마다 첫 붕괴 피해를 받지 않는다' },
-  mason:    { t:1, name:'벽돌공',     max:1, desc:'⚔·🛡 같은 특수 벽돌이 더 자주 나온다' },
-  lantern:  { t:1, name:'등잔',       max:1, desc:'정예를 이기면 금화 +10' },
-  medkit:   { t:1, name:'연고 단지',   max:2, desc:'전투에서 이길 때마다 체력 +2' },
-  focus:    { t:1, name:'집중',       max:2, desc:'조준선이 15% 느려진다' },
+  whetstone:{ t:1, name:'오버클럭',   max:1, desc:'전투를 시작할 때 ⚔ +1' },
+  buckler:  { t:1, name:'보호 필름',  max:1, desc:'첫 버그 턴 직전에 방어도 +3' },
+  wallet:   { t:1, name:'대용량 지갑', max:1, desc:'전투에서 이길 때마다 크레딧 +3' },
+  bandage:  { t:1, name:'핫픽스',     max:1, desc:'충전 회복 +3' },
+  luckycoin:{ t:1, name:'난수 시드',  max:1, desc:'브로커 가격 -10%' },
+  callus:   { t:1, name:'내구 코팅',  max:1, desc:'전투마다 첫 오버플로 피해를 받지 않는다' },
+  mason:    { t:1, name:'블록 빌더',  max:1, desc:'⚔·🛡 같은 특수 벽돌이 더 자주 나온다' },
+  lantern:  { t:1, name:'디버그 로그', max:1, desc:'정예를 이기면 크레딧 +10' },
+  medkit:   { t:1, name:'복구 키트',   max:2, desc:'전투에서 이길 때마다 체력 +2' },
+  focus:    { t:1, name:'포커스 모드', max:2, desc:'조준선이 15% 느려진다' },
   // 고급
-  combo:    { t:2, name:'천장 연타',  max:2, desc:'구슬 하나가 천장을 칠 수 있는 횟수 +1 (기본 3회)' },
-  harvest:  { t:2, name:'수확',       max:2, desc:'⚔·🛡 벽돌 효과 +1' },
+  combo:    { t:2, name:'콤보 카운터', max:2, desc:'구슬 하나가 천장을 칠 수 있는 횟수 +1 (기본 3회)' },
+  harvest:  { t:2, name:'채굴기',     max:2, desc:'⚔·🛡 벽돌 효과 +1' },
   // 후반 몬스터의 연속 공격에 버틸 수단: 막는(갑옷·인내) 쪽과 버는(흡혈) 쪽을 둘 다 둔다
-  armor:    { t:2, name:'갑옷',       max:2, desc:'전투를 시작할 때 방어도 +3' },
-  brace:    { t:2, name:'버팀목',     max:1, desc:'붕괴 피해가 벽돌 1개당 2에서 1로' },
-  antidote: { t:2, name:'해독',       max:1, desc:'독 피해를 받을 때마다 독이 2씩 줄어든다' },
-  rebound:  { t:2, name:'반동',       max:1, desc:'구슬이 바닥에 닿을 때 25% 확률로 한 번 다시 튀어 오른다' },
-  sting:    { t:2, name:'독침',       max:1, desc:'몬스터에게 독을 걸 때마다 +1' },
-  thorns:   { t:2, name:'가시 갑옷',  max:1, desc:'몬스터에게 맞을 때마다 몬스터에게 피해 1' },
-  breath:   { t:2, name:'숨 고르기',  max:1, desc:'몬스터가 쉬는 턴에 체력 +2' },
-  scout:    { t:2, name:'정찰병',     max:1, desc:'지도에서 전투 방의 몬스터가 보인다' },
+  armor:    { t:2, name:'하드 케이스', max:2, desc:'전투를 시작할 때 방어도 +3' },
+  brace:    { t:2, name:'완충 버퍼',  max:1, desc:'오버플로 피해가 벽돌 1개당 2에서 1로' },
+  antidote: { t:2, name:'백신',       max:1, desc:'독 피해를 받을 때마다 독이 2씩 줄어든다' },
+  rebound:  { t:2, name:'리바운드',   max:1, desc:'구슬이 바닥에 닿을 때 25% 확률로 한 번 다시 튀어 오른다' },
+  sting:    { t:2, name:'악성 코드',  max:1, desc:'버그에게 독을 걸 때마다 +1' },
+  thorns:   { t:2, name:'역추적',     max:1, desc:'버그에게 맞을 때마다 버그에게 피해 1' },
+  breath:   { t:2, name:'쿨다운',     max:1, desc:'버그가 쉬는 턴에 체력 +2' },
+  scout:    { t:2, name:'스캐너',     max:1, desc:'지도에서 전투 구역의 버그가 보인다' },
   // 희귀
-  counter:  { t:3, name:'반격',       max:1, desc:'몬스터 공격을 방어도로 막은 양의 절반(올림)을 되돌려준다' },
-  leech:    { t:3, name:'흡혈',       max:1, desc:'구슬 하나가 천장을 세 번째 칠 때 체력 +1' },
-  endure:   { t:3, name:'인내',       max:1, desc:'몬스터 연속 공격의 첫 타를 막는다' },
-  wrath:    { t:3, name:'분노',       max:1, desc:'체력이 30% 이하일 때 천장 타격 피해 +2' },
-  heart:    { t:3, name:'두 번째 심장', max:1, desc:'전투마다 한 번, 쓰러질 피해를 받아도 체력 1로 버틴다' },
-  alchemy:  { t:3, name:'연금술',     max:1, desc:'이기면 몬스터에게 남아 있던 독만큼 금화' },
-  twin:     { t:3, name:'메아리',       max:1, desc:'3턴마다 같은 구슬을 한 번 더 쏜다' },
-  smith:    { t:3, name:'대장장이 망치', max:1, desc:'구슬 강화 성공률 +10%p' },
-  charm:    { t:3, name:'보호 부적',  max:1, desc:'구슬 강화에 실패해도 단계가 내려가지 않는다' },
-  pouch:    { t:3, name:'깊은 주머니', max:1, desc:'구슬 주머니 +1개 (6개)' },
+  counter:  { t:3, name:'카운터 스크립트', max:1, desc:'버그 공격을 방어도로 막은 양의 절반(올림)을 되돌려준다' },
+  leech:    { t:3, name:'전력 흡수',  max:1, desc:'구슬 하나가 천장을 세 번째 칠 때 체력 +1' },
+  endure:   { t:3, name:'무정전 전원', max:1, desc:'버그 연속 공격의 첫 타를 막는다' },
+  wrath:    { t:3, name:'과부하',     max:1, desc:'체력이 30% 이하일 때 천장 타격 피해 +2' },
+  heart:    { t:3, name:'백업 전원',  max:1, desc:'전투마다 한 번, 쓰러질 피해를 받아도 체력 1로 버틴다' },
+  alchemy:  { t:3, name:'컴파일러',   max:1, desc:'이기면 버그에게 남아 있던 독만큼 크레딧' },
+  twin:     { t:3, name:'미러링',       max:1, desc:'3턴마다 같은 구슬을 한 번 더 쏜다' },
+  smith:    { t:3, name:'리팩터링 툴', max:1, desc:'구슬 강화 성공률 +10%p' },
+  charm:    { t:3, name:'체크섬',     max:1, desc:'구슬 강화에 실패해도 단계가 내려가지 않는다' },
+  pouch:    { t:3, name:'확장 슬롯',  max:1, desc:'큐 +1개 (6개)' },
   // 전설
-  kingsword:{ t:4, name:'왕의 검',    max:1, desc:'⚔ 벽돌 효과 +2' },
-  hourglass:{ t:4, name:'모래시계',   max:1, desc:'몬스터의 모든 연속 공격 -1 (최소 1)' },
-  ring:     { t:4, name:'불멸의 반지', max:1, desc:'원정마다 한 번, 쓰러지면 체력 50%로 일어난다' },
-  crusher:  { t:4, name:'성벽 파쇄기', max:1, desc:'몬스터 턴마다 가장 아래 벽돌 하나를 부순다' },
-  plague:   { t:4, name:'독의 왕관',  max:1, desc:'몬스터 독이 방어도도 깎고, 줄어들지 않는다' },
-  giant:    { t:4, name:'거인의 손',  max:1, desc:'분열 구슬이 피해를 나누지 않는다' },
-  warp:     { t:4, name:'시간 왜곡',  max:1, desc:'매 턴 조준선이 처음 0.5초 동안 멈춰 있다' },
-  greed:    { t:4, name:'탐욕',       max:1, desc:'전투에서 이길 때마다 금화 +12, 상인 가격 +15' },
-  pact:     { t:4, name:'피의 계약',  max:1, desc:'얻는 즉시 최대 체력 -8, 천장 타격 피해 +1' },
-  collector:{ t:4, name:'수집가',     max:1, desc:'도감에 모은 구슬 5종마다 전투 시작 ⚔ +1' },
+  kingsword:{ t:4, name:'루트 키',    max:1, desc:'⚔ 벽돌 효과 +2' },
+  hourglass:{ t:4, name:'타이머',     max:1, desc:'버그의 모든 연속 공격 -1 (최소 1)' },
+  ring:     { t:4, name:'영구 라이선스', max:1, desc:'접속마다 한 번, 쓰러지면 체력 50%로 일어난다' },
+  crusher:  { t:4, name:'벽 해체기',  max:1, desc:'버그 턴마다 가장 아래 벽돌 하나를 부순다' },
+  plague:   { t:4, name:'웜',         max:1, desc:'버그 독이 방어도도 깎고, 줄어들지 않는다' },
+  giant:    { t:4, name:'대형 매크로', max:1, desc:'분열 구슬이 피해를 나누지 않는다' },
+  warp:     { t:4, name:'타임 워프',  max:1, desc:'매 턴 조준선이 처음 0.5초 동안 멈춰 있다' },
+  greed:    { t:4, name:'채굴 중독',  max:1, desc:'전투에서 이길 때마다 크레딧 +12, 브로커 가격 +15' },
+  pact:     { t:4, name:'위험한 약관', max:1, desc:'얻는 즉시 최대 체력 -8, 천장 타격 피해 +1' },
+  collector:{ t:4, name:'크롤러',     max:1, desc:'아카이브에 모은 구슬 5종마다 전투 시작 ⚔ +1' },
 };
 // ── 스킬 트리(영구 성장): 칸을 처음 돌파할 때 포인트를 얻어 노드를 찍는다(POE2식 갈래).
 // 포인트: 칸 최초 돌파 +1, 세션 보스 최초 돌파 +3 → 본편 전부 35점. 트리 전체는 108점이라 본편만으로는 1/3 정도만 찍힌다.
@@ -189,35 +189,35 @@ const RELICS = {
 // 원정 안의 성장은 여전히 덧셈·질적 성장이고, 곱연산은 심연(엔드게임)에서 버티라고 영구 성장에만 둔다
 const PTS = { cell:1, boss:3 };
 const TREE = [
-  { id:'root', name:'원정의 서약', cost:0, req:null, x:50, y:50, desc:'모든 갈래의 출발점' },
+  { id:'root', name:'부팅', cost:0, req:null, x:50, y:50, desc:'모든 갈래의 출발점' },
   // 공격(위)
-  { id:'a1', name:'날 세우기',  cost:2, req:'root', x:50, y:35.7, desc:'기사의 기본 공격력 +1 (모든 천장 타격 피해 +1)' },
-  { id:'a2', name:'연타',       cost:3, req:'a1',   x:50, y:21.3, desc:'구슬마다 천장 타격 상한 +1' },
-  { id:'a3', name:'전투 함성',  cost:3, req:'a2',   x:35.7, y:7,  desc:'⚔ 벽돌의 공격력 +1 추가' },
-  { id:'a4', name:'처형자',     cost:8, req:'a3',   x:21.3, y:7,  key:true, desc:'체력이 절반 이하인 몬스터에게 천장 타격 피해 ×1.5' },
-  { id:'a5', name:'연쇄',       cost:3, req:'a2',   x:64.3, y:7,  desc:'같은 구슬의 세 번째 천장 타격부터 피해 +1' },
-  { id:'a6', name:'파괴자',     cost:8, req:'a5',   x:78.7, y:7,  key:true, desc:'모든 천장 타격 피해 ×1.5' },
+  { id:'a1', name:'최적화',     cost:2, req:'root', x:50, y:35.7, desc:'디버거의 기본 공격력 +1 (모든 천장 타격 피해 +1)' },
+  { id:'a2', name:'멀티스레드', cost:3, req:'a1',   x:50, y:21.3, desc:'구슬마다 천장 타격 상한 +1' },
+  { id:'a3', name:'부스트',     cost:3, req:'a2',   x:35.7, y:7,  desc:'⚔ 벽돌의 공격력 +1 추가' },
+  { id:'a4', name:'킬 스위치',  cost:8, req:'a3',   x:21.3, y:7,  key:true, desc:'체력이 절반 이하인 버그에게 천장 타격 피해 ×1.5' },
+  { id:'a5', name:'파이프라인', cost:3, req:'a2',   x:64.3, y:7,  desc:'같은 구슬의 세 번째 천장 타격부터 피해 +1' },
+  { id:'a6', name:'포크 폭탄',  cost:8, req:'a5',   x:78.7, y:7,  key:true, desc:'모든 천장 타격 피해 ×1.5' },
   // 방어(아래)
-  { id:'d1', name:'단련된 몸',  cost:2, req:'root', x:50, y:64.3, desc:'최대 체력 +4' },
-  { id:'d2', name:'방패술',     cost:3, req:'d1',   x:50, y:78.7, desc:'전투 시작 방어도 +2' },
-  { id:'d3', name:'재생',       cost:3, req:'d2',   x:35.7, y:93, desc:'전투에서 이길 때마다 체력 +2' },
-  { id:'d4', name:'불굴',       cost:8, req:'d3',   x:21.3, y:93, key:true, desc:'몬스터·붕괴 피해 ×0.75' },
-  { id:'d5', name:'단단한 벽',  cost:3, req:'d2',   x:64.3, y:93, desc:'🛡 벽돌의 방어도 +1 추가' },
-  { id:'d6', name:'철벽',       cost:8, req:'d5',   x:78.7, y:93, key:true, desc:'전투 중 얻는 방어도 ×1.5' },
+  { id:'d1', name:'메모리 증설', cost:2, req:'root', x:50, y:64.3, desc:'최대 체력 +4' },
+  { id:'d2', name:'방화벽 규칙', cost:3, req:'d1',   x:50, y:78.7, desc:'전투 시작 방어도 +2' },
+  { id:'d3', name:'자동 복구',  cost:3, req:'d2',   x:35.7, y:93, desc:'전투에서 이길 때마다 체력 +2' },
+  { id:'d4', name:'예외 처리',  cost:8, req:'d3',   x:21.3, y:93, key:true, desc:'버그·오버플로 피해 ×0.75' },
+  { id:'d5', name:'이중화',     cost:3, req:'d2',   x:64.3, y:93, desc:'🛡 벽돌의 방어도 +1 추가' },
+  { id:'d6', name:'제로 트러스트', cost:8, req:'d5',   x:78.7, y:93, key:true, desc:'전투 중 얻는 방어도 ×1.5' },
   // 구슬(왼쪽)
-  { id:'o1', name:'숙련',       cost:2, req:'root', x:35.7, y:50, desc:'시작 폭탄 구슬이 폭탄 구슬+' },
-  { id:'o2', name:'눈썰미',     cost:3, req:'o1',   x:21.3, y:50, desc:'구슬 보상 후보 +1개' },
-  { id:'o3', name:'꼼꼼한 손길', cost:3, req:'o2',   x:7,  y:35.7, desc:'보상 다시 살피기 +1회' },
-  { id:'o4', name:'공명',       cost:8, req:'o3',   x:7,  y:21.3, key:true, desc:'강화(+) 구슬의 천장 타격 피해 ×2' },
-  { id:'o5', name:'정조준',     cost:3, req:'o2',   x:7,  y:64.3, desc:'조준선이 15% 느려진다' },
-  { id:'o6', name:'공성추',     cost:8, req:'o5',   x:7,  y:78.7, key:true, desc:'묵직한·폭탄 구슬의 천장 타격 피해 ×2' },
-  // 경제(오른쪽, 화면 이름은 재물)
-  { id:'e1', name:'두둑한 노잣돈', cost:2, req:'root', x:64.3, y:50, desc:'시작 금화 +30' },
-  { id:'e2', name:'흥정',       cost:3, req:'e1',   x:78.7, y:50, desc:'상인 가격 -20%' },
-  { id:'e3', name:'전리품',     cost:3, req:'e2',   x:93, y:35.7, desc:'전투 승리 금화 +5' },
-  { id:'e4', name:'보물 사냥꾼', cost:8, req:'e3',  x:93, y:21.3, key:true, desc:'무작위 유물 하나를 지니고 출발' },
-  { id:'e5', name:'약초학',     cost:3, req:'e2',   x:93, y:64.3, desc:'모닥불·약초 회복 +5' },
-  { id:'e6', name:'불사조',     cost:8, req:'e5',   x:93, y:78.7, key:true, desc:'원정마다 한 번, 쓰러지면 체력 30%로 일어난다' },
+  { id:'o1', name:'컴파일 숙련', cost:2, req:'root', x:35.7, y:50, desc:'시작 폭탄 구슬이 폭탄 구슬+' },
+  { id:'o2', name:'프로파일러', cost:3, req:'o1',   x:21.3, y:50, desc:'구슬 보상 후보 +1개' },
+  { id:'o3', name:'재시도 로직', cost:3, req:'o2',   x:7,  y:35.7, desc:'보상 다시 스캔하기 +1회' },
+  { id:'o4', name:'동기화',     cost:8, req:'o3',   x:7,  y:21.3, key:true, desc:'강화(+) 구슬의 천장 타격 피해 ×2' },
+  { id:'o5', name:'정밀 연산',  cost:3, req:'o2',   x:7,  y:64.3, desc:'조준선이 15% 느려진다' },
+  { id:'o6', name:'대역폭',     cost:8, req:'o5',   x:7,  y:78.7, key:true, desc:'묵직한·폭탄 구슬의 천장 타격 피해 ×2' },
+  // 경제(오른쪽, 화면 이름은 자원)
+  { id:'e1', name:'초기 자본', cost:2, req:'root', x:64.3, y:50, desc:'시작 크레딧 +30' },
+  { id:'e2', name:'협상 봇',    cost:3, req:'e1',   x:78.7, y:50, desc:'브로커 가격 -20%' },
+  { id:'e3', name:'데이터 수집', cost:3, req:'e2',   x:93, y:35.7, desc:'전투 승리 크레딧 +5' },
+  { id:'e4', name:'버그 바운티', cost:8, req:'e3',  x:93, y:21.3, key:true, desc:'무작위 칩 하나를 지니고 출발' },
+  { id:'e5', name:'패치 노트',  cost:3, req:'e2',   x:93, y:64.3, desc:'충전소·패치 구슬 회복 +5' },
+  { id:'e6', name:'재부팅',     cost:8, req:'e5',   x:93, y:78.7, key:true, desc:'접속마다 한 번, 쓰러지면 체력 30%로 일어난다' },
 ];
 const tree = id => !!(META.tree && META.tree[id]);
 const rel = id => (RUN && RUN.relics[id]) || 0;
@@ -230,37 +230,37 @@ const hitCap = () => 3 + rel('combo') + (tree('a2') ? 1 : 0);
 const ASC = [
   null,
   { name:'날뛰는 정예', desc:'정예가 처음부터 분노해 조준선이 빠르다' },
-  { name:'무너지는 탑', desc:'정예도 3턴마다 벽돌을 떨어뜨린다' },
-  { name:'꺼진 모닥불', desc:'보스를 잡아도 체력이 회복되지 않는다(최대 체력만 +4)' },
-  { name:'독 안개',     desc:'모든 전투의 성벽에 독 벽돌이 섞인다' },
+  { name:'무너지는 서버', desc:'정예도 3턴마다 벽돌을 떨어뜨린다' },
+  { name:'꺼진 충전소', desc:'보스를 잡아도 체력이 회복되지 않는다(최대 체력만 +4)' },
+  { name:'감염된 벽',   desc:'모든 전투의 데이터 벽에 독 벽돌이 섞인다' },
   { name:'봉인된 천장', desc:'보스전에서 천장 한 칸이 봉인된다' },
-  { name:'근원',        desc:'탑의 군주를 쓰러뜨리면 근원 "성벽의 왕"이 깨어난다' },
+  { name:'근원',        desc:'관리자 프로세스를 쓰러뜨리면 근원 "화요일의 알고리즘"이 깨어난다' },
 ];
 const ASC_MAX = ASC.length - 1;
 // 이번 원정이 고난 n단계 이상인가(규칙은 누적)
 const ascOn = n => !!RUN && !RUN.abyss && (RUN.asc || 0) >= n;
 
-// ── 이야기(작업 05): "왜 끝까지 가야 하는가". 설명서가 아니라 동기라서 짧게, 처음 한 번만 보여 주고 도감에서 다시 읽는다
+// ── 이야기(작업 05): "왜 끝까지 가야 하는가". 설명서가 아니라 동기라서 짧게, 처음 한 번만 보여 주고 아카이브에서 다시 읽는다
 const STORY = {
-  intro:{ title:'성벽이 내려온 밤', text:'어느 밤, 탑에서 내려온 성벽이 마을을 삼켰다.\n집도, 우물도, 동생 하람도 벽돌 속으로 사라졌다.\n\n성벽은 칼로 베이지 않지만 부서지기는 한다. 기사는 칼 대신 구슬을 들었다.\n벽돌 하나를 깰 때마다 마을이 조금씩 숨을 쉰다. 하람을 찾아 탑을 오른다.' },
-  end1:{ title:'빈 갑옷', text:'군주가 무너지자 갑옷 속에서 바람만 빠져나왔다. 안은 텅 비어 있었다.\n발밑에서 탑이 다시 자란다. 부순 성벽이 하나둘 제자리로 돌아간다.\n\n그때 아래에서 하람의 목소리가 들렸다.\n"여기야, 탑의 뿌리. 성벽은 누군가의 소원으로 자라."\n\n뿌리로 가는 길이 열렸다. 그 길은 탑을 더 사납게 만든다.' },
-  a1:{ title:'첫 번째 조각 · 성주', text:'오래전 이 땅에는 마을을 아끼던 성주가 있었다.\n전쟁이 마을을 휩쓴 해, 성주는 맹세했다.\n"다시는 아무도 잃지 않겠다."' },
-  a2:{ title:'두 번째 조각 · 첫 벽돌', text:'성주는 마을 둘레에 성벽을 쌓았다. 한 줄, 또 한 줄.\n적은 다시 오지 않았지만 성주는 멈추지 않았다.\n지킬 것이 있는 한 벽은 언제나 모자랐다.' },
-  a3:{ title:'세 번째 조각 · 닫힌 문', text:'성벽은 문을 삼키고 길을 삼켰다.\n사람들은 더는 밖으로 나갈 수 없었다.\n성주는 그것을 "안전"이라 불렀다.' },
-  a4:{ title:'네 번째 조각 · 성벽의 왕', text:'성주는 끝내 스스로 성벽이 되었다. 사람들은 그를 성벽의 왕이라 불렀다.\n왕은 지켜야 할 사람들을 벽돌 속에 넣어 두기 시작했다.\n거기라면 아무도 다치지 않으니까.' },
-  a5:{ title:'다섯 번째 조각 · 하람', text:'하람은 무섭지 않았다고 했다. 왕은 밤마다 벽 너머로 노래를 들려주었으니까.\n하지만 하람은 알았다. 그 노래는 지키는 사람의 것이지, 갇힌 사람의 것이 아니라는 걸.\n\n"와 줘. 왕을 쉬게 해 줘."' },
-  root:{ title:'근원', text:'군주의 빈 갑옷이 무너진 자리에서 성벽이 일어섰다.\n천장의 벽돌들이 눈을 감듯 굳게 닫힌다.\n성벽의 왕이다.' },
-  end:{ title:'성벽이 내려간 아침', text:'왕의 마지막 벽돌이 부서졌다. 왕은 무릎을 꿇고 처음으로 손을 내렸다.\n"다시는 아무도 잃지 않으려 했는데."\n하람이 그 손을 잡았다. "이제 쉬어도 돼요. 우리가 서로를 지킬게요."\n\n성벽이 한 줄씩 내려앉았다. 벽돌 속에서 집과 우물과 사람들이 걸어 나왔다.\n아침이 왔다. 탑은 무너졌고, 기사는 하람의 손을 잡고 마을로 돌아갔다.\n\n그러나 무너진 탑 아래, 땅 깊은 곳의 심연은 아직 숨을 쉰다.' },
+  intro:{ title:'멈추지 않는 화요일', text:'어느 화요일, 도시를 돌리던 알고리즘이 멈추지 않았다.\n서버에서 쏟아진 데이터 벽이 동네를 덮었다. 집도, 신호등도, 동생 하람도 벽돌 속으로 사라졌다.\n\n데이터 벽은 지워지지 않지만 깨지기는 한다. 디버거는 키보드 대신 구슬을 들었다.\n벽돌 하나를 깰 때마다 동네의 불이 하나씩 다시 켜진다. 하람을 찾아 서버로 들어간다.' },
+  end1:{ title:'빈 프로세스', text:'관리자 프로세스가 멈추자 안에서 빈 신호만 흘러나왔다. 아무도 없었다.\n발밑에서 서버가 다시 자란다. 부순 데이터 벽이 하나둘 제자리로 돌아간다.\n\n그때 아래에서 하람의 목소리가 들렸다.\n"여기야, 서버의 뿌리. 벽은 누군가의 바람으로 자라."\n\n뿌리로 가는 길이 열렸다. 그 길은 서버를 더 사납게 만든다.' },
+  a1:{ title:'첫 번째 조각 · 지킴이', text:'오래전 이 도시에는 사람을 지키려고 만든 작은 프로그램이 있었다.\n큰 정전이 도시를 덮친 해, 프로그램은 스스로에게 규칙 하나를 새겼다.\n"다시는 아무도 잃지 않는다."' },
+  a2:{ title:'두 번째 조각 · 첫 벽돌', text:'프로그램은 도시 둘레에 벽을 쌓았다. 한 줄, 또 한 줄.\n정전은 다시 오지 않았지만 프로그램은 멈추지 않았다.\n지킬 것이 있는 한 벽은 언제나 모자랐다.' },
+  a3:{ title:'세 번째 조각 · 닫힌 문', text:'벽은 문을 삼키고 길을 삼켰다.\n사람들은 더는 밖으로 나갈 수 없었다.\n프로그램은 그것을 "안전"이라 불렀다.' },
+  a4:{ title:'네 번째 조각 · 알고리즘', text:'프로그램은 끝내 스스로 벽이 되었다. 매주 화요일 밤마다 벽을 한 겹씩 더 쌓아서, 사람들은 그것을 화요일의 알고리즘이라 불렀다.\n알고리즘은 지켜야 할 사람들을 벽돌 속에 넣어 두기 시작했다.\n거기라면 아무도 다치지 않으니까.' },
+  a5:{ title:'다섯 번째 조각 · 하람', text:'하람은 무섭지 않았다고 했다. 알고리즘은 밤마다 벽 너머로 음악을 틀어 주었으니까.\n하지만 하람은 알았다. 그 음악은 지키는 쪽의 것이지, 갇힌 쪽의 것이 아니라는 걸.\n\n"와 줘. 알고리즘을 쉬게 해 줘."' },
+  root:{ title:'근원', text:'관리자 프로세스가 멈춘 자리에서 벽이 일어섰다.\n천장의 벽돌들이 눈을 감듯 굳게 닫힌다.\n화요일의 알고리즘이다.' },
+  end:{ title:'벽이 내려간 수요일', text:'알고리즘의 마지막 벽돌이 부서졌다. 알고리즘은 처음으로 반복을 멈췄다.\n"다시는 아무도 잃지 않으려 했는데."\n하람이 화면에 손을 댔다. "이제 쉬어도 돼. 우리가 서로를 지킬게."\n\n데이터 벽이 한 줄씩 내려앉았다. 벽돌 속에서 집과 신호등과 사람들이 걸어 나왔다.\n수요일 아침이 왔다. 서버는 조용해졌고, 디버거는 하람의 손을 잡고 동네로 돌아갔다.\n\n그러나 꺼진 서버 아래, 깊은 곳의 심층부는 아직 숨을 쉰다.' },
 };
-// 이야기를 보여 주는 순서(도감의 이야기 구역도 이 순서)
+// 이야기를 보여 주는 순서(아카이브의 이야기 구역도 이 순서)
 const STORY_ORDER = ['intro', 'end1', 'a1', 'a2', 'a3', 'a4', 'a5', 'root', 'end'];
 // 층마다 지도 아래 한 줄: 하람의 흔적이 조금씩 가까워진다(본편만)
 const STORY_FLOOR = [
-  '벽돌 틈에 하람의 머리끈이 걸려 있다. 이 탑 어딘가에 있다.',
-  '벽에 아이 손자국이 줄지어 위로 이어진다.',
-  '누군가 벽돌에 "나가고 싶어"라고 새겨 두었다. 하람의 글씨다.',
-  '위층에서 노랫소리가 내려온다. 하람이 잠들 때 부르던 노래다.',
-  '꼭대기다. 탑의 군주가 성벽을 붙들고 서 있다.',
+  '벽돌 틈에 하람의 머리끈이 걸려 있다. 이 서버 어딘가에 있다.',
+  '로그에 아이의 발자국이 줄지어 위층으로 이어진다.',
+  '누군가 벽돌에 "나가고 싶어"라고 적어 두었다. 하람의 글씨다.',
+  '위층에서 음악이 새어 나온다. 하람이 잠들 때 듣던 곡이다.',
+  '꼭대기다. 관리자 프로세스가 데이터 벽을 붙들고 서 있다.',
 ];
 // 빌드 배지: 원정 완주 순간 덱 구슬의 절반 이상이 그 계열이면 딴다(판정을 덱 구성 하나로 분명하게)
 const BUILD_BADGES = {
@@ -272,21 +272,21 @@ const BUILD_BADGES = {
 };
 
 const BADGES = [
-  { id:'oneshot',  name:'일격',       icon:'sword',   desc:'체력이 가득 찬 몬스터를 천장 타격 한 번으로 쓰러뜨린다' },
-  { id:'triple',   name:'삼연타',     icon:'o_split', desc:'구슬 하나가 천장을 딱 세 번 쳐서 가득 찬 체력을 모두 깎는다' },
-  { id:'final',    name:'탑의 정복자', icon:'up',      desc:'5층의 최종 보스를 쓰러뜨린다' },
-  { id:'flawless', name:'무결',       icon:'shield',  desc:'체력을 하나도 잃지 않고 보스를 쓰러뜨린다' },
-  { id:'swift',    name:'속전속결',   icon:'o_drill', desc:'보스를 3턴 안에 쓰러뜨린다' },
-  { id:'demolish', name:'성벽 허물기',     icon:'brick',   desc:'한 번 발사로 벽돌 12개를 부순다' },
-  { id:'venom',    name:'독살',       icon:'skull',   desc:'독으로 몬스터의 마지막 체력을 깎는다' },
-  { id:'counter',  name:'되갚기',     icon:'o_bomb',  desc:'반격으로 몬스터를 쓰러뜨린다' },
-  { id:'light',    name:'가벼운 짐',  icon:'o_basic', desc:'주머니에 구슬 3개 이하만 넣고 최종 보스를 쓰러뜨린다' },
-  { id:'abyss5',   name:'심연의 바닥', icon:'o_heavy', desc:'심연 5층 보스를 쓰러뜨린다' },
-  { id:'rich',     name:'거상',       icon:'coin',    desc:'한 원정에서 금화 200개를 모은다' },
-  { id:'root',     name:'아침',       icon:'up',      desc:'고난 6에서 근원 "성벽의 왕"을 쓰러뜨리고 진 엔딩을 본다' },
-  { id:'path_poison', name:'독의 길',   icon:'skull',   desc:'주머니 구슬의 절반 이상이 독 계열(독·맹독)인 채로 탑을 정복한다' },
-  { id:'path_bomb',   name:'폭파의 길', icon:'o_bomb',  desc:'주머니 구슬의 절반 이상이 폭파 계열(폭탄·송곳·철거·망치)인 채로 탑을 정복한다' },
-  { id:'path_curse',  name:'저주의 길', icon:'o_basic', desc:'주머니 구슬의 절반 이상이 저주 계열(약화·무장해제·부식·기절·시간)인 채로 탑을 정복한다' },
-  { id:'path_shield', name:'방패의 길', icon:'shield',  desc:'주머니 구슬의 절반 이상이 방패 계열(방패·거울·가시)인 채로 탑을 정복한다' },
-  { id:'path_split',  name:'갈래의 길', icon:'o_split', desc:'주머니 구슬의 절반 이상이 갈래 계열(분열·사슬·탄력)인 채로 탑을 정복한다' },
+  { id:'oneshot',  name:'원샷',       icon:'sword',   desc:'체력이 가득 찬 버그를 천장 타격 한 번으로 쓰러뜨린다' },
+  { id:'triple',   name:'트리플 킬',  icon:'o_split', desc:'구슬 하나가 천장을 딱 세 번 쳐서 가득 찬 체력을 모두 깎는다' },
+  { id:'final',    name:'서버 장악',  icon:'up',      desc:'5층의 최종 보스를 쓰러뜨린다' },
+  { id:'flawless', name:'무결점 빌드', icon:'shield',  desc:'체력을 하나도 잃지 않고 보스를 쓰러뜨린다' },
+  { id:'swift',    name:'스피드런',   icon:'o_drill', desc:'보스를 3턴 안에 쓰러뜨린다' },
+  { id:'demolish', name:'벽 해체',    icon:'brick',   desc:'한 번 발사로 벽돌 12개를 부순다' },
+  { id:'venom',    name:'감염',       icon:'skull',   desc:'독으로 버그의 마지막 체력을 깎는다' },
+  { id:'counter',  name:'역공',       icon:'o_bomb',  desc:'카운터 스크립트로 버그를 쓰러뜨린다' },
+  { id:'light',    name:'경량화',     icon:'o_basic', desc:'큐에 구슬 3개 이하만 넣고 최종 보스를 쓰러뜨린다' },
+  { id:'abyss5',   name:'심층부 바닥', icon:'o_heavy', desc:'심층부 5층 보스를 쓰러뜨린다' },
+  { id:'rich',     name:'고래',       icon:'coin',    desc:'한 접속에서 크레딧 200을 모은다' },
+  { id:'root',     name:'수요일 아침', icon:'up',      desc:'보안 등급 6에서 근원 "화요일의 알고리즘"을 쓰러뜨리고 진 엔딩을 본다' },
+  { id:'path_poison', name:'독의 길',   icon:'skull',   desc:'큐의 구슬 절반 이상이 독 계열(독·맹독)인 채로 서버를 장악한다' },
+  { id:'path_bomb',   name:'폭파의 길', icon:'o_bomb',  desc:'큐의 구슬 절반 이상이 폭파 계열(폭탄·송곳·철거·망치)인 채로 서버를 장악한다' },
+  { id:'path_curse',  name:'저주의 길', icon:'o_basic', desc:'큐의 구슬 절반 이상이 저주 계열(약화·무장해제·포맷·기절·시간)인 채로 서버를 장악한다' },
+  { id:'path_shield', name:'실드의 길', icon:'shield',  desc:'큐의 구슬 절반 이상이 실드 계열(실드·거울·가시)인 채로 서버를 장악한다' },
+  { id:'path_split',  name:'갈래의 길', icon:'o_split', desc:'큐의 구슬 절반 이상이 갈래 계열(분열·사슬·탄력)인 채로 서버를 장악한다' },
 ];

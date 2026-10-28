@@ -194,7 +194,7 @@ function drawAbyssFx(t){
 // ── HUD
 function setHeader(stage, name){ $('hStage').textContent = stage; $('hName').textContent = name; }
 // 전투 중에는 main.js가 줄인 글자("120 · 3턴")와 따로 읽기용 이름을 단다. 전투 밖에서는 글자 그대로를 이름으로 덮어 옛 턴 수가 읽히지 않게
-function renderCoins(){ const h = $('hCoin'), on = RUN && mode !== 'main'; h.textContent = on ? `${RUN.coins}` : ''; h.setAttribute('aria-label', on ? `금화 ${RUN.coins}` : ''); }
+function renderCoins(){ const h = $('hCoin'), on = RUN && mode !== 'main'; h.textContent = on ? `${RUN.coins}` : ''; h.setAttribute('aria-label', on ? `크레딧 ${RUN.coins}` : ''); }
 function deckSummary(){
   const cnt = {}; RUN.deck.forEach(o => cnt[o] = (cnt[o] || 0) + 1);
   return Object.keys(cnt).map(o => `${orbName(o).replace(' 구슬', '')} ${cnt[o]}`).join(', ');
@@ -218,20 +218,20 @@ function renderOrbBar(){
     // 분열은 갈래 수로 나눈 값이 갈래 하나의 피해다: (⚔2 + 0) ÷3 = 1
     const expr = hp.k !== 1 ? `(${sum}) ×${+hp.k.toFixed(2)}` : sum;
     dmg.textContent = hp.div > 1 ? `(${expr}) ÷${hp.div} = ${hp.v}` : `${expr} = ${hp.v}`;
-    dmg.title = '천장 타격 피해 = (기사 공격력 + 구슬 위력) × 비기' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
+    dmg.title = '천장 타격 피해 = (디버거 공격력 + 구슬 위력) × 코어 모듈' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
     name.append(dmg);
     label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
     const next = document.createElement('div'); next.className = 'orbNext';
     const text = document.createElement('span'); text.textContent = '다음';
     next.append(text, orbPortrait(orbKind(nextOrb())), orbName(nextOrb()).replace(' 구슬', ''));
     el.append(current, next); el.title = orbDesc(G.orb);
-  } else el.append(`구슬 주머니 ${RUN.deck.length}/${deckMax()}: ${deckSummary()}`);
+  } else el.append(`큐 ${RUN.deck.length}/${deckMax()}: ${deckSummary()}`);
 }
 function renderAbil(){
   const box = $('abil'); box.textContent = '';
   if (!RUN || mode === 'main') return;
   const ids = Object.keys(RUN.relics);
-  if (!ids.length){ const n = document.createElement('span'); n.className = 'none'; n.textContent = '유물 없음'; box.append(n); return; }
+  if (!ids.length){ const n = document.createElement('span'); n.className = 'none'; n.textContent = '칩 없음'; box.append(n); return; }
   for (const id of ids){
     const c = document.createElement('span');
     c.textContent = RELICS[id].name + (RUN.relics[id] > 1 ? ' ' + RUN.relics[id] : '');

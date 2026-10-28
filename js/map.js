@@ -15,7 +15,7 @@ function freshRun(abyss, asc = 0){
 // ── 갈림길 지도: 5갈래 × 4칸 + 보스. 같은 칸으로는 항상, 옆 칸으로는 40% 확률로 이어진다
 // 갈래를 3 → 5로 늘려 고를 길이 많아졌다(같은 갈래만 따라가도 되고, 옆으로 갈아탈 기회도 늘었다)
 const LANES = 5, BOSS_L = 2;
-const NODE_NAME = { battle:'전투', elite:'정예', rest:'모닥불', shop:'상인', boss:'보스' };
+const NODE_NAME = { battle:'전투', elite:'정예', rest:'충전소', shop:'브로커', boss:'보스' };
 function genMap(s, abyss, seed){
   RNG.map = seedOf(seed, 'map', s, abyss ? 1 : 0);
   // 심연은 첫 칸부터 아무 몬스터나 나온다(본편처럼 슬라임으로 몸을 풀 틈을 주지 않는다)

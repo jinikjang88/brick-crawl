@@ -13,9 +13,9 @@
 </head>
 <body>
 <!-- 세로 고정 게임: 가로로 눕힌 폰에서만 보인다(css/style.css "세로 고정") -->
-<div class="rotateHint" role="alert" aria-live="assertive"><div class="ri" aria-hidden="true"></div><b>기기를 세로로 세워 주세요</b><span>원정은 그 자리에서 멈춰 기다린다</span></div>
+<div class="rotateHint" role="alert" aria-live="assertive"><div class="ri" aria-hidden="true"></div><b>기기를 세로로 세워 주세요</b><span>접속은 그 자리에서 멈춰 기다린다</span></div>
 <div class="app" id="app">
-  <div class="brandStrip"><span>BRICK / CRAWL</span><span>구슬로 여는 원정</span></div>
+  <div class="brandStrip"><span>BRICK / CRAWL</span><span>구슬로 여는 서버</span></div>
   <header class="hud">
     <div>
       <div class="hStage" id="hStage"></div>
@@ -27,7 +27,7 @@
     </div>
   </header>
   <div class="orbBar" id="orbBar"></div>
-  <div class="abil" id="abil" aria-label="보유 유물"></div>
+  <div class="abil" id="abil" aria-label="보유 칩"></div>
 
   <div class="stageWrap"><div class="stage">
     <canvas id="cv" aria-label="위는 전투 화면, 아래는 벽돌판"></canvas>
@@ -38,10 +38,10 @@
       <canvas class="logoCv" id="logoCv" role="img" aria-label="BRICK CRAWL"></canvas>
       <div class="logo">브릭 크롤</div>
       <div class="orbShowcase" id="orbShowcase" aria-hidden="true"></div>
-      <p class="tagline">성벽을 깨고, 운명을 튕겨라.</p>
-      <div class="whoRow"><div class="who"><span class="whoLbl">기사</span><b id="mName"></b></div><button class="renameBtn" id="mRename" aria-label="기사 이름 변경">변경</button></div>
+      <p class="tagline">데이터 벽을 깨고, 버그를 튕겨라.</p>
+      <div class="whoRow"><div class="who"><span class="whoLbl">디버거</span><b id="mName"></b></div><button class="renameBtn" id="mRename" aria-label="디버거 이름 변경">변경</button></div>
       <form class="renameForm" id="renameForm" hidden>
-        <label for="nameIn">새 기사 이름 (한글·영문·숫자 2~12자, 일주일에 한 번)</label>
+        <label for="nameIn">새 디버거 이름 (한글·영문·숫자 2~12자, 일주일에 한 번)</label>
         <input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false">
         <div class="renameBtns"><button class="btn primary" id="nameSave" type="submit">바꾸기</button><button class="btn" id="nameCancel" type="button">취소</button></div>
         <p class="renameMsg" id="nameMsg" aria-live="polite"></p>
@@ -49,34 +49,34 @@
       <p class="sub" id="mRecord"></p>
       <div class="mainBtns">
         <button class="btn" id="mContinue" hidden></button>
-        <button class="btn" id="mNew">새 원정</button>
+        <button class="btn" id="mNew">새 접속</button>
         <button class="btn ascBtn" id="mAsc" hidden></button>
-        <button class="btn abyssBtn" id="mAbyss">심연으로</button>
+        <button class="btn abyssBtn" id="mAbyss">심층부로</button>
       </div>
       <div class="subBtns">
-        <button class="subBtn" id="mTree">수련</button>
-        <button class="subBtn" id="mBadge">도감</button>
+        <button class="subBtn" id="mTree">모듈</button>
+        <button class="subBtn" id="mBadge">아카이브</button>
       </div>
       <div class="board mini" id="mBoard" aria-live="polite"></div>
-      <button class="linkbtn" id="mRank">명예의 전당 전체 보기</button>
+      <button class="linkbtn" id="mRank">순위표 전체 보기</button>
       <div class="sndRow"><button class="sndBtn" id="mBgm"></button><button class="sndBtn" id="mSfx"></button><button class="sndBtn" id="mTheme"></button></div>
       <div class="legalRow"><a class="linkbtn" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a><button class="linkbtn" id="mDelete" aria-expanded="false" aria-controls="deleteForm">내 기록 삭제</button></div>
       <div class="deleteForm" id="deleteForm" hidden>
-        <p>명예의 전당에서 기사 이름과 원정 기록을 지운다. 이 기기의 진행도(수련·도감)는 그대로 남고, 기사 이름은 새로 정해진다. 되돌릴 수 없다.</p>
-        <div class="renameBtns"><button class="btn danger" id="deleteGo" type="button">명예의 전당 기록 지우기</button><button class="btn" id="deleteCancel" type="button">취소</button></div>
+        <p>순위표에서 디버거 이름과 접속 기록을 지운다. 이 기기의 진행도(모듈·아카이브)는 그대로 남고, 디버거 이름은 새로 정해진다. 되돌릴 수 없다.</p>
+        <div class="renameBtns"><button class="btn danger" id="deleteGo" type="button">순위표 기록 지우기</button><button class="btn" id="deleteCancel" type="button">취소</button></div>
         <p class="renameMsg" id="deleteMsg" aria-live="polite"></p>
       </div>
     </div>
 
     <div class="ov" id="ovRank">
-      <div class="big">명예의 전당</div>
+      <div class="big">순위표</div>
       <p class="sub" id="rankSub"></p>
       <ol class="board" id="rankList"></ol>
       <button class="btn" id="rankBack">돌아가기</button>
     </div>
 
     <div class="ov ovTree" id="ovTree">
-      <div class="big">수련</div>
+      <div class="big">모듈</div>
       <p class="sub" id="treeSub"></p>
       <div class="treeBox" id="treeBox"></div>
       <div class="treeInfo" id="treeInfo" aria-live="polite"></div>
@@ -84,7 +84,7 @@
     </div>
 
     <div class="ov ovBadge" id="ovBadge">
-      <div class="big">도감</div>
+      <div class="big">아카이브</div>
       <p class="sub" id="badgeSub"></p>
       <ul class="badgeBox" id="badgeBox"></ul>
       <button class="btn" id="badgeBack">돌아가기</button>
@@ -108,9 +108,9 @@
   <div class="ov" id="ovPause">
     <div class="big">일시정지</div>
     <button class="btn primary" id="pResume">계속하기</button>
-    <button class="btn" id="pMain">탑 입구<small id="pMainSub"></small></button>
+    <button class="btn" id="pMain">터미널<small id="pMainSub"></small></button>
     <div class="sndRow"><button class="sndBtn" id="pBgm"></button><button class="sndBtn" id="pSfx"></button><button class="sndBtn" id="pTheme"></button></div>
-    <button class="linkbtn" id="pGiveup">원정 포기</button>
+    <button class="linkbtn" id="pGiveup">접속 포기</button>
   </div>
 <p class="playHint" id="playHint">조준선에 맞춰 탭 · Space / Enter 발사</p>
 </div>
