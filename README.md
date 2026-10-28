@@ -121,7 +121,7 @@ js/config.js        화면 상수(W·H·COLS…), 공용 유틸($·clamp), 시�
 js/data.js          데이터: 몬스터·성벽·스케일·구슬·유물·스킬 트리·배지
 js/sprites.js       도트 스프라이트·아이콘·3×5 숫자 폰트와 그리기 함수
 js/art.js           일러스트 에셋(assets/game) 그리기, 실패하면 도트로 폴백
-js/audio.js         Web Audio 소리 합성(효과음·장면별 BGM·켬/끔 설정)
+js/audio.js         소리: Web Audio 합성(효과음·장면별 BGM)과 메인·지도 음원 곡, 켬/끔 설정
 js/save.js          localStorage 저장·불러오기(원정·메타)
 js/profile.js       임의 닉네임 생성, 플레이어 프로필
 js/net.js           기록 서버 통신(닉네임 등록·원정 시작 표·원정 기록·랭킹·내 기록 삭제)

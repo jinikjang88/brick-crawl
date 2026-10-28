@@ -1,7 +1,8 @@
 // 사운드: Web Audio로 칩튠 효과음·BGM을 즉석 합성한다
 'use strict';
 
-// 음원 파일 없이 코드로 만든다. 이유: 저장소 밖 리소스 금지, file://에서 fetch가 막힘, 도트 그래픽과 질감을 맞추려고.
+// 효과음과 대부분의 BGM은 코드로 만든다. 이유: 저장소 밖 리소스 금지, file://에서 fetch가 막힘, 용량.
+// 예외로 TRACKS의 곡은 저장소 안 mp3를 <audio>로 튼다(2026-10-28 결정: 디지털 던전 테마의 메인·지도 곡).
 // 브라우저는 사용자 입력 전에는 소리를 막으므로, 첫 탭/키 입력에서 AudioContext를 만든다(unlockAudio).
 // 시뮬레이터(Node)에는 AudioContext가 없어 모든 함수가 아무 일도 하지 않는다.
 
@@ -34,9 +35,51 @@ function setAudio(k, on){
   if (!actx) return;
   const bus = k === 'bgm' ? bgmBus : sfxBus, v = on ? (k === 'bgm' ? 0.32 : 0.6) : 0;
   bus.gain.setTargetAtTime(v, actx.currentTime, 0.05);
+  if (k === 'bgm') trackSync();
 }
 // 탭이 숨으면 멈춘다(배터리·다른 탭 소리와 겹침 방지)
-try { document.addEventListener('visibilitychange', () => { if (!actx) return; document.hidden ? actx.suspend().catch(() => {}) : actx.resume().catch(() => {}); }); } catch(e){}
+try { document.addEventListener('visibilitychange', () => { if (!actx) return; document.hidden ? actx.suspend().catch(() => {}) : actx.resume().catch(() => {}); trackSync(); }); } catch(e){}
+
+// ── 음원 곡: 합성 대신 mp3를 트는 장면
+// Web Audio 그래프에 잇지 않는다: file://에서는 MediaElementSource가 교차 출처로 취급돼 무음이 된다.
+// 그래서 음량은 요소의 volume으로 맞추고, 끔·탭 숨김은 pause로 처리한다(iOS는 volume을 무시하므로).
+// 요소는 하나만 만들어 src만 바꾼다: iOS는 첫 탭에서 재생한 요소만 그 뒤에도 소리를 허락한다.
+const TRACKS = { calm:'assets/audio/tuesdays-algorithm.mp3' };
+const TRACK_VOL = 0.4;   // 마스터링된 곡이라 합성 BGM(버스 0.32 × 0.8)과 귀로 비슷해지게 낮춘다
+let trackEl = null, trackOn = null, trackFade = null;
+const trackBad = {};     // 못 읽은 곡은 다시 시도하지 않고 합성곡으로 대신한다
+function trackSync(){
+  if (!trackEl) return;
+  if (trackOn && AUDIO.bgm && !document.hidden) trackEl.play().catch(() => {});
+  else trackEl.pause();
+}
+function trackStop(){
+  if (!trackEl || !trackOn) return;
+  trackOn = null;
+  // 짧게 줄이며 멈춘다(합성곡의 0.12초 감쇠와 맞춤). iOS는 volume을 무시해 바로 멈춘다
+  clearInterval(trackFade);
+  trackFade = setInterval(() => {
+    trackEl.volume = Math.max(0, trackEl.volume - TRACK_VOL / 8);
+    if (trackEl.volume <= 0 || trackOn){ clearInterval(trackFade); if (!trackOn) trackEl.pause(); }
+  }, 40);
+}
+function trackStart(name){
+  if (typeof Audio === 'undefined') return false;
+  if (!trackEl){
+    trackEl = new Audio(); trackEl.loop = true; trackEl.preload = 'auto';
+    trackEl.addEventListener('error', () => {
+      if (!trackOn) return;
+      const n = trackOn; trackBad[n] = true; trackOn = null;
+      if (bgmWant === n && SONGS[n]) startSong(n);
+    });
+  }
+  clearInterval(trackFade);
+  const src = TRACKS[name];
+  if (!trackEl.src.endsWith(src)){ trackEl.src = src; }
+  trackEl.volume = TRACK_VOL; trackOn = name;
+  trackSync();
+  return true;
+}
 
 // ── 합성 기본기
 const midiHz = n => 440 * Math.pow(2, (n - 69) / 12);
@@ -239,6 +282,9 @@ function startSong(name){
     setTimeout(() => { try { old.gain.disconnect(); } catch(e){} }, 800);
     song = null;
   }
+  if (name === trackOn) return;
+  trackStop();
+  if (TRACKS[name] && !trackBad[name] && trackStart(name)) return;
   const def = SONGS[name]; if (!def) return;
   const g = actx.createGain(); g.gain.value = 1; g.connect(bgmBus);
   const s = { def, gain:g, step:0, next:actx.currentTime + 0.08, spb:60 / def.bpm / 4 };

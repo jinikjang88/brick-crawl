@@ -34,7 +34,8 @@
   - 개인정보: 서버로 보내는 항목을 늘리거나 보관 기간·위탁처가 바뀌면 `privacy.html`(개인정보 처리방침)을 함께 고친다. 플레이어 데이터를 담는 표를 더하면 `/api/delete`(`remove`)에서도 지운다.
   - DB 구조를 바꾸면 `db/schema.sql`과 함께 `db/migrations/000N_*.sql`을 더하고, 운영 DB에는 코드 배포 **전에** 적용한다.
   - 시뮬레이터(Node)에서는 `location`이 없어 통신이 꺼진다. 봇의 원정이 실제 랭킹에 섞이지 않게 이 조건을 유지한다.
-- **소리는 음원 파일 없이 Web Audio로 합성한다**(`js/audio.js`). 외부 리소스 금지·`file://` 동작 조건 때문이다.
+- **효과음과 BGM은 Web Audio로 합성한다**(`js/audio.js`). 외부 리소스 금지·`file://` 동작 조건·용량 때문이다.
+  - 예외(2026-10-28 결정): `TRACKS`에 적은 곡만 저장소 안 mp3(`assets/audio`)를 `<audio>` 요소 하나로 튼다(메인·지도 곡). Web Audio 그래프에 잇지 않는다(`file://`에서 `MediaElementSource`는 무음). 못 읽으면 같은 이름의 합성곡(`SONGS`)으로 대신한다. 곡을 더하면 배포 권리를 확인하고 `assets/audio/LICENSE.md`에 적는다.
   - 게임 코드는 `sfx('이름', 옵션)`·`bgm('곡')`만 부른다. 소리 정의는 `SFX`·`SONGS`에 모은다.
   - 브라우저는 첫 입력 전 소리를 막는다. `AudioContext`는 첫 탭·키에서 만든다(`unlockAudio`). 그 전의 `bgm()` 요청은 기억했다가 그때 튼다.
   - Node(시뮬레이터)에는 `AudioContext`가 없어 모든 소리 함수가 아무것도 안 한다. 소리 때문에 게임 로직이 갈라지면 안 된다.
@@ -51,7 +52,7 @@
   | `js/data.js` | 데이터: `MON`·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS`·`TREE`(스킬 트리)·`BADGES`(배지) |
   | `js/sprites.js` | 도트 리소스(`SPR`·`ICON`·`FONT`)와 `drawText`·`drawIcon`·`drawSprite` |
   | `js/art.js` | 일러스트 에셋(`assets/game`) 로드와 그리기(`drawCharArt`·`drawBrickArt`·`drawBgArt`). 로드 전·실패·Node에서는 false를 돌려 도트로 폴백 |
-| `js/audio.js` | 소리 합성: 효과음(`sfx`·`SFX`), 장면별 BGM(`bgm`·`SONGS`), 켬/끔 설정(`AUDIO`·`setAudio`) |
+| `js/audio.js` | 소리: 효과음 합성(`sfx`·`SFX`), 장면별 BGM(`bgm`·합성 `SONGS`·음원 `TRACKS`), 켬/끔 설정(`AUDIO`·`setAudio`) |
   | `js/save.js` | `localStorage` 저장·불러오기(원정·메타) |
   | `js/profile.js` | 임의 닉네임 생성(3음절 × 3단어), 플레이어 프로필(`PROFILE`)·`uuid()`·`runProgress()` |
   | `js/net.js` | 기록 서버 통신: 닉네임 등록, 원정 시작 표, 원정 기록 대기열·전송, 랭킹 조회, 내 기록 삭제 |
