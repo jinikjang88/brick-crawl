@@ -216,7 +216,7 @@ const TREE = [
   { id:'e2', name:'협상 봇',    cost:3, req:'e1',   x:78.7, y:50, desc:'브로커 가격 -20%' },
   { id:'e3', name:'데이터 수집', cost:3, req:'e2',   x:93, y:35.7, desc:'전투 승리 크레딧 +5' },
   { id:'e4', name:'버그 바운티', cost:8, req:'e3',  x:93, y:21.3, key:true, desc:'무작위 칩 하나를 지니고 출발' },
-  { id:'e5', name:'패치 노트',  cost:3, req:'e2',   x:93, y:64.3, desc:'충전소·패치 구슬 회복 +5' },
+  { id:'e5', name:'패치 노트',  cost:3, req:'e2',   x:93, y:64.3, desc:'충전소·복구 패치 회복 +5' },
   { id:'e6', name:'재부팅',     cost:8, req:'e5',   x:93, y:78.7, key:true, desc:'접속마다 한 번, 쓰러지면 체력 30%로 일어난다' },
 ];
 const tree = id => !!(META.tree && META.tree[id]);
