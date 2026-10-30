@@ -67,12 +67,12 @@ function drawShopScene(g, calm){
 }
 
 function drawRestScene(g, dt, calm){
-  const t = sceneT, fire = artImg('campfire'), knight = artImg('knight');
+  const t = sceneT, fire = artImg('campfire'), knight = artImg('rick') || artImg('knight');
   const flick = calm ? .85 : .8 + Math.sin(t * 11) * .08 + Math.sin(t * 27) * .06;
   glowRings(g, 104, 58, 58, .34 * flick);
   // 바닥: 어두운 돌바닥 띠
   g.fillStyle = '#1F1813'; g.fillRect(0, 74, SW, 10);
-  // 기사는 불 곁에서 쉰다(숨쉬기만, 불빛 쪽으로 조금 밝게)
+  // 릭은 충전기 곁에서 쉰다(숨쉬기만, 불빛 쪽으로 조금 밝게)
   if (knight){
     const kb = calm ? 0 : Math.sin(t * 1.6) * .5;
     g.drawImage(knight, 40, 30 + kb, 42, 42 * knight.naturalHeight / knight.naturalWidth);

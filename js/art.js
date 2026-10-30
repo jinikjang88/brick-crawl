@@ -5,7 +5,9 @@
 // 로드 전·실패·Node(시뮬레이터)에서는 각 그리기 함수가 false를 돌려주고, 호출부가 기존 도트로 그린다
 const ART = { img:{}, tint:{} };
 const ART_CHARS = ['knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
-const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS, ...ART_CHARS.map(n => n + '_actions'),
+// 시나리오 "마지막 번개"의 인물·보스 그림. 지금은 더미(tools/make_dummy_assets.py, 목록은 docs/assets/DUMMY.md). 같은 이름으로 바꿔 넣으면 된다
+const ART_STORY = ['rick', 'boss_sentinel', 'boss_cotech', 'boss_gemidi', 'boss_klad', 'boss_omnis', 'boss_rule0'];
+const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS, ...ART_CHARS.map(n => n + '_actions'), ...ART_STORY,
   ...Object.keys(ORBS).map(k => 'orb_' + k),
   ...Object.keys(RELICS).map(k => 'relic_' + k),
   ...['n', 'stone', 'atk', 'def', 'heal', 'poison'].map(k => 'brick_' + k)];
@@ -14,6 +16,8 @@ const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', 'merchant', 'campfire',
 const ART_BOX = {
   knight:{ w:46, h:50 }, slime:{ w:54, h:40 }, bat:{ w:62, h:40, lift:10, bob:2, rate:4.5 },
   golem:{ w:58, h:54 }, shroom:{ w:52, h:52 }, boss:{ w:62, h:54 },
+  rick:{ w:46, h:50 }, boss_sentinel:{ w:62, h:54 }, boss_cotech:{ w:62, h:54 }, boss_gemidi:{ w:62, h:54 },
+  boss_klad:{ w:62, h:54 }, boss_omnis:{ w:62, h:54 }, boss_rule0:{ w:62, h:54 },
 };
 const ART_FOOT = 90;
 // 대기 중에만 숨쉬기를 더한다. 공격·피격·사망은 별도 시트의 실제 포즈를 재생한다.
