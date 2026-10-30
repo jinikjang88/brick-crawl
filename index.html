@@ -15,7 +15,7 @@
 <!-- 세로 고정 게임: 가로로 눕힌 폰에서만 보인다(css/style.css "세로 고정") -->
 <div class="rotateHint" role="alert" aria-live="assertive"><div class="ri" aria-hidden="true"></div><b>기기를 세로로 세워 주세요</b><span>접속은 그 자리에서 멈춰 기다린다</span></div>
 <div class="app" id="app">
-  <div class="brandStrip"><span>BRICK / CRAWL</span><span>구슬로 여는 서버</span></div>
+  <div class="brandStrip"><span>BRICK / CRAWL</span><span>구슬로 내려가는 협곡</span></div>
   <header class="hud">
     <div>
       <div class="hStage" id="hStage"></div>
@@ -26,8 +26,12 @@
       <button class="iconBtn" id="btnMenu" aria-label="일시정지">II</button>
     </div>
   </header>
-  <div class="orbBar" id="orbBar"></div>
-  <div class="abil" id="abil" aria-label="보유 칩"></div>
+  <!-- 무전 띠는 구슬 줄 위에 겹쳐 뜬다: 전투판(천장·버그 예고)을 가리지 않고 판도 밀어내지 않게 -->
+  <div class="hudRows">
+    <div class="orbBar" id="orbBar"></div>
+    <div class="abil" id="abil" aria-label="보유 칩"></div>
+    <div class="radio" id="radio" role="status" aria-live="polite" hidden></div>
+  </div>
 
   <div class="stageWrap"><div class="stage">
     <canvas id="cv" aria-label="위는 전투 화면, 아래는 벽돌판"></canvas>
@@ -39,9 +43,9 @@
       <div class="logo">브릭 크롤</div>
       <div class="orbShowcase" id="orbShowcase" aria-hidden="true"></div>
       <p class="tagline">데이터 벽을 깨고, 버그를 튕겨라.</p>
-      <div class="whoRow"><div class="who"><span class="whoLbl">디버거</span><b id="mName"></b></div><button class="renameBtn" id="mRename" aria-label="디버거 이름 변경">변경</button></div>
+      <div class="whoRow"><div class="who"><span class="whoLbl">호출명</span><b id="mName"></b></div><button class="renameBtn" id="mRename" aria-label="호출명 변경">변경</button></div>
       <form class="renameForm" id="renameForm" hidden>
-        <label for="nameIn">새 디버거 이름 (한글·영문·숫자 2~12자, 일주일에 한 번)</label>
+        <label for="nameIn">새 호출명 (한글·영문·숫자 2~12자, 일주일에 한 번)</label>
         <input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false">
         <div class="renameBtns"><button class="btn primary" id="nameSave" type="submit">바꾸기</button><button class="btn" id="nameCancel" type="button">취소</button></div>
         <p class="renameMsg" id="nameMsg" aria-live="polite"></p>
@@ -62,7 +66,7 @@
       <div class="sndRow"><button class="sndBtn" id="mBgm"></button><button class="sndBtn" id="mSfx"></button><button class="sndBtn" id="mTheme"></button></div>
       <div class="legalRow"><a class="linkbtn" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a><button class="linkbtn" id="mDelete" aria-expanded="false" aria-controls="deleteForm">내 기록 삭제</button></div>
       <div class="deleteForm" id="deleteForm" hidden>
-        <p>순위표에서 디버거 이름과 접속 기록을 지운다. 이 기기의 진행도(모듈·아카이브)는 그대로 남고, 디버거 이름은 새로 정해진다. 되돌릴 수 없다.</p>
+        <p>순위표에서 호출명과 접속 기록을 지운다. 이 기기의 진행도(모듈·아카이브)는 그대로 남고, 호출명은 새로 정해진다. 되돌릴 수 없다.</p>
         <div class="renameBtns"><button class="btn danger" id="deleteGo" type="button">순위표 기록 지우기</button><button class="btn" id="deleteCancel" type="button">취소</button></div>
         <p class="renameMsg" id="deleteMsg" aria-live="polite"></p>
       </div>
@@ -91,7 +95,7 @@
     </div>
 
     <div class="ov ovMap" id="ovMap">
-      <div class="mapHead"><div class="t" id="mapTitle"></div><div class="s" id="mapSub"></div><div class="mapStory" id="mapStory"></div></div>
+      <div class="mapHead"><div class="t" id="mapTitle"></div><div class="depth" id="mapDepth" role="img"></div><div class="s" id="mapSub"></div><div class="mapStory" id="mapStory"></div></div>
       <div class="mapBox" id="mapBox"></div>
     </div>
 
@@ -101,6 +105,14 @@
       <p class="sub" id="cSub"></p>
       <div class="cards" id="cCards"></div>
       <div class="btnRow" id="cBtns"></div>
+    </div>
+
+    <!-- 대사 장면: 화면 어디를 눌러도 다음 줄. 건너뛰기는 늘 보인다 -->
+    <div class="ov ovTalk" id="ovTalk">
+      <div class="tTitle" id="tTitle"></div>
+      <div class="lcd" id="tLcd" aria-hidden="true" hidden></div>
+      <ol class="tLog" id="tLog" aria-live="polite"></ol>
+      <div class="btnRow"><button class="btn primary" id="tNext">다음</button><button class="btn" id="tSkip">건너뛰기</button></div>
     </div>
 
   </div></div>
@@ -118,6 +130,7 @@
 <!-- 순서가 곧 의존 관계: 앞 파일의 전역을 뒤 파일이 쓴다. ES 모듈은 file://에서 막혀서 일반 script로 둔다 -->
 <script src="js/config.js"></script>
 <script src="js/data.js"></script>
+<script src="js/story.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/art.js"></script>
 <script src="js/audio.js"></script>
@@ -128,6 +141,7 @@
 <script src="js/battle.js"></script>
 <script src="js/render.js"></script>
 <script src="js/scene.js"></script>
+<script src="js/talk.js"></script>
 <script src="js/screens.js"></script>
 <script src="js/rewards.js"></script>
 <script src="js/main.js"></script>

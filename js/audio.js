@@ -190,6 +190,31 @@ const SFX = {
   pick:(d, t) => tone(d, t, { f:midiHz(79), wave:'square', dur:0.05, vol:0.12 }),
   // 배지 획득: 종소리 같은 높은 화음 두 번
   badge:(d, t) => { arp(d, t, [84, 88, 91, 96], 0.06, { wave:'triangle', dur:0.3, vol:0.24 }); arp(d, t + 0.3, [91, 96], 0.08, { wave:'sine', dur:0.5, vol:0.18 }); },
+  // ── 이야기 장면(docs/SCENARIO.md 5장). 음원 없이 같은 합성기로: 금속 컵·조그 다이얼·무전 잡음·기계 눈
+  cup_drop:(d, t) => { tone(d, t, { f:midiHz(98), wave:'triangle', dur:0.5, vol:0.2 }); [0.18, 0.32, 0.43].forEach((k, i) => tone(d, t + k, { f:midiHz(93 - i), wave:'triangle', dur:0.12, vol:0.12 - i * 0.03 })); },
+  cup_set:(d, t) => tone(d, t, { f:midiHz(91), wave:'triangle', dur:0.18, vol:0.18 }),
+  hatch_open:(d, t) => { tone(d, t, { f:70, slide:110, wave:'sawtooth', dur:0.6, vol:0.18, a:0.1 }); noise(d, t, { dur:0.6, vol:0.15, type:'lowpass', freq:500 }); },
+  grid_hum:(d, t) => { tone(d, t, { f:55, wave:'sine', dur:1.4, vol:0.3, a:0.3 }); tone(d, t, { f:58, wave:'sine', dur:1.4, vol:0.2, a:0.3 }); },
+  drone_alarm:(d, t) => [0, 0.22, 0.44].forEach(k => tone(d, t + k, { f:midiHz(81), slide:midiHz(76), wave:'square', dur:0.18, vol:0.12 })),
+  jog_tick:(d, t) => [0, 0.12].forEach(k => noise(d, t + k, { dur:0.015, vol:0.25, type:'bandpass', freq:4200 })),
+  jog_hold:(d, t) => tone(d, t, { f:midiHz(72), slide:midiHz(96), wave:'square', dur:0.9, vol:0.1, a:0.05 }),
+  click:(d, t) => noise(d, t, { dur:0.02, vol:0.3, type:'bandpass', freq:3000 }),
+  mech_stomp:(d, t) => [0, 0.35].forEach(k => { tone(d, t + k, { f:90, slide:40, wave:'sine', dur:0.25, vol:0.4 }); noise(d, t + k, { dur:0.12, vol:0.2, type:'lowpass', freq:800 }); }),
+  power_down:(d, t) => tone(d, t, { f:midiHz(76), slide:midiHz(40), wave:'sawtooth', dur:0.9, vol:0.16 }),
+  compile:(d, t) => arp(d, t, [84, 86, 84, 89, 91], 0.05, { wave:'square', dur:0.04, vol:0.1 }),
+  glitch:(d, t) => [0, 0.06, 0.15].forEach(k => noise(d, t + k, { dur:0.03, vol:0.2, type:'bandpass', freq:1500 + k * 8000 })),
+  unchain:(d, t) => { noise(d, t, { dur:0.15, vol:0.3, type:'highpass', freq:3000 }); arp(d, t + 0.1, [72, 79, 84], 0.08, { wave:'triangle', dur:0.3, vol:0.18 }); },
+  flatline:(d, t) => tone(d, t, { f:midiHz(93), wave:'sine', dur:1.6, vol:0.14, a:0.01 }),
+  earphone_drop:(d, t) => noise(d, t, { dur:0.04, vol:0.25, type:'bandpass', freq:2200 }),
+  glass_break:(d, t) => { noise(d, t, { dur:0.6, vol:0.35, type:'highpass', freq:6000, sweep:1500 }); arp(d, t, [100, 96, 103, 98], 0.04, { wave:'triangle', dur:0.15, vol:0.1 }); },
+  radio_static:(d, t) => noise(d, t, { dur:0.3, vol:0.12, type:'bandpass', freq:2600 }),
+  page_turn:(d, t) => noise(d, t, { dur:0.25, vol:0.14, type:'bandpass', freq:3500, sweep:1500 }),
+  chip_install:(d, t) => arp(d, t, [79, 84, 88, 91, 96], 0.06, { wave:'sine', dur:0.3, vol:0.2 }),
+  chip_glow:(d, t) => arp(d, t, [84, 91, 96], 0.08, { wave:'sine', dur:0.5, vol:0.18 }),
+  eye_focus:(d, t) => tone(d, t, { f:60, slide:240, wave:'sawtooth', dur:1.2, vol:0.18, a:0.2 }),
+  eye_crack:(d, t) => { noise(d, t, { dur:0.8, vol:0.35, type:'highpass', freq:2000, sweep:8000 }); tone(d, t, { f:midiHz(84), slide:midiHz(36), wave:'square', dur:0.8, vol:0.14 }); },
+  grid_unlock:(d, t) => [0, 0.25, 0.5, 0.75].forEach(k => { tone(d, t + k, { f:80 - k * 20, slide:40, wave:'sine', dur:0.3, vol:0.35 }); noise(d, t + k, { dur:0.2, vol:0.2, type:'lowpass', freq:700 }); }),
+  wind:(d, t) => noise(d, t, { dur:2.2, vol:0.12, type:'bandpass', freq:500, sweep:900 }),
 };
 
 // ── BGM: 16분음표 단위 시퀀서. 악보는 토큰 문자열: 음이름(A4·C#5·Bb1) = 새 음, '-' = 늘임, '.' = 쉼

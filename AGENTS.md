@@ -50,6 +50,7 @@
   | `css/style.css` | 색 토큰(`--bg` 등, 다크 모드 포함)과 레이아웃 |
   | `js/config.js` | 화면 상수(W·H·COLS…), `$`·`clamp`·`rnd`·`pickW` 등 유틸, `readColors()` |
   | `js/data.js` | 데이터: `MON`·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS`·`TREE`(스킬 트리)·`BADGES`(배지) |
+  | `js/story.js` | 이야기 데이터("마지막 번개", `docs/SCENARIO.md`): 층·깊이·층 보스(`FLOORS`), 인물(`SPEAKER`), 장면 대사(`SCRIPT`), 반복 대사 풀(`BARKS`) |
   | `js/sprites.js` | 도트 리소스(`SPR`·`ICON`·`FONT`)와 `drawText`·`drawIcon`·`drawSprite` |
   | `js/art.js` | 일러스트 에셋(`assets/game`) 로드와 그리기(`drawCharArt`·`drawBrickArt`·`drawBgArt`). 로드 전·실패·Node에서는 false를 돌려 도트로 폴백 |
 | `js/audio.js` | 소리: 효과음 합성(`sfx`·`SFX`), 장면별 BGM(`bgm`·합성 `SONGS`·음원 `TRACKS`), 켬/끔 설정(`AUDIO`·`setAudio`) |
@@ -60,6 +61,7 @@
   | `js/battle.js` | 전투 상태, 벽돌 줄 생성, 구슬 물리, 턴 진행, 몬스터 행동 |
   | `js/render.js` | 캔버스 `draw()`와 HUD(헤더·구슬 줄·유물 칩) |
   | `js/scene.js` | 상점·휴식 장면 캔버스(`#sceneCv`): 상인·모닥불 연출(`setScene`·`drawScene`). 게임 결과와 무관 |
+  | `js/talk.js` | 이야기 보여 주기: 대사 장면(`playScenes`·`storyOnce`, 한 줄씩·건너뛰기)과 전투를 막지 않는 무전 띠(`radioSay`). 게임 결과와 무관 |
   | `js/screens.js` | 오버레이 전환, 메인·지도 화면, 노드 진입, 전투 시작·종료 |
   | `js/rewards.js` | 보상·휴식·덜어내기·상점 화면 |
   | `js/main.js` | 메뉴(일시정지), 입력, 메인 루프 시작 — 항상 마지막 |
@@ -72,10 +74,10 @@
 ## UI·시각 규칙
 - 테마: 자동(기기 설정)·밝게·어둡게를 메뉴에서 고른다(`html[data-theme]`). 패널 그림은 라이트 = 양피지(`ui_panel`), 다크 = 석판(`ui_bar`).
 - 배경은 베이지 계열, 강조색은 **화(火) #C1443C 하나만**. 나머지는 무채색 위계(ink, ink2, ink3, line).
-- 붉은색의 의미는 "위험"으로 고정: 버그(몬스터) 공격 예고, 독, 피해, 오버플로선 경고, 보스·정예 표시, 희귀 등급.
+- 붉은색의 의미는 "위험"으로 고정: 버그(몬스터) 공격 예고, 독, 피해, 오버플로선 경고, 보스·정예 표시, 희귀 등급, 적대 AI의 대사(붉은 테만. 붉은 글자는 다크 모드 대비 미달).
 - 색은 CSS 변수(`--bg` 등)로만 정의하고, 캔버스도 `readColors()`로 같은 토큰을 읽는다. 다크 모드 대응 유지.
 - 도트 렌더: 캔버스 논리 해상도 180×340. 백버퍼는 `fitCanvas()`가 표시 크기(기기 픽셀)를 덮는 가장 작은 정수배 `RES`(2~8)로 맞추고 CSS는 부드럽게 축소만 한다(도트 굵기를 고르게). 좌표·판정은 논리 해상도 기준이고 `RES`는 그리기에만 쓴다.
-- 일러스트: 원본은 `assets/illustrated`, 게임용 축소본은 `assets/game`(`python3 tools/build_game_assets.py`로 재생성). 원본에 없는 장면 소품(상인·모닥불)은 `tools/draw_scene_sprites.py`가 같은 팔레트로 그린다. 원본을 고치면 다시 돌린다. 일러스트 위 색은 테마와 무관한 고정색이므로 다크 모드는 배경을 덮어 맞춘다.
+- 일러스트: 원본은 `assets/illustrated`, 게임용 축소본은 `assets/game`(`python3 tools/build_game_assets.py`로 재생성). "마지막 번개"의 릭·층 보스·초상은 아직 더미(`tools/make_dummy_assets.py`, 목록 `docs/assets/DUMMY.md`)이고, 같은 이름으로 바꿔 넣으면 된다. 원본에 없는 장면 소품(상인·모닥불)은 `tools/draw_scene_sprites.py`가 같은 팔레트로 그린다. 원본을 고치면 다시 돌린다. 일러스트 위 색은 테마와 무관한 고정색이므로 다크 모드는 배경을 덮어 맞춘다.
 - 이미지는 `<img>`/`Image`로만 불러온다(`fetch`는 `file://`에서 막힌다). 캔버스 픽셀을 읽는 API(`getImageData`)는 `file://`에서 오염 오류가 나므로 쓰지 않는다. 캔버스 안 글자는 숫자(3×5 도트 폰트)와 아이콘만, 한글은 DOM에.
 - DOM 글꼴: 화면 제목(`.big`)·지도 층 제목·시작 배너·시작 버튼처럼 **크게 보이는 제목만** 저장소에 동봉한 픽셀 한글 `fonts/Galmuri11-Bold.woff2`(SIL OFL 1.1, `fonts/OFL.txt`)를 `--font-game`으로 쓰고, 크기는 11px의 정수배(22·33px)로만 둔다(어중간한 크기에서는 도트가 뭉개져 읽히지 않는다). HUD·카드·버튼·라벨·설명문은 시스템 글꼴. 글꼴 파일을 바꾸거나 더할 때는 라이선스 파일도 함께 둔다.
 - 레이아웃(2026-10-26, `css/style.css` 끝 "레이아웃 시스템"):

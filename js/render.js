@@ -43,18 +43,22 @@ function draw(){
   const p = g.p, m = g.m;
   hpBlock(PX, p.hp, p.max, p.hp <= p.max * 0.3, p.poison);
   statRow(PX, p.atk, p.def);
-  if (!drawCharArt('knight', PX, p.hp > 0 ? artBob('knight', g.time) : 0, { actor:p, flash:p.flash > 0 ? C.accent : null }))
+  // 주인공 릭: 그림(rick)이 없으면 예전 기사 그림, 그것도 없으면 도트
+  const po = { actor:p, flash:p.flash > 0 ? C.accent : null };
+  if (!drawCharArt('rick', PX, p.hp > 0 ? artBob('rick', g.time) : 0, po) && !drawCharArt('knight', PX, p.hp > 0 ? artBob('knight', g.time) : 0, po))
     drawSprite(SPR.knight, PX - 18, 50, 3, p.flash > 0 ? C.accent : C.ink, C.ink2, C.bg);
 
   const angry = g.cfg.boss && m.phase === 2;
-  if (!m.dead || artImg(g.cfg.spr + '_actions') || Math.floor(m.deadT * 10) % 2 === 0){
+  // 보스는 층마다 다른 그림(cfg.art)을 먼저 찾고, 없으면 공용 그림(cfg.spr)으로 그린다
+  const mart = g.cfg.art && artImg(g.cfg.art) ? g.cfg.art : g.cfg.spr;
+  if (!m.dead || artImg(mart + '_actions') || Math.floor(m.deadT * 10) % 2 === 0){
     hpBlock(MX, m.hp, m.max, false, m.poison);
     statRow(MX, m.atk, m.def);
     const lunge = m.lunge > 0 ? -Math.sin(Math.PI * m.lunge / 0.4) * 14 : 0;
     const sink = m.dead ? Math.min(20, m.deadT * 30) : 0;
     ctx.globalAlpha = m.dead ? Math.max(0, 1 - Math.max(0, m.deadT - .74) / .36) : 1;
     const art = { actor:m, flash:m.flash > 0 ? '#FFFDF8' : null, outline:(angry || g.cfg.elite) ? C.accent : null };
-    if (!drawCharArt(g.cfg.spr, MX + lunge, m.dead ? sink : artBob(g.cfg.spr, g.time), art))
+    if (!drawCharArt(mart, MX + lunge, m.dead ? sink : artBob(mart, g.time), art))
       drawSprite(SPR[g.cfg.spr], MX - 24 + lunge, 38 + sink, 3, m.flash > 0 ? C.ink3 : C.ink, C.ink2, (angry || g.cfg.elite) ? C.accent : C.bg);
     ctx.globalAlpha = 1;
   }
@@ -218,7 +222,7 @@ function renderOrbBar(){
     // 분열은 갈래 수로 나눈 값이 갈래 하나의 피해다: (⚔2 + 0) ÷3 = 1
     const expr = hp.k !== 1 ? `(${sum}) ×${+hp.k.toFixed(2)}` : sum;
     dmg.textContent = hp.div > 1 ? `(${expr}) ÷${hp.div} = ${hp.v}` : `${expr} = ${hp.v}`;
-    dmg.title = '천장 타격 피해 = (디버거 공격력 + 구슬 위력) × 코어 모듈' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
+    dmg.title = '천장 타격 피해 = (릭의 공격력 + 구슬 위력) × 코어 모듈' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
     name.append(dmg);
     label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
     const next = document.createElement('div'); next.className = 'orbNext';

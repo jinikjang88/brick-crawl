@@ -54,7 +54,7 @@ function seededRandom(value){
 const reach = new Array(40).fill(0), bossHp = [], finals = [];
 let kings = 0;   // 근원(성벽의 왕) 격파 수
 // SIM_BUILD: 봇이 한 가지 덱 컨셉만 모은다(조합별로 원정이 성립하는지 비교). 없으면 예전처럼 늘 첫 카드
-// 해금 구슬은 컨셉에 들어가므로 이 모드에서는 모두 풀린 계정으로 돈다
+// 해금 구슬은 컨셉에 들어가므로 이 모드에서는 모두 풀린 계정으로 돈다(보스 구슬 해금은 best 25)
 const BUILDS = {
   poison:{ orbs:['venom','toxin'], relics:['sting','plague','alchemy','antidote'] },
   counter:{ orbs:['guard','mirror','thorn'], relics:['counter','thorns','armor','buckler','endure'] },
@@ -106,7 +106,7 @@ for (let run = 0; run < N; run++){
   // SIM_ASC=n: 고난 n단계가 열려 있고 골라 둔 계정(본편 완주 기록 포함)
   const ASCN = +process.env.SIM_ASC || 0;
   const unlock = BUILD ? { venom:1, counter:1, demolish:1, oneshot:1, rich:1 } : {};
-  if (TREE_SET || abyss || BUILD || ASCN) store['brickquest:meta:v4'] = JSON.stringify({ best:abyss || ASCN ? 25 : 0, abyssBest:BUILD ? 15 : 0, runs:0, clears:abyss || ASCN ? 1 : 0, pts:0, badges:unlock,
+  if (TREE_SET || abyss || BUILD || ASCN) store['brickquest:meta:v4'] = JSON.stringify({ best:abyss || ASCN || BUILD ? 25 : 0, abyssBest:BUILD ? 15 : 0, runs:0, clears:abyss || ASCN ? 1 : 0, pts:0, badges:unlock,
     asc:ASCN, ascPick:ASCN, story:{ intro:1, end1:1 },
     tree:Object.fromEntries((TREE_SET || []).map(k => [k, 1])) });
   globalThis.document = { getElementById:id => els[id] || (els[id] = mk()), documentElement:{}, createElement:() => mk(),
@@ -127,7 +127,9 @@ for (let run = 0; run < N; run++){
     const { RUN, G, mode } = __h.st();
     if (RUN && !entered.has(RUN.s)){ entered.add(RUN.s); session(RUN.s).entered++; }
     if (mode === 'map'){ __h.enterNode(pickOne(__h.reachable())); continue; }
-    if (['reward','rest','shop','remove','upgrade','swap','gift','result','story'].includes(mode)){
+    // 이야기 장면은 건너뛴다(대사는 게임 결과와 무관)
+    if (mode === 'story'){ $('tSkip').onclick(); continue; }
+    if (['reward','rest','shop','remove','upgrade','swap','gift','result'].includes(mode)){
       if (mode === 'result'){ done = true; break; }
       const cards = $('cCards').children.filter(c => !c.disabled), btns = $('cBtns').children.filter(c => !c.disabled);
       // 상점: 살 수 있는 구슬을 사고 나간다. 구슬 보상이 정예·보스·상점으로 줄어 상점을 안 쓰는 봇은 실제보다 약하다
