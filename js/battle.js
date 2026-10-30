@@ -252,7 +252,11 @@ function checkRage(){
       if (next === 3){ const free = [...Array(COLS).keys()].filter(c => !G.seal.includes(c)); G.seal = G.seal.concat(free[rnd(free.length, 'battle')]).sort((a, b) => a - b); }
       G.sealNext = sealShift(G.seal);
     }
-    banner(cfg.king ? (next === 3 ? '알고리즘이 마지막 데이터 벽을 세운다' : '잠금이 풀리기 시작한다') : next === 3 ? '관리자가 마지막 자원을 끌어낸다' : '보스가 분노했다', '조준이 빨라진다', true); sfx('rage');
+    // 배너 첫 줄은 그 보스가 실제로 하는 일(조준 가속·벽돌 낙하·독)과 맞는 말만 쓴다(리뷰 S2). 둘째 줄은 바뀌는 규칙
+    const fin = cfg.king ? ROOT_BOSS : cfg.final ? FLOORS[FINAL_S].boss : null;
+    banner(fin ? (next === 3 ? fin.rage3 : fin.rage) : cfg.rage || '보스가 분노했다', '조준이 빨라진다', true); sfx('rage');
+    // 동료 무전: 본편 보스만(심층부는 백업이라 말이 없다)
+    if (!RUN.abyss && !cfg.king) radioSay((SCRIPT[cfg.final ? 'fin' + next : sceneFloor(RUN.s) + 'rage'] || {}).lines);
   } else if (cfg.elite && !m.rage && m.hp <= m.max / 2){
     m.rage = true; G.shake = 5;
     banner('정예가 날뛴다', '조준이 빨라진다', true); sfx('rage');

@@ -3,7 +3,7 @@
 
 // ── 메뉴(일시정지)
 // 메뉴가 없는 화면. 도감(badge)에서 Esc로 메뉴가 열리면 "원정 포기"가 메인 배경용 가짜 원정을 기록으로 올렸다
-const NO_MENU = ['main', 'pause', 'result', 'tree', 'badge'];
+const NO_MENU = ['main', 'pause', 'result', 'tree', 'badge', 'story'];
 function openMenu(){
   if (NO_MENU.includes(mode)) return;
   // 승패가 정해진 뒤의 연출 중에는 열지 않는다(곧 결과·보상 화면으로 넘어간다)

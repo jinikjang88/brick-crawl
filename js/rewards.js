@@ -142,7 +142,7 @@ function showShop(){
   setHeader(`${stageName(RUN.s)}`, '브로커');
   const cards = RUN.shop.map((it, i) => {
     const poor = RUN.coins < it.price, tag = it.sold ? '품절' : `크레딧 ${it.price}`;
-    const buy = after => { RUN.coins -= it.price; it.sold = true; sfx('coin'); after(); saveRun(); showShop(); };
+    const buy = after => { RUN.coins -= it.price; it.sold = true; sfx('coin'); after(); saveRun(); radioSay([['yun', barkPick(BARKS.shop.buy)]]); showShop(); };
     // 덱이 가득 차면 바꿀 구슬을 고른 뒤에야 값을 치른다(취소하면 돈이 그대로)
     if (it.k === 'orb') return { name:ORBS[it.id].name, tag:tierTag(orbTier(it.id)) + ' · ' + (it.sold || !deckFull() ? tag : tag + ' · 교체'), desc:orbDesc(it.id), rare:orbTier(it.id) >= 3,
       disabled:it.sold || poor, onPick:() => addOrb(it.id, () => buy(() => {}), showShop) };
@@ -158,5 +158,6 @@ function showShop(){
       disabled:it.sold || poor || RUN.deck.length <= 2,
       onPick:() => showRemove(() => { RUN.coins -= it.price; it.sold = true; sfx('coin'); saveRun(); showShop(); }, showShop) };
   });
-  showChoice({ mode:'shop', scene:'shop', title:'떠돌이 브로커', sub:`크레딧 ${RUN.coins}`, cards, buttons:[{ label:'떠나기', primary:true, onClick:finishNonBattle }] });
+  showChoice({ mode:'shop', scene:'shop', title:'떠돌이 브로커', sub:`크레딧 ${RUN.coins}`, cards,
+    buttons:[{ label:'떠나기', primary:true, onClick:() => { radioSay([['yun', barkPick(BARKS.shop.leave)]]); finishNonBattle(); } }] });
 }
