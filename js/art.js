@@ -4,16 +4,32 @@
 // 이미지는 <img>로 불러온다: fetch·모듈과 달리 file://에서도 막히지 않는다.
 // 로드 전·실패·Node(시뮬레이터)에서는 각 그리기 함수가 false를 돌려주고, 호출부가 기존 도트로 그린다
 const ART = { img:{}, tint:{} };
-const ART_CHARS = ['knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
-const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS, ...ART_CHARS.map(n => n + '_actions'),
+const ART_CHARS = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel', 'codex', 'gemini', 'claude', 'omnis', 'zero',
+  'knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
+const ART_ACTIONS_LIST = ['rick', 'sentinel', 'knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
+const ART_PORTRAITS = ['rick', 'rick_determined', 'lina', 'lina_warm', 'yun', 'drone', 'sentinel', 'codex_hostile', 'codex', 'gemini_hostile', 'gemini', 'claude', 'omnis', 'zero'];
+const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS, ...ART_ACTIONS_LIST.map(n => n + '_actions'),
+  ...ART_PORTRAITS.map(n => 'portrait_' + n),
   ...Object.keys(ORBS).map(k => 'orb_' + k),
   ...Object.keys(RELICS).map(k => 'relic_' + k),
   ...['n', 'stone', 'atk', 'def', 'heal', 'poison'].map(k => 'brick_' + k)];
+// 미생성 에셋 폴백: 새 사이버펑크 에셋이 아직 없는 캐릭터는 대응하는 에셋으로 그린다
+const ART_FALLBACK = {
+  rick:'knight', sludge:'slime', drone:'bat', guardian:'golem', disperser:'shroom',
+  sentinel:'boss', codex:'sentinel', gemini:'sentinel', claude:'guardian', omnis:'sentinel', zero:'omnis',
+};
 // 캐릭터 화면 상자(논리 px). 원본 크기가 제각각이라 발밑을 같은 바닥선에 맞추고 상자 안에 비율대로 넣는다.
 // 위로는 의도 아이콘(y 25~35), 아래로는 공·방 숫자(y 93)를 가리지 않는 높이로 정했다
 const ART_BOX = {
-  knight:{ w:46, h:50 }, slime:{ w:54, h:40 }, bat:{ w:62, h:40, lift:10, bob:2, rate:4.5 },
-  golem:{ w:58, h:54 }, shroom:{ w:52, h:52 }, boss:{ w:62, h:54 },
+  rick:{ w:46, h:52 }, knight:{ w:46, h:50 },
+  sludge:{ w:54, h:44 }, slime:{ w:54, h:40 },
+  drone:{ w:62, h:40, lift:10, bob:2, rate:4.5 }, bat:{ w:62, h:40, lift:10, bob:2, rate:4.5 },
+  guardian:{ w:56, h:54 }, golem:{ w:58, h:54 },
+  disperser:{ w:52, h:52 }, shroom:{ w:52, h:52 },
+  sentinel:{ w:64, h:54 }, codex:{ w:62, h:54 },
+  gemini:{ w:54, h:56, lift:4, bob:1.4, rate:2.8 }, claude:{ w:58, h:54 },
+  omnis:{ w:60, h:56, lift:6, bob:1.5, rate:2.6 }, zero:{ w:62, h:56, lift:6, bob:1.5, rate:3.0 },
+  boss:{ w:62, h:54 },
 };
 const ART_FOOT = 90;
 // 대기 중에만 숨쉬기를 더한다. 공격·피격·사망은 별도 시트의 실제 포즈를 재생한다.
@@ -77,6 +93,7 @@ function drawBgArt(){
 // 동작 아틀라스 배치(tools/build_action_assets.py가 다시 쓴다). 칸은 넘친 팔·무기까지 품는 정사각형이고,
 // 모든 프레임이 칸의 (ax, foot)을 발밑 기준점으로 공유한다. iw·ih는 대기 포즈 크기: 화면 상자에 맞출 배율을 여기서 구한다
 const ART_SHEET = { cell:320, ax:160, foot:314,
+  rick:{ iw:100, ih:211 }, sentinel:{ iw:270, ih:236 },
   knight:{ iw:176, ih:209 }, slime:{ iw:217, ih:170 }, bat:{ iw:279, ih:258 }, golem:{ iw:238, ih:249 }, shroom:{ iw:213, ih:200 }, boss:{ iw:265, ih:262 } };
 // 각 동작은 여섯 포즈. 공격의 타격 프레임을 짧게 두고 복귀에 여유를 준다.
 const ART_ACTIONS = {
@@ -105,6 +122,7 @@ function artFrame(action, elapsed){
 
 // cx: 가운데, 발밑은 ART_FOOT + dy. o = { flash:색, flashA, outline:색 }
 function drawCharArt(name, cx, dy, o = {}){
+  if (!artImg(name) && !artImg(name + '_actions') && ART_FALLBACK[name]) name = ART_FALLBACK[name];
   const box = ART_BOX[name];
   const pose = o.actor && (artFrame(o.actor.artAction, o.actor.artElapsed) || { row:0, col:5 });
   const sheet = pose && artImg(name + '_actions');

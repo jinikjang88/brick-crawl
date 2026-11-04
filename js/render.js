@@ -43,7 +43,7 @@ function draw(){
   const p = g.p, m = g.m;
   hpBlock(PX, p.hp, p.max, p.hp <= p.max * 0.3, p.poison);
   statRow(PX, p.atk, p.def);
-  if (!drawCharArt('knight', PX, p.hp > 0 ? artBob('knight', g.time) : 0, { actor:p, flash:p.flash > 0 ? C.accent : null }))
+  if (!drawCharArt('rick', p.hp > 0 ? PX : PX, p.hp > 0 ? artBob('rick', g.time) : 0, { actor:p, flash:p.flash > 0 ? C.accent : null }))
     drawSprite(SPR.knight, PX - 18, 50, 3, p.flash > 0 ? C.accent : C.ink, C.ink2, C.bg);
 
   const angry = g.cfg.boss && m.phase === 2;
@@ -55,7 +55,7 @@ function draw(){
     ctx.globalAlpha = m.dead ? Math.max(0, 1 - Math.max(0, m.deadT - .74) / .36) : 1;
     const art = { actor:m, flash:m.flash > 0 ? '#FFFDF8' : null, outline:(angry || g.cfg.elite) ? C.accent : null };
     if (!drawCharArt(g.cfg.spr, MX + lunge, m.dead ? sink : artBob(g.cfg.spr, g.time), art))
-      drawSprite(SPR[g.cfg.spr], MX - 24 + lunge, 38 + sink, 3, m.flash > 0 ? C.ink3 : C.ink, C.ink2, (angry || g.cfg.elite) ? C.accent : C.bg);
+      drawSprite(SPR[g.cfg.spr] || SPR.boss, MX - 24 + lunge, 38 + sink, 3, m.flash > 0 ? C.ink3 : C.ink, C.ink2, (angry || g.cfg.elite) ? C.accent : C.bg);
     ctx.globalAlpha = 1;
   }
   // 몬스터의 다음 행동 예고: 이것만 보고 이번 턴에 무엇을 노릴지 정한다

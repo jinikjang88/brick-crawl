@@ -22,13 +22,35 @@ function setMode(m, overlay){
   $('btnMenu').style.visibility = m === 'main' || m === 'result' || m === 'tree' || m === 'badge' ? 'hidden' : '';
 }
 
-// 선택 화면(보상·휴식·상점·덜어내기)을 하나의 틀로 그린다
+// 대화 초상화 엘리먼트 생성(로드 실패 시 깔끔하게 숨김)
+function dlgPortrait(port){
+  const im = document.createElement('img');
+  im.className = 'dlgPort'; im.alt = ''; im.setAttribute('aria-hidden', 'true');
+  im.src = 'assets/game/portrait_' + (port || 'rick') + '.png';
+  im.onerror = () => im.remove();
+  return im;
+}
+
+// 선택 화면(보상·휴식·상점·덜어내기·이야기 대화)을 하나의 틀로 그린다
 function showChoice(o){
   // 덜어내기·강화는 상점·휴식 안에서 이어지는 화면이라 장면을 그대로 둔다
   setScene(o.scene !== undefined ? o.scene : ['remove', 'upgrade'].includes(o.mode) ? SCENE : null);
   $('cTitle').textContent = o.title; $('cTitle').className = 'big';
   $('cSub').textContent = o.sub || ''; $('cSub').classList.remove('story');
   const box = $('cCards'); box.textContent = '';
+  box.classList.toggle('dlgBox', !!(o.lines && o.lines.length));
+  if (o.lines && o.lines.length){
+    for (const ln of o.lines){
+      const row = document.createElement('div');
+      row.className = 'dlgRow ' + (ln.side || 'left'); row.disabled = true;
+      const body = document.createElement('div'); body.className = 'dlgBody';
+      const who = document.createElement('b'); who.className = 'dlgWho'; who.textContent = ln.who;
+      const txt = document.createElement('span'); txt.className = 'dlgTxt'; txt.textContent = ln.text;
+      body.append(who, txt);
+      row.append(dlgPortrait(ln.port), body);
+      box.append(row);
+    }
+  }
   for (const c of o.cards){
     const b = document.createElement('button');
     b.className = 'rCard' + (c.rare ? ' rare' : ''); b.disabled = !!c.disabled;
@@ -180,7 +202,7 @@ function storyOnce(id, next){
 function showStory(id, next){
   const st = STORY[id];
   setHeader('', '');
-  showChoice({ mode:'story', title:st.title, sub:st.text, scene:null, cards:[], buttons:[{ label:'계속', primary:true, onClick:next }] });
+  showChoice({ mode:'story', title:st.title, sub:st.text, lines:st.lines || null, scene:null, cards:[], buttons:[{ label:'계속', primary:true, onClick:next }] });
   $('cSub').classList.add('story');
 }
 // 스킬 트리 중 원정 시작 때 한 번 정해지는 효과
@@ -330,8 +352,13 @@ function showBadges(){
   box.append(bookHead('이야기'));
   for (const id of STORY_ORDER){
     const st = STORY[id], own = !!META.story[id];
-    box.append(bookRow(badgeIcon({ icon:'dots' }, own), own ? st.title : '???', own ? '' : '아직 못 봄',
-      own ? st.text.replace(/\n+/g, ' ') : '서버 더 깊이 들어가면 알게 된다', own));
+    const pId = st.lines && st.lines[0] ? st.lines[0].port : 'rick';
+    const icon = dlgPortrait(pId); icon.className = 'bIc dlgIc';
+    const row = bookRow(icon, st.title, own ? '대화 보기' : '미열람 · 눌러서 보기',
+      st.text.replace(/\n+/g, ' '), true);
+    row.style.cursor = 'pointer';
+    row.onclick = () => { sfx('pick'); showStory(id, showBadges); };
+    box.append(row);
   }
   box.append(bookHead('트로피'));
   for (const b of BADGES){
@@ -370,11 +397,17 @@ const ROW_Y = [88, 68, 48, 28, 8];
 const nodeX = n => n.t === 'boss' ? 50 : (n.l + .5) / RUN.map[0].length * 100;
 // 칸 메달 그림: 휴식은 충전소, 상점은 브로커, 보스는 문지기 데몬.
 // 전투·정예는 어떤 몬스터인지 들어가기 전까지 모르게 도트 아이콘(칼·해골)만 보여 준다(긴장감·선택의 불확실성)
+function nodeSpr(n){
+  if (!n || !n.mon) return 'sentinel';
+  const cfg = RUN ? monCfg(n.mon, RUN.s, n.t === 'elite', RUN.abyss) : MON[n.mon];
+  const s = (cfg && cfg.spr) || n.mon;
+  return (!artImg(s) && ART_FALLBACK[s]) ? ART_FALLBACK[s] : s;
+}
 function nodeIcon(n){
   // 정찰병 유물: 전투 칸에 어떤 몬스터인지 그림을 보여 준다
   if (n.t === 'battle' && RUN && rel('scout') && n.mon){
     const im = document.createElement('img'); im.className = 'nIc'; im.alt = ''; im.setAttribute('aria-hidden', 'true');
-    im.src = 'assets/game/' + n.mon + '.png'; im.onerror = () => im.remove(); return im;
+    im.src = 'assets/game/' + nodeSpr(n) + '.png'; im.onerror = () => im.remove(); return im;
   }
   if (n.t === 'battle' || n.t === 'elite'){
     const m = ICON[n.t === 'elite' ? 'skull' : 'sword'], c = document.createElement('canvas');
@@ -383,7 +416,7 @@ function nodeIcon(n){
     for (let r = 0; r < 7; r++) for (let k = 0; k < 7; k++) if (m[r][k] === '#') g.fillRect(k, r, 1, 1);
     return c;
   }
-  const src = n.t === 'rest' ? null : n.t === 'shop' ? 'merchant' : n.mon;
+  const src = n.t === 'rest' ? null : n.t === 'shop' ? 'merchant' : nodeSpr(n);
   const ic = document.createElement(src ? 'img' : 'span');
   ic.className = 'nIc' + (n.t === 'rest' ? ' fire' : '');
   ic.setAttribute('aria-hidden', 'true');
@@ -401,7 +434,19 @@ function showMap(note){
   // 일반 전투는 보상 화면 없이 지도로 돌아오므로, 얻은 코인을 부제 앞에 한 번 보여 준다
   if (note) $('mapSub').textContent = `${note} · ${$('mapSub').textContent}`;
   if (RUN.asc) $('mapTitle').textContent += ` · 보안 등급 ${RUN.asc}`;
-  $('mapStory').textContent = RUN.abyss ? '' : STORY_FLOOR[RUN.s] || '';
+  const ms = $('mapStory'); ms.textContent = '';
+  const rad = !RUN.abyss && STORY_RADIO[RUN.s];
+  if (rad){
+    const bar = document.createElement('div'); bar.className = 'mapRadio';
+    const body = document.createElement('div'); body.className = 'mapRadioBody';
+    const w = document.createElement('b'); w.textContent = rad.who;
+    const tx = document.createElement('span'); tx.textContent = rad.text;
+    body.append(w, tx); bar.append(dlgPortrait(rad.port), body);
+    bar.onclick = () => { if (STORY['b' + RUN.s]){ sfx('pick'); showStory('b' + RUN.s, () => showMap()); } };
+    ms.append(bar);
+  } else if (!RUN.abyss && STORY_FLOOR[RUN.s]){
+    ms.textContent = STORY_FLOOR[RUN.s];
+  }
   const box = $('mapBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
@@ -446,6 +491,10 @@ function enterNode(n){
   // 들어서는 순간 한 번만 울린다(덜어내기 취소 등으로 화면을 다시 그릴 때는 울리지 않게 여기서)
   if (n.t === 'rest'){ sfx('rest'); return showRest(); }
   if (n.t === 'shop'){ sfx('shop'); return showShop(); }
+  // 브라우저에서 본편 층 보스 방에 처음 들어갈 때 해당 층 보스 대화를 먼저 보여 준다
+  if (typeof Image !== 'undefined' && n.t === 'boss' && !RUN.abyss && !RUN.king && STORY['b' + RUN.s]){
+    return storyOnce('b' + RUN.s, () => startBattle(n));
+  }
   startBattle(n);
 }
 // 칸 완료. 처음 돌파한 칸이면 스킬 포인트를 준다(본편·심연 기록을 따로 센다)
