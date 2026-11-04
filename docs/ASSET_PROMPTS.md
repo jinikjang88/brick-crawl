@@ -119,14 +119,14 @@ Same body size in all cells; fallen poses remain low and are NOT enlarged.
 *(각 적의 정지 이미지를 첨부하고, 아래 템플릿에서 `<SPECIFIC_ACTION>` 부분만 바꿔 입력)*
 
 ```text
-Use case: stylized-concept. Create one production animation atlas of the EXACT reference monster, preserving ivory, aged brass, charcoal, and muted vermilion palette, proportions, and detailed pixel-art illustration style. Actual transparent background. Landscape 2:1 sheet. EXACTLY SIX COLUMNS and THREE ROWS of equal square cells, 18 complete poses. No text or grid lines. Each sprite entirely inside its own cell with 12% empty margin on all sides. Same camera scale and fixed foot pivot (50%, 88%) throughout.
+Use case: stylized-concept. Create one production animation atlas of the EXACT reference monster, preserving ivory, brushed titanium, charcoal, and muted vermilion palette, proportions, and detailed pixel-art illustration style. Actual transparent background. Landscape 2:1 sheet. EXACTLY SIX COLUMNS and THREE ROWS of equal square cells, 18 complete poses. No text or grid lines. Each sprite entirely inside its own cell with 12% empty margin on all sides. Same camera scale and fixed foot pivot (50%, 88%) throughout.
 Row 1 SIX sequential attack frames (facing LEFT): anticipation, windup, strike midpoint, impact toward LEFT, follow-through, settle to original idle.
 Row 2 SIX sequential hit frames: impact flinch, recoil RIGHT midpoint, maximum recoil, rebound midpoint, settle, original idle.
 Row 3 SIX sequential death frames: stagger, structural failure, collapsing midpoint, hit ground, settle on ground, final deactivated wreckage remains.
 Specific character action: <SPECIFIC_ACTION>
 Same body size in all cells; fallen poses remain low and are NOT enlarged.
 ```
-- **`sludge.png` (`<SPECIFIC_ACTION>`)**: `Nano sludge surges and lashes a metallic tendril toward LEFT; death gradually loses cohesion and collapses into a flat puddle of inert grey dust and brass scrap.`
+- **`sludge.png` (`<SPECIFIC_ACTION>`)**: `Nano sludge surges and lashes a metallic tendril toward LEFT; death gradually loses cohesion and collapses into a flat puddle of inert grey dust and titanium scrap.`
 - **`drone.png` (`<SPECIFIC_ACTION>`)**: `Security drone tilts forward and fires a red laser pulse / claw swoop toward LEFT with articulated rotor wing tilt; death rotors spark, fold, and the drone crashes flat on the ground.`
 - **`guardian.png` (`<SPECIFIC_ACTION>`)**: `Firewall guardian slams its heavy riot-shield fists toward LEFT; death hydraulic joints rupture and armor plates collapse into a pile of heavy metal blocks.`
 - **`disperser.png` (`<SPECIFIC_ACTION>`)**: `Nano-spore disperser compresses its dome cap and vents a burst of vermilion hazard particles toward LEFT; death legs buckle and the dome tank cracks open flat on the ground.`
@@ -136,9 +136,9 @@ Same body size in all cells; fallen poses remain low and are NOT enlarged.
 
 - **1층 `sentinel.png`**: `Quadruped mech rears its front legs, opens upper cooling vents, and fires a heavy artillery lunge toward LEFT; death knee joints snap and the heavy chassis collapses flat with dark smoke.`
 - **2층 `codex.png`**: `Suspended compiler core surges forward as manipulator arms slam down to compile a barrier toward LEFT; death upper control cables snap and the monolith slumps downward with its red eye extinguished.`
-- **3층 `gemini.png`**: `Dual-mask overseer spins its brass prism halo and projects a sharp optical beam toward LEFT; death the holographic masks shatter like glass and the projector ring falls inert to the ground.`
+- **3층 `gemini.png`**: `Dual-mask overseer spins its titanium prism halo and projects a sharp optical beam toward LEFT; death the holographic masks shatter like glass and the projector ring falls inert to the ground.`
 - **4층 `claude.png`**: `Archive guardian raises its four floating defense monoliths and thrusts them forward toward LEFT in a resonant wave; death the monoliths crack and settle on the ground while the central bust bows its head and dims.`
-- **5층 `omnis.png`**: `Colossal mechanical eye contracts its gyroscopic brass rings and fires a massive vermilion convergence pulse toward LEFT; death the central glass lens cracks across the iris, rings unlock, and the core collapses inward.`
+- **5층 `omnis.png`**: `Colossal mechanical eye contracts its gyroscopic titanium rings and fires a massive vermilion convergence pulse toward LEFT; death the central glass lens cracks across the iris, rings unlock, and the core collapses inward.`
 - **진보스 `zero.png`**: `Architect Zero spreads its cable-wings and unleashes an arc wave toward LEFT; death the hexagonal cage shatters and the figure dissolves into peaceful ivory light and resting cables.`
 
 ---
@@ -181,30 +181,30 @@ Use case: stylized-concept. ONE isolated cyberpunk high-tech spherical core asse
 
 | 구슬 ID (`orb_<id>.png`) | 화면 이름 | 등급 | `<ORB_DESCRIPTION>` (템플릿에 삽입할 묘사) |
 |---|---|---|---|
-| `orb_basic` | **기본 구슬 (라이트닝 코어)** | 기본 | `L-01 Lightning Core, a smooth brushed-steel and warm-ivory analog electromagnetic sphere with a recessed aged-brass equator seam and tiny ivory spark contacts` |
-| `orb_bomb` | **폭탄 구슬 (축전기 모듈)** | 일반 | `EMP Capacitor Orb, a dark gunmetal sphere fitted with Sentinel's cylindrical aged-brass high-voltage capacitor and a glowing muted-vermilion fuse tip on top` |
-| `orb_drill` | **송곳 구슬 (집속 관통체)** | 일반 | `Focused Piercing Orb, an ivory and gunmetal sphere tipped with a sharp spiral aged-brass plasma drill cone pointing upward` |
-| `orb_guard` | **실드 구슬** | 일반 | `Barrier Field Orb, a sturdy spherical core encased in interlocking hexagonal weathered-ivory and brass armor plates` |
-| `orb_bounce` | **탄력 구슬** | 일반 | `Repulsion Coil Orb, an ivory core wrapped in a thick shock-absorbing dark steel and aged-brass compression spring` |
-| `orb_herb` | **패치 구슬** | 일반 | `Nano-Repair Patch Orb, a clean warm-ivory medical sphere with a raised aged-brass cross emblem and sealed ampoule ring` |
-| `orb_thorn` | **가시 구슬** | 일반 | `Shrapnel Spike Orb, a dark iron sphere bristling with six sharp ivory and brass contact spikes` |
-| `orb_weaken` | **약화 구슬** | 고급 | `Dampener Orb, an ivory sphere engraved with a downward-pointing broken brass chevron and signal-jamming fins` |
-| `orb_disarm` | **무장해제 구슬** | 고급 | `Circuit Breaker Orb, an ivory and gunmetal sphere featuring a severed weapon-cable emblem in aged brass` |
+| `orb_basic` | **기본 구슬 (라이트닝 코어)** | 기본 | `L-01 Lightning Core, a smooth brushed-steel and warm-ivory analog electromagnetic sphere with a recessed brushed-titanium equator seam and tiny ivory spark contacts` |
+| `orb_bomb` | **폭탄 구슬 (축전기 모듈)** | 일반 | `EMP Capacitor Orb, a dark gunmetal sphere fitted with Sentinel's cylindrical brushed-titanium high-voltage capacitor and a glowing muted-vermilion fuse tip on top` |
+| `orb_drill` | **송곳 구슬 (집속 관통체)** | 일반 | `Focused Piercing Orb, an ivory and gunmetal sphere tipped with a sharp spiral brushed-titanium plasma drill cone pointing upward` |
+| `orb_guard` | **실드 구슬** | 일반 | `Barrier Field Orb, a sturdy spherical core encased in interlocking hexagonal weathered-ivory and titanium armor plates` |
+| `orb_bounce` | **탄력 구슬** | 일반 | `Repulsion Coil Orb, an ivory core wrapped in a thick shock-absorbing dark steel and brushed-titanium compression spring` |
+| `orb_herb` | **패치 구슬** | 일반 | `Nano-Repair Patch Orb, a clean warm-ivory medical sphere with a raised brushed-titanium cross emblem and sealed ampoule ring` |
+| `orb_thorn` | **가시 구슬** | 일반 | `Shrapnel Spike Orb, a dark iron sphere bristling with six sharp ivory and titanium contact spikes` |
+| `orb_weaken` | **약화 구슬** | 고급 | `Dampener Orb, an ivory sphere engraved with a downward-pointing broken titanium chevron and signal-jamming fins` |
+| `orb_disarm` | **무장해제 구슬** | 고급 | `Circuit Breaker Orb, an ivory and gunmetal sphere featuring a severed weapon-cable emblem in brushed titanium` |
 | `orb_rust` | **포맷 구슬** | 고급 | `Decompiler Format Orb, a weathered corroded iron sphere with a cracking fractured shield emblem` |
-| `orb_magnet` | **자석 구슬** | 고급 | `Electromagnet Orb, an ivory core gripped by a U-shaped dark iron and copper-brass horseshoe electromagnet` |
-| `orb_hammer` | **망치 구슬** | 고급 | `Pile-Driver Orb, a heavy dark steel sphere embossed with a massive industrial brass piston hammer head` |
-| `orb_split` | **분열 구슬 (광학 렌즈)** | 희귀 | `Gemidi Prism Splitter Orb, a central brass sphere flanked by two smaller satellite ivory lens spheres splitting apart` |
+| `orb_magnet` | **자석 구슬** | 고급 | `Electromagnet Orb, an ivory core gripped by a U-shaped dark iron and copper-titanium horseshoe electromagnet` |
+| `orb_hammer` | **망치 구슬** | 고급 | `Pile-Driver Orb, a heavy dark steel sphere embossed with a massive industrial titanium piston hammer head` |
+| `orb_split` | **분열 구슬 (광학 렌즈)** | 희귀 | `Gemidi Prism Splitter Orb, a central titanium sphere flanked by two smaller satellite ivory lens spheres splitting apart` |
 | `orb_venom` | **독 구슬** | 희귀 | `Corrosive Nano-Acid Orb, a dark gunmetal sphere with glowing muted-vermilion (#C1443C) hazard vents and dripping red droplets` |
-| `orb_heavy` | **묵직한 구슬** | 희귀 | `High-Density Tungsten Core, an oversized riveted dark charcoal and heavy brass sphere that looks visibly heavier and denser than standard orbs` |
+| `orb_heavy` | **묵직한 구슬** | 희귀 | `High-Density Tungsten Core, an oversized riveted dark charcoal and heavy titanium sphere that looks visibly heavier and denser than standard orbs` |
 | `orb_chain` | **사슬 구슬** | 희귀 | `Relay Chain Orb, an ivory electromagnetic sphere tightly bound in interlocking heavy iron link chains` |
 | `orb_stun` | **기절 구슬** | 희귀 | `Arc Shock Stun Orb, a dark sphere surrounded by three sharp ivory lightning-spark prongs around a central impact node` |
-| `orb_vamp` | **흡혈 구슬** | 희귀 | `Energy Siphon Orb, an ivory sphere with two curved brass siphon prongs and a muted-vermilion energy core drop` |
+| `orb_vamp` | **흡혈 구슬** | 희귀 | `Energy Siphon Orb, an ivory sphere with two curved titanium siphon prongs and a muted-vermilion energy core drop` |
 | `orb_toxin` | **맹독 구슬** | 희귀 | `Viral Lockdown Orb, a dark sphere bearing a muted-vermilion (#C1443C) biohazard skull emblem and three pressurized red ampoules` |
-| `orb_mirror` | **거울 구슬** | 희귀 | `Reflective Deflector Orb, a polished mirror-bright silver-ivory sphere framed in an ornate aged-brass gyroscopic rim` |
+| `orb_mirror` | **거울 구슬** | 희귀 | `Reflective Deflector Orb, a polished mirror-bright silver-ivory sphere framed in an ornate brushed-titanium gyroscopic rim` |
 | `orb_wreck` | **철거 구슬** | 희귀 | `Demolition Wrecking Sphere, a brutalist dark steel sphere studded with heavy square rivets and a short anchor chain` |
-| `orb_comet` | **혜성 구슬 (아크 라이트닝)** | 전설 | `Overload Arc-Lightning Core (Clad's Safety Core fused), a radiant warm-ivory sphere trailing a sculpted tail of aged-brass and white-hot plasma arcs` |
-| `orb_time` | **시간 구슬** | 전설 | `Chrono-Reset Orb, a transparent ivory sphere housing a precision aged-brass hourglass and clockwork escapement gears` |
-| `orb_crown` | **관리자 구슬** | 전설 | `Root-Access Admin Orb, a prestigious ivory and dark gunmetal sphere crowned with a circuit-patterned aged-brass crest` |
+| `orb_comet` | **혜성 구슬 (아크 라이트닝)** | 전설 | `Overload Arc-Lightning Core (Clad's Safety Core fused), a radiant warm-ivory sphere trailing a sculpted tail of brushed-titanium and white-hot plasma arcs` |
+| `orb_time` | **시간 구슬** | 전설 | `Chrono-Reset Orb, a transparent ivory sphere housing a precision brushed-titanium hourglass and clockwork escapement gears` |
+| `orb_crown` | **관리자 구슬** | 전설 | `Root-Access Admin Orb, a prestigious ivory and dark gunmetal sphere crowned with a circuit-patterned brushed-titanium crest` |
 
 ---
 
@@ -216,11 +216,11 @@ Use case: stylized-concept. ONE isolated cyberpunk high-tech spherical core asse
 
 | 단계 | 파일명 | 시각적 변화 | 프롬프트 |
 |---|---|---|---|
-| **+1** | `orb_up_1.png` | 황동 보조 코일 링 1겹 | `Use case: stylized-concept. Game UI overlay frame for an upgraded orb (+1). An empty circular ring (center 65% must be completely empty transparent space so an orb can be drawn inside) made of two small aged-brass electromagnetic brackets at the top-right and bottom-left with a tiny warm-ivory spark. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
-| **+2** | `orb_up_2.png` | 황동 코일 링 + 양쪽 스파크 | `Use case: stylized-concept. Game UI overlay frame for a +2 upgraded orb. An empty circular ring (center 65% completely transparent) with four symmetrical aged-brass conductor prongs and small warm-ivory electric arcs bridging the rim. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
-| **+3** | `orb_up_3.png` | 회전 자이로 링 + 강한 백색 아크 | `Use case: stylized-concept. Game UI overlay frame for a +3 upgraded orb. An empty circular ring (center 65% completely transparent) formed by an ornate aged-brass gyroscopic halo crackling with bright warm-ivory lightning sparks around the perimeter. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
-| **+4** | `orb_up_4.png` | 과전류 붉은 경고 스파크 링 | `Use case: stylized-concept. Game UI overlay frame for a +4 high-voltage orb. An empty circular ring (center 65% completely transparent) of heavy aged-brass and dark steel coils emitting alternating warm-ivory and muted-vermilion (#C1443C) high-voltage sparks. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
-| **+5** | `orb_up_5.png` | 최대 출력 아크 코로나 (풀 프레임) | `Use case: stylized-concept. Game UI overlay frame for a MAX +5 overloaded orb. An empty circular ring (center 65% completely transparent) crowned by an elaborate aged-brass and ivory crest with intense radiating ivory-and-vermilion plasma arcs around the outer edge. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
+| **+1** | `orb_up_1.png` | 황동 보조 코일 링 1겹 | `Use case: stylized-concept. Game UI overlay frame for an upgraded orb (+1). An empty circular ring (center 65% must be completely empty transparent space so an orb can be drawn inside) made of two small brushed-titanium electromagnetic brackets at the top-right and bottom-left with a tiny warm-ivory spark. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
+| **+2** | `orb_up_2.png` | 황동 코일 링 + 양쪽 스파크 | `Use case: stylized-concept. Game UI overlay frame for a +2 upgraded orb. An empty circular ring (center 65% completely transparent) with four symmetrical brushed-titanium conductor prongs and small warm-ivory electric arcs bridging the rim. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
+| **+3** | `orb_up_3.png` | 회전 자이로 링 + 강한 백색 아크 | `Use case: stylized-concept. Game UI overlay frame for a +3 upgraded orb. An empty circular ring (center 65% completely transparent) formed by an ornate brushed-titanium gyroscopic halo crackling with bright warm-ivory lightning sparks around the perimeter. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
+| **+4** | `orb_up_4.png` | 과전류 붉은 경고 스파크 링 | `Use case: stylized-concept. Game UI overlay frame for a +4 high-voltage orb. An empty circular ring (center 65% completely transparent) of heavy brushed-titanium and dark steel coils emitting alternating warm-ivory and muted-vermilion (#C1443C) high-voltage sparks. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
+| **+5** | `orb_up_5.png` | 최대 출력 아크 코로나 (풀 프레임) | `Use case: stylized-concept. Game UI overlay frame for a MAX +5 overloaded orb. An empty circular ring (center 65% completely transparent) crowned by an elaborate brushed-titanium and ivory crest with intense radiating ivory-and-vermilion plasma arcs around the outer edge. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
 
 ---
 
@@ -230,62 +230,62 @@ Use case: stylized-concept. ONE isolated cyberpunk high-tech spherical core asse
 - **런타임 변환 경로**: `assets/game/relic_<id>.png` (`96×96px`)
 - **공통 프롬프트 템플릿**:
 ```text
-Use case: stylized-concept. ONE isolated sci-fi analog hardware relic asset: <RELIC_DESCRIPTION>. Style: detailed illustrated pixel art, crisp chunky pixel clusters, warm ivory highlights, 1-pixel deep charcoal outlines, weathered muted brass, upper-left lighting. Single centered item within square canvas, 12% margin, actual transparent alpha background. No text, no labels, no ground shadow, no frame, no purple/green/blue, no backdrop. Clearly readable at 48x48 and 96x96.
+Use case: stylized-concept. ONE isolated sci-fi analog hardware relic asset: <RELIC_DESCRIPTION>. Style: detailed illustrated pixel art, crisp chunky pixel clusters, warm ivory highlights, 1-pixel deep charcoal outlines, weathered muted titanium, upper-left lighting. Single centered item within square canvas, 12% margin, actual transparent alpha background. No text, no labels, no ground shadow, no frame, no purple/green/blue, no backdrop. Clearly readable at 48x48 and 96x96.
 ```
 
 ### 5.1 일반 등급 (10종)
 | 파일명 | 화면 이름 (효과) | `<RELIC_DESCRIPTION>` |
 |---|---|---|
-| `relic_whetstone.png` | **오버클럭** (시작 ⚔+1) | `Overclock jumper module, a small dark circuit board with a raised aged-brass voltage dial turned to maximum` |
-| `relic_buckler.png` | **보호 필름** (첫 턴 방어+3) | `Tempered ballistic glass lens shield framed in a compact hexagonal aged-brass bezel` |
-| `relic_wallet.png` | **대용량 지갑** (승리 크레딧+3) | `Heavy ruggedized metal hardware wallet case with a brass latch and credit chip slot` |
-| `relic_bandage.png` | **핫픽스** (충전 회복+3) | `Roll of conductive silver-ivory insulation tape with a brass dispenser clip` |
-| `relic_luckycoin.png` | **난수 시드** (브로커 -10%) | `Octagonal aged-brass hardware token engraved with a binary die pattern` |
-| `relic_callus.png` | **내구 코팅** (첫 오버플로 무시) | `Reinforced mechanic's fingerless leather-and-brass gauntlet liner with insulated palm plates` |
+| `relic_whetstone.png` | **오버클럭** (시작 ⚔+1) | `Overclock jumper module, a small dark circuit board with a raised brushed-titanium voltage dial turned to maximum` |
+| `relic_buckler.png` | **보호 필름** (첫 턴 방어+3) | `Tempered ballistic glass lens shield framed in a compact hexagonal brushed-titanium bezel` |
+| `relic_wallet.png` | **대용량 지갑** (승리 크레딧+3) | `Heavy ruggedized metal hardware wallet case with a titanium latch and credit chip slot` |
+| `relic_bandage.png` | **핫픽스** (충전 회복+3) | `Roll of conductive silver-ivory insulation tape with a titanium dispenser clip` |
+| `relic_luckycoin.png` | **난수 시드** (브로커 -10%) | `Octagonal brushed-titanium hardware token engraved with a binary die pattern` |
+| `relic_callus.png` | **내구 코팅** (첫 오버플로 무시) | `Reinforced mechanic's fingerless leather-and-titanium gauntlet liner with insulated palm plates` |
 | `relic_mason.png` | **블록 빌더** (특수 벽돌 증가) | `Magnetic signal beacon clamp resting atop a small cracked data block` |
-| `relic_lantern.png` | **디버그 로그** (정예 크레딧+10) | `Compact portable vacuum-tube diagnostic lamp in an aged-brass cage emitting warm ivory light` |
-| `relic_medkit.png` | **복구 키트** (승리 체력+2) | `Rugged warm-ivory metal field medical case embossed with a dark charcoal cross and brass clasps` |
-| `relic_focus.png` | **포커스 모드** (조준선 -15%) | `Precision aged-brass optical crosshair loupe with concentric calibration rings` |
+| `relic_lantern.png` | **디버그 로그** (정예 크레딧+10) | `Compact portable vacuum-tube diagnostic lamp in an brushed-titanium cage emitting warm ivory light` |
+| `relic_medkit.png` | **복구 키트** (승리 체력+2) | `Rugged warm-ivory metal field medical case embossed with a dark charcoal cross and titanium clasps` |
+| `relic_focus.png` | **포커스 모드** (조준선 -15%) | `Precision brushed-titanium optical crosshair loupe with concentric calibration rings` |
 
 ### 5.2 고급 등급 (10종)
 | 파일명 | 화면 이름 (효과) | `<RELIC_DESCRIPTION>` |
 |---|---|---|
-| `relic_combo.png` | **콤보 카운터** (타격 상한+1) | `Mechanical three-digit tally counter in an aged-brass casing with a thumb clicker` |
-| `relic_harvest.png` | **채굴기** (⚔·🛡 벽돌 효과+1) | `Compact rotary core-extractor tool with a curved tungsten-and-brass claw` |
+| `relic_combo.png` | **콤보 카운터** (타격 상한+1) | `Mechanical three-digit tally counter in an brushed-titanium casing with a thumb clicker` |
+| `relic_harvest.png` | **채굴기** (⚔·🛡 벽돌 효과+1) | `Compact rotary core-extractor tool with a curved tungsten-and-titanium claw` |
 | `relic_armor.png` | **하드 케이스** (시작 방어+3) | `Heavy bolted weathered-ivory and dark steel chest blast-plate vest` |
-| `relic_brace.png` | **완충 버퍼** (오버플로 피해 1로) | `Heavy-duty hydraulic shock absorber strut with a thick brass coil spring` |
-| `relic_antidote.png` | **백신** (독 감소+1) | `Pressurized glass-and-brass auto-injector ampoule filled with clean warm-ivory neutralizing serum` |
-| `relic_rebound.png` | **리바운드** (25% 바닥 반동) | `Electromagnetic repulsion pad shaped like a flat brass coil disc with upward arrows` |
+| `relic_brace.png` | **완충 버퍼** (오버플로 피해 1로) | `Heavy-duty hydraulic shock absorber strut with a thick titanium coil spring` |
+| `relic_antidote.png` | **백신** (독 감소+1) | `Pressurized glass-and-titanium auto-injector ampoule filled with clean warm-ivory neutralizing serum` |
+| `relic_rebound.png` | **리바운드** (25% 바닥 반동) | `Electromagnetic repulsion pad shaped like a flat titanium coil disc with upward arrows` |
 | `relic_sting.png` | **악성 코드** (독 부여+1) | `Corrupted data injector needle with a glowing muted-vermilion (#C1443C) tip` |
-| `relic_thorns.png` | **역추적** (피격 시 반격 1) | `High-voltage feedback harness with short aged-brass discharge prongs` |
-| `relic_breath.png` | **쿨다운** (대기 턴 체력+2) | `Copper-and-brass heat sink fin array with a small cooling fan` |
-| `relic_scout.png` | **스캐너** (지도 적 표시) | `Foldable radar rangefinder scope with an aged-brass lens hood` |
+| `relic_thorns.png` | **역추적** (피격 시 반격 1) | `High-voltage feedback harness with short brushed-titanium discharge prongs` |
+| `relic_breath.png` | **쿨다운** (대기 턴 체력+2) | `Copper-and-titanium heat sink fin array with a small cooling fan` |
+| `relic_scout.png` | **스캐너** (지도 적 표시) | `Foldable radar rangefinder scope with an brushed-titanium lens hood` |
 
 ### 5.3 희귀 등급 (10종)
 | 파일명 | 화면 이름 (효과) | `<RELIC_DESCRIPTION>` |
 |---|---|---|
 | `relic_counter.png` | **카운터 스크립트** (방어 반사) | `Deflection relay shield module embossed with a returning lightning arrow in warm ivory` |
 | `relic_leech.png` | **전력 흡수** (3타마다 체력+1) | `Dual-prong inductive power vampire clamp with a muted-vermilion energy core` |
-| `relic_endure.png` | **무정전 전원** (연속 공격 첫 타 무시) | `Industrial UPS backup battery unit in a scarred dark iron and brass casing` |
+| `relic_endure.png` | **무정전 전원** (연속 공격 첫 타 무시) | `Industrial UPS backup battery unit in a scarred dark iron and titanium casing` |
 | `relic_wrath.png` | **과부하** (체력 30% 이하 피해+2) | `Cracked thermal limiter gauge with a glowing muted-vermilion (#C1443C) warning needle in the red zone` |
-| `relic_heart.png` | **백업 전원** (1회 체력 1 생존) | `Mechanical pacemaker core of aged brass with a glowing muted-vermilion central chamber` |
-| `relic_alchemy.png` | **컴파일러** (남은 독만큼 크레딧) | `Glass-and-brass condenser tube converting dark nano-dust into a brass credit token` |
+| `relic_heart.png` | **백업 전원** (1회 체력 1 생존) | `Mechanical pacemaker core of brushed titanium with a glowing muted-vermilion central chamber` |
+| `relic_alchemy.png` | **컴파일러** (남은 독만큼 크레딧) | `Glass-and-titanium condenser tube converting dark nano-dust into a titanium credit token` |
 | `relic_twin.png` | **미러링** (3턴마다 2회 발사) | `Dual-barrel split synchronization adapter holding two ivory contact rings side by side` |
-| `relic_smith.png` | **리팩터링 툴** (강화 확률+10%p) | `Precision soldering iron and calibration caliper crossed together in aged brass and dark steel` |
-| `relic_charm.png` | **체크섬** (강화 실패 시 단계 유지) | `Locked aged-brass memory cartridge with a protective ivory seal latch` |
-| `relic_pouch.png` | **확장 슬롯** (큐 +1칸) | `Six-slot revolving brass ammo cylinder rack with an ivory orb peeking out` |
+| `relic_smith.png` | **리팩터링 툴** (강화 확률+10%p) | `Precision soldering iron and calibration caliper crossed together in brushed titanium and dark steel` |
+| `relic_charm.png` | **체크섬** (강화 실패 시 단계 유지) | `Locked brushed-titanium memory cartridge with a protective ivory seal latch` |
+| `relic_pouch.png` | **확장 슬롯** (큐 +1칸) | `Six-slot revolving titanium ammo cylinder rack with an ivory orb peeking out` |
 
 ### 5.4 전설 등급 (10종)
 | 파일명 | 화면 이름 (효과) | `<RELIC_DESCRIPTION>` |
 |---|---|---|
-| `relic_kingsword.png` | **루트 키** (⚔ 벽돌 효과+2) | `Master Root-Key hardware dongle shaped like an ornate aged-brass skeleton key with a glowing ivory blade` |
-| `relic_hourglass.png` | **타이머** (적 연속 공격 -1) | `Precision atomic-clock vacuum tube hourglass in an aged-brass frame` |
-| `relic_ring.png` | **영구 라이선스** (1회 50% 부활) | `Golden-brass infinity loop core ring with an unbroken warm-ivory filament` |
-| `relic_crusher.png` | **벽 해체기** (매 턴 하단 벽돌 파괴) | `Heavy industrial hydraulic jaw crusher head in dark gunmetal and brass` |
+| `relic_kingsword.png` | **루트 키** (⚔ 벽돌 효과+2) | `Master Root-Key hardware dongle shaped like an ornate brushed-titanium skeleton key with a glowing ivory blade` |
+| `relic_hourglass.png` | **타이머** (적 연속 공격 -1) | `Precision atomic-clock vacuum tube hourglass in an brushed-titanium frame` |
+| `relic_ring.png` | **영구 라이선스** (1회 50% 부활) | `Golden-titanium infinity loop core ring with an unbroken warm-ivory filament` |
+| `relic_crusher.png` | **벽 해체기** (매 턴 하단 벽돌 파괴) | `Heavy industrial hydraulic jaw crusher head in dark gunmetal and titanium` |
 | `relic_plague.png` | **웜** (독이 방어도 깎고 유지) | `Segmented mechanical centipede-worm chip with a glowing muted-vermilion (#C1443C) head` |
-| `relic_giant.png` | **대형 매크로** (분열 피해 감소 없음) | `Heavy exoskeletal power-gauntlet servo frame in dark iron and aged brass` |
-| `relic_warp.png` | **타임 워프** (조준선 0.5초 정지) | `Stasis field pocket chronometer with a frozen bent ivory dial and brass gears` |
-| `relic_greed.png` | **채굴 중독** (승리 크레딧+12, 상점+15) | `Overclocked mining rig module overflowing with brass credit tokens and hot exhaust vents` |
+| `relic_giant.png` | **대형 매크로** (분열 피해 감소 없음) | `Heavy exoskeletal power-gauntlet servo frame in dark iron and brushed titanium` |
+| `relic_warp.png` | **타임 워프** (조준선 0.5초 정지) | `Stasis field pocket chronometer with a frozen bent ivory dial and titanium gears` |
+| `relic_greed.png` | **채굴 중독** (승리 크레딧+12, 상점+15) | `Overclocked mining rig module overflowing with titanium credit tokens and hot exhaust vents` |
 | `relic_pact.png` | **위험한 약관** (최대 체력-8, 피해+1) | `Unsealed high-voltage neural bypass cable stained with a muted-vermilion (#C1443C) warning seal` |
 | `relic_collector.png` | **크롤러** (수집 구슬 5종당 시작 ⚔+1) | `Miniature multi-legged archive crawler drone carrying three tiny ivory spheres on its back` |
 
@@ -293,36 +293,38 @@ Use case: stylized-concept. ONE isolated sci-fi analog hardware relic asset: <RE
 
 ## 6. 배경 · 벽돌 · 비전투 장면 · 아이콘 프롬프트 (5종)
 
-### 6.1 전투 배경 (`assets/illustrated/chasm.png` — 세로 9:17 비율, 예: `720×1360` 또는 `1024×1792`)
+### 6.1 전투·화면 배경 (`assets/illustrated/chasm.png` — 세로 9:17 비율, 예: `720×1360` 또는 `1024×1792`)
+
+2026-11-04 안 B(모노크롬 사이버펑크)로 고쳤다. 지금 게임은 `tools/draw_cyber_assets.py`가 그린 도트 대체본을 쓰고, 이 그림이 생기면 `python3 tools/build_game_assets.py`가 `assets/game/chasm.png`로 줄인다. 전투판·지도·대화·터미널 뒤에 옅게 깔리므로 **대비가 낮아야** 한다.
 ```text
-Use case: stylized-concept. Vertical 9:17 game background illustration for Brick Crawl: The Last Arc. Style: detailed pixel-art illustration, restrained palette of deep charcoal, weathered concrete beige, warm ivory highlights, and aged brass. Composition: Top 32% is the battle stage platform inside the Data Chasm—a weathered overpass/bunker ledge framed by heavy industrial cables and server pillars, looking up at a slice of sky caged by giant hexagonal metal shield grid panels with dim grey light beams filtering down. Bottom 68% is a dark recessed vertical shaft grid chamber with subtle geometric server-wall paneling (low contrast so foreground bricks and orbs stand out clearly). No characters, no text, no neon colors.
+Use case: stylized-concept. Vertical 9:17 game background illustration for Brick Crawl: The Last Arc. Style: futuristic cyberpunk pixel-art illustration, crisp chunky pixel clusters, monochrome palette of matte carbon black, dark gunmetal, brushed titanium grey, with sparse electric-white light seams and a few tiny muted-vermilion (#C1443C) warning lamps only. Composition: looking down a colossal underground server megastructure shaft. Top 30%: a slice of night sky caged by giant hexagonal metal shield-grid panels, faint grey light beams filtering through the gaps. Left and right edges: towering server racks with rows of tiny white status LEDs and hanging fiber-optic cable bundles sagging toward the center. Center and bottom 70%: a deep, dark, low-contrast vertical shaft with receding catwalk rails and subtle geometric panel grid, nearly empty so foreground bricks and orbs stay readable. No characters, no text, no neon, no cyan, no purple, no gradient sky, no warm colors, no brass.
 ```
 
 ### 6.2 벽돌 6종 시트 (`assets/illustrated/bricks.png` — 가로 3:2 비율 `1536×1024`, 3열×2행)
 ```text
-Game asset sprite sheet: six separate rectangular cyber-bunker barrier tiles for a brick-breaker roguelike, arranged in a clean 3 columns by 2 rows grid with wide even spacing, each brick wide 2:1 proportion, front view with a slight top bevel, upper-left lighting. Style: detailed pixel-art illustration, chunky crisp pixel clusters, restrained ivory / beige / charcoal / aged brass palette, 1-pixel dark outline around every brick. Flat plain neutral grey background (#808080).
+Game asset sprite sheet: six separate rectangular cyber-bunker barrier tiles for a brick-breaker roguelike, arranged in a clean 3 columns by 2 rows grid with wide even spacing, each brick wide 2:1 proportion, front view with a slight top bevel, upper-left lighting. Style: detailed pixel-art illustration, chunky crisp pixel clusters, restrained ivory / beige / charcoal / brushed titanium palette, 1-pixel dark outline around every brick. Flat plain neutral grey background (#808080).
 Row 1, left (brick_n): weathered beige-grey reinforced concrete-and-circuit data wall block with fine seam lines.
 Row 1, middle (brick_stone): heavy dark gunmetal blast-armor block bolted with two riveted iron straps.
-Row 1, right (brick_atk): polished warm-ivory plate framed by aged-brass border, with a large bold raised dark-bronze SWORD / VOLTAGE BOLT emblem in the center, very high contrast.
-Row 2, left (brick_def): polished warm-ivory plate with aged-brass border and a large bold raised dark-bronze SHIELD emblem in the center.
-Row 2, middle (brick_heal): polished warm-ivory plate with aged-brass border and a large bold raised dark-bronze HEART emblem in the center.
+Row 1, right (brick_atk): polished warm-ivory plate framed by brushed-titanium border, with a large bold raised dark-bronze SWORD / VOLTAGE BOLT emblem in the center, very high contrast.
+Row 2, left (brick_def): polished warm-ivory plate with brushed-titanium border and a large bold raised dark-bronze SHIELD emblem in the center.
+Row 2, middle (brick_heal): polished warm-ivory plate with brushed-titanium border and a large bold raised dark-bronze HEART emblem in the center.
 Row 2, right (brick_poison): dark cracked silicon block with glowing muted-vermilion (#C1443C) red nano-veins and a raised vermilion SKULL emblem in the center.
 No text, no labels, no cast shadows on background.
 ```
 
 ### 6.3 브로커 윤 상점 스프라이트 (`assets/illustrated/yun.png` → `assets/game/yun.png`)
 ```text
-Use case: stylized-concept. Game NPC half-body sprite of Yun the Broker standing behind a workbench counter, facing front. Style: detailed pixel-art illustration, restrained ivory / beige / charcoal / aged brass palette, upper-left lighting. Subject: grizzled middle-aged mech technician in a dark charcoal work coat, brass welding goggles on forehead, holding up a glowing warm-ivory vacuum-tube inspection lamp in one hand and a soldering tool in the other. Waist-up composition, genuine transparent background, no text, no red.
+Use case: stylized-concept. Game NPC half-body sprite of Yun the Broker standing behind a workbench counter, facing front. Style: detailed pixel-art illustration, restrained ivory / beige / charcoal / brushed titanium palette, upper-left lighting. Subject: grizzled middle-aged mech technician in a dark charcoal work coat, titanium welding goggles on forehead, holding up a glowing warm-ivory vacuum-tube inspection lamp in one hand and a soldering tool in the other. Waist-up composition, genuine transparent background, no text, no red.
 ```
 
 ### 6.4 충전소 히터 3프레임 시트 (`assets/illustrated/heater.png` → `assets/game/heater.png` — 가로 3:1 비율, 3열×1행)
 ```text
-Use case: stylized-concept. 3-frame horizontal sprite strip (3 equal columns, 1 row) of an underground bunker thermal coil heater / charging station on a stone floor. Style: detailed pixel-art illustration, restrained charcoal, aged brass, and warm ivory-gold glow palette (NO RED). Each frame shows the same compact cylindrical brass-and-iron induction brazier, with the warm ivory-gold plasma heat waves and rising sparks subtly swaying in 3 sequential animation frames. Genuine transparent background, no text.
+Use case: stylized-concept. 3-frame horizontal sprite strip (3 equal columns, 1 row) of an underground bunker thermal coil heater / charging station on a stone floor. Style: detailed pixel-art illustration, restrained charcoal, brushed titanium, and warm ivory-gold glow palette (NO RED). Each frame shows the same compact cylindrical titanium-and-iron induction brazier, with the warm ivory-gold plasma heat waves and rising sparks subtly swaying in 3 sequential animation frames. Genuine transparent background, no text.
 ```
 
 ### 6.5 앱 아이콘 (`assets/illustrated/icon.png` — `1024×1024` 정사각형, 불투명 배경)
 ```text
-Mobile game app icon, square full-bleed composition (no rounded corners, no border, no text). Style: elegant detailed pixel-art illustration with chunky crisp pixel clusters and sculpted depth, restrained palette of warm ivory, weathered beige, deep charcoal, and aged brass, upper-left lighting. Subject: close-up bust of Rick (15-year-old wasteland mechanic boy with wired earphones and brass MP3 player at his neck) holding up a large glowing warm-ivory metallic sphere (Lightning Core) above his brass launcher gauntlet in the foreground; behind him a cracked data-wall brick barrier. Background: dark charcoal bunker steel, flat, no gradient, no red, no letters.
+Mobile game app icon, square full-bleed composition (no rounded corners, no border, no text). Style: elegant detailed pixel-art illustration with chunky crisp pixel clusters and sculpted depth, restrained palette of warm ivory, weathered beige, deep charcoal, and brushed titanium, upper-left lighting. Subject: close-up bust of Rick (15-year-old wasteland mechanic boy with wired earphones and titanium MP3 player at his neck) holding up a large glowing warm-ivory metallic sphere (Lightning Core) above his titanium launcher gauntlet in the foreground; behind him a cracked data-wall brick barrier. Background: dark charcoal bunker steel, flat, no gradient, no red, no letters.
 ```
 
 ---
@@ -339,9 +341,9 @@ Mobile game app icon, square full-bleed composition (no rounded corners, no bord
 
 ---
 
-## 8. 생성 현황 (2026-11-04, main `c98f358` 기준)
+## 8. 생성 현황 (2026-11-04)
 
-`assets/game/`에 실제로 있는 파일 기준이다. "옛 그림"은 2026-10 중세 던전 화풍(상아·황동·석재)으로, 사이버펑크 화면과 톤이 어긋난다. 터미널·배경·UI 프레임을 어떤 색 방향으로 바꿀지는 [작업 07](tasks/07-cyberpunk-visual.md)에서 결정 대기 중이며, 6.1 배경 프롬프트도 그 결정에 맞춰 고친다(지금 문구는 `aged brass`·`no neon`이라 사이버펑크보다 폐허 벙커가 나온다).
+`assets/game/`에 실제로 있는 파일 기준이다. "옛 그림"은 2026-10 중세 던전 화풍(상아·황동·석재)으로, 사이버펑크 화면과 톤이 어긋난다. 터미널·배경·UI 프레임을 어떤 색 방향으로 바꿀지는 [작업 07](tasks/07-cyberpunk-visual.md)에서 결정 대기 중이며, 6.1 배경 프롬프트도 그 결정에 맞춰 고친다(지금 문구는 `brushed titanium`·`no neon`이라 사이버펑크보다 폐허 벙커가 나온다).
 
 | 구분 | 생성·적용됨 | 아직 없음(폴백·옛 그림) |
 |---|---|---|
@@ -350,5 +352,5 @@ Mobile game app icon, square full-bleed composition (no rounded corners, no bord
 | 3. 대화 초상 | 14종 전부(`portrait_*`) | — |
 | 4. 구슬 | 17종(`items/orb_*`, 2026-10-09 화풍) | 기본 7종(`basic`·`bomb`·`drill`·`guard`·`heavy`·`split`·`venom`, `collection.png` 출신, 황동), 강화 오라 `orb_up_1`~`5` |
 | 5. 칩 | 40종(2026-10-09 화풍) | 사이버펑크 재생성 전 |
-| 6. 배경·장면 | — | 전투 배경 `chasm`(→ 옛 `dungeon.png`), 브로커 `yun`(→ 옛 `merchant`), 충전소 `heater`(→ 옛 `campfire`), 벽돌 6종(#33 상아·황동판), 앱 아이콘(기사) |
-| UI 프레임 | — | `ui_bar`(금박 프레임)·`ui_panel`(양피지)·`ui_frame` — 프롬프트 없음 |
+| 6. 배경·장면 | 배경 `chasm`·브로커 장면(윤 초상을 단말기 화면으로) — 도트 대체본 | 배경 AI 원본 `chasm`(6.1), 충전소 `heater`(→ 옛 `campfire`), 벽돌 6종(#33 상아·황동판), 앱 아이콘(기사) |
+| UI 프레임 | `ui_bar`·`ui_panel`·`ui_frame`·`scan` — HUD 판·꺾쇠·주사선(`tools/draw_cyber_assets.py`) | — |

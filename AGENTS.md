@@ -50,7 +50,7 @@
   | `index.html` | DOM 골격(HUD·캔버스·오버레이)과 스크립트 로드 순서 |
   | `css/style.css` | 색 토큰(`--bg` 등, 다크 모드 포함)과 레이아웃 |
   | `js/config.js` | 화면 상수(W·H·COLS…), `$`·`clamp`·`rnd`·`pickW` 등 유틸, `readColors()` |
-  | `js/data.js` | 데이터: `MON`·`FLOOR_BOSS`(1~4층 보스 이름·그림)·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS`·`TREE`(스킬 트리)·`BADGES`(배지)·`STORY`(이야기·대사 `lines`)·`STORY_FLOOR`·`STORY_RADIO` |
+  | `js/data.js` | 데이터: `MON`·`FLOOR_BOSS`(1~4층 보스 이름·그림)·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS`·`TREE`(스킬 트리)·`BADGES`(배지)·`STORY`(대본 → `talk()`)·`SPEAKER`·`STORY_FLOOR`·`STORY_RADIO`·`BOSS_TALK`·`REST_TALK`·`SHOP_TALK`·`FALL_TALK` |
   | `js/sprites.js` | 도트 리소스(`SPR`·`ICON`·`FONT`)와 `drawText`·`drawIcon`·`drawSprite` |
   | `js/art.js` | 일러스트 에셋(`assets/game`) 로드와 그리기(`drawCharArt`·`drawBrickArt`·`drawBgArt`), 대화 초상(`ART_PORTRAITS`). 아직 없는 사이버펑크 그림은 `ART_FALLBACK`의 대응 그림으로, 로드 전·실패·Node에서는 false를 돌려 도트로 폴백 |
 | `js/audio.js` | 소리: 효과음 합성(`sfx`·`SFX`), 장면별 BGM(`bgm`·합성 `SONGS`·음원 `TRACKS`), 켬/끔 설정(`AUDIO`·`setAudio`) |
@@ -58,10 +58,10 @@
   | `js/profile.js` | 임의 닉네임 생성(3음절 × 3단어), 플레이어 프로필(`PROFILE`)·`uuid()`·`runProgress()` |
   | `js/net.js` | 기록 서버 통신: 닉네임 등록, 원정 시작 표, 원정 기록 대기열·전송, 랭킹 조회, 내 기록 삭제 |
   | `js/map.js` | 원정 상태(`RUN`·`G`·`mode`), 갈림길 지도 생성·이동 가능 칸 |
-  | `js/battle.js` | 전투 상태, 벽돌 줄 생성, 구슬 물리, 턴 진행, 몬스터 행동 |
+  | `js/battle.js` | 전투 상태, 벽돌 줄 생성, 구슬 물리, 턴 진행, 몬스터 행동, 배너·전투 무전 띠(`radio`) |
   | `js/render.js` | 캔버스 `draw()`와 HUD(헤더·구슬 줄·유물 칩) |
-  | `js/scene.js` | 상점·휴식 장면 캔버스(`#sceneCv`): 상인·모닥불 연출(`setScene`·`drawScene`). 게임 결과와 무관 |
-  | `js/screens.js` | 오버레이 전환, 메인·지도 화면, 노드 진입, 전투 시작·종료 |
+  | `js/scene.js` | 상점·휴식 장면 캔버스(`#sceneCv`): 브로커(단말기 속 윤)·충전소 연출(`setScene`·`drawScene`). 게임 결과와 무관 |
+  | `js/screens.js` | 오버레이 전환, 메인·지도 화면, 이야기 대화창(`showTalk`), 노드 진입, 전투 시작·종료 |
   | `js/rewards.js` | 보상·휴식·덜어내기·상점 화면 |
   | `js/main.js` | 메뉴(일시정지), 입력, 메인 루프 시작 — 항상 마지막 |
   | `functions/api/[[path]].js` | (서버) 기록 API: `player`·`start`·`record`·`board`·`rename`·`delete`, 속도 제한 |
@@ -71,9 +71,9 @@
 - 연출용 무작위(파티클 등)와 게임 결과에 영향을 주는 무작위를 구분한다. 후자는 원정 시드에서 나온 흐름 `rand(s)`(`js/config.js`, `'map'`·`'reward'`·`'battle'`)를 쓰고, 전자는 흐름 없이 `Math.random`을 쓴다.
 
 ## UI·시각 규칙
-- 테마: 자동(기기 설정)·밝게·어둡게를 메뉴에서 고른다(`html[data-theme]`). 패널 그림은 라이트 = 양피지(`ui_panel`), 다크 = 석판(`ui_bar`).
-- 그림체(2026-11-04): 캐릭터·보스·대화 초상은 사이버펑크 도트 일러스트(`docs/ASSET_PROMPTS.md`). 공용 배경(`dungeon.png`)·패널 그림·기본 구슬 7종은 아직 옛 중세 그림이고, 터미널·배경의 색 방향(아래 베이지 규칙을 유지할지)은 `docs/tasks/07-cyberpunk-visual.md`에서 소유자 결정 대기다. 결정 전에는 이 규칙들을 바꾸지 않는다.
-- 배경은 베이지 계열, 강조색은 **화(火) #C1443C 하나만**. 나머지는 무채색 위계(ink, ink2, ink3, line).
+- 테마: 어둡게(기본)·밝게·자동(기기 설정)을 메뉴에서 고른다(`html[data-theme]`, 저장 값이 없으면 어둡게). 패널 그림은 라이트 = 밝은 HUD 판(`ui_panel`), 다크 = 어두운 HUD 판(`ui_bar`).
+- 그림체(2026-11-04 결정, 작업 07 안 B): **모노크롬 사이버펑크**. 캐릭터·보스·대화 초상은 사이버펑크 도트 일러스트(`docs/ASSET_PROMPTS.md`), 화면 배경은 갱도 도트 `chasm.png`, 프레임은 모서리를 깎은 HUD 판·꺾쇠(`ui_*`). 배경·프레임·주사선은 `tools/draw_cyber_assets.py`가 그린다(AI 배경이 나오면 `assets/illustrated/chasm.png` → `build_game_assets.py`). 구슬·칩·벽돌·충전소·앱 아이콘은 아직 옛 중세 그림이다(ASSET_PROMPTS 8절).
+- 배경은 카본 블랙(다크, 기본)·차가운 흰 회색(라이트) 무채색, 강조색은 **화(火) #C1443C 하나만**. 나머지는 무채색 위계(ink, ink2, ink3, line). 네온·두 번째 강조색은 쓰지 않는다(사이버펑크는 색이 아니라 HUD 꺾쇠·주사선·액정·발광 같은 모티프로 낸다). 화면 뒤 그림 농도는 토큰 `--art`.
 - 붉은색의 의미는 "위험"으로 고정: 버그(몬스터) 공격 예고, 독, 피해, 오버플로선 경고, 보스·정예 표시, 희귀 등급.
 - 색은 CSS 변수(`--bg` 등)로만 정의하고, 캔버스도 `readColors()`로 같은 토큰을 읽는다. 다크 모드 대응 유지.
 - 도트 렌더: 캔버스 논리 해상도 180×340. 백버퍼는 `fitCanvas()`가 표시 크기(기기 픽셀)를 덮는 가장 작은 정수배 `RES`(2~8)로 맞추고 CSS는 부드럽게 축소만 한다(도트 굵기를 고르게). 좌표·판정은 논리 해상도 기준이고 `RES`는 그리기에만 쓴다.
@@ -129,7 +129,7 @@
   - 예외(2026-10 결정): 최대 체력은 보스 처치 +4와 스킬 트리 "메모리 증설"(+4)으로만 오른다(출발 선물은 기능이 빠졌다. 칩(유물) "위험한 약관"은 −8). 몬스터 공·방이 세션마다 오르는 것을 버티는 최소 보정이다. 다른 수치 성장은 넣지 않는다.
   - 구슬 성장은 강화(+)로 효과를 한 단계 올리는 방식만 쓴다(`ORBS[*].up`).
   - 예외(2026-10 결정): 곱연산은 **스킬 트리 갈래 끝 핵심 노드에만** 둔다(영구 성장, 엔드게임 심연용). 원정 안의 보상·유물·구슬에는 곱연산을 넣지 않는다.
-  - 천장 타격 피해 = 디버거 공격력(⚔, 기본 1) + 구슬 보정(`ORB_BONUS`) + 트리 덧셈 → 트리 곱셈. 계산은 `hitDmg()` 하나로만 한다(HUD와 실제 피해가 어긋나지 않게).
+  - 천장 타격 피해 = 릭의 공격력(⚔, 기본 1) + 구슬 보정(`ORB_BONUS`) + 트리 덧셈 → 트리 곱셈. 계산은 `hitDmg()` 하나로만 한다(HUD와 실제 피해가 어긋나지 않게).
   - 덱은 최대 `DECK_MAX`(5)개. 원정은 5세션(세션 5 보스 = 최종), 그 뒤 엔드게임은 메인에서 들어가는 심연(`RUN.abyss`).
   - 스킬 포인트는 칸 최초 돌파 +1, 보스 최초 돌파 +3만. 트리 총비용이 본편 포인트(35)의 약 3배가 되게 유지한다(다 찍히지 않게).
 
