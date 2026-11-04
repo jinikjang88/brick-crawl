@@ -167,6 +167,25 @@ function banner(l1, l2, hot){
   clearTimeout(banner.h); banner.h = setTimeout(() => b.classList.remove('on'), 1300);
 }
 
+// 전투 무전 띠(대본 RADIO): 판 위쪽에 초상 + 이름 + 한 줄. 전투를 멈추지 않고 줄마다 자동으로 넘어간다.
+// null이면 바로 거둔다(화면 전환). 연출일 뿐이라 게임 결과에는 영향이 없다
+let RADIO_Q = [], RADIO_H = 0;
+function radio(lines){
+  RADIO_Q = lines ? lines.slice() : [];
+  clearTimeout(RADIO_H); radioNext();
+}
+function radioNext(){
+  const el = $('radio'), ln = RADIO_Q.shift();
+  if (!ln){ el.classList.remove('on'); return; }
+  const im = $('rPort');
+  if (ln.port){ im.src = 'assets/game/portrait_' + ln.port + '.png'; im.hidden = false; } else im.hidden = true;
+  $('rWho').textContent = ln.who || ''; $('rTxt').textContent = ln.text;
+  el.classList.toggle('enemy', ln.side === 'enemy'); el.classList.toggle('note', !ln.who);
+  el.classList.add('on');
+  // 읽을 시간: 글자 수에 비례(최소 2.2초, 최대 5초)
+  RADIO_H = setTimeout(radioNext, Math.min(5000, 2200 + ln.text.length * 45));
+}
+
 // ── 벽돌 파괴: 성벽은 길만 막고, 강화·독 벽돌은 기사에게 날아간다
 function onBreak(b){
   const bx = OX + b.c * CW + CW / 2, by = b.y + BRH / 2;
@@ -252,7 +271,10 @@ function checkRage(){
       if (next === 3){ const free = [...Array(COLS).keys()].filter(c => !G.seal.includes(c)); G.seal = G.seal.concat(free[rnd(free.length, 'battle')]).sort((a, b) => a - b); }
       G.sealNext = sealShift(G.seal);
     }
-    banner(cfg.king ? (next === 3 ? '알고리즘이 마지막 데이터 벽을 세운다' : '잠금이 풀리기 시작한다') : next === 3 ? '관리자가 마지막 자원을 끌어낸다' : '보스가 분노했다', '조준이 빨라진다', true); sfx('rage');
+    // 본편 보스는 대본의 층별 페이즈 배너와 무전, 근원은 근원 배너, 심층부는 공통 배너
+    const bt = !RUN.abyss && !cfg.king && cfg.boss && BOSS_TALK[RUN.s], ph = bt && bt.phase[next];
+    banner(cfg.king ? KING_PHASE[next] : ph ? ph.banner : next === 3 ? '보스가 마지막 자원을 끌어낸다' : '보스가 분노했다', '조준이 빨라진다', true); sfx('rage');
+    if (ph) radio(ph.radio);
   } else if (cfg.elite && !m.rage && m.hp <= m.max / 2){
     m.rage = true; G.shake = 5;
     banner('정예가 날뛴다', '조준이 빨라진다', true); sfx('rage');

@@ -52,7 +52,7 @@ function renderSound(){
   });
 }
 SND_BTNS.forEach(([id, k]) => $(id).onclick = () => { unlockAudio(); setAudio(k, !AUDIO[k]); renderSound(); });
-// 테마 전환: 자동 → 밝게 → 어둡게. 캔버스·로고·지도 아이콘은 색 토큰을 읽어 그리므로 바꾼 뒤 다시 읽고 다시 그린다
+// 테마 전환: 어둡게 → 밝게 → 자동. 캔버스·로고·지도 아이콘은 색 토큰을 읽어 그리므로 바꾼 뒤 다시 읽고 다시 그린다
 const THEME_LABEL = { auto:'화면 자동', light:'화면 밝게', dark:'화면 어둡게' };
 function renderTheme(){ ['mTheme', 'pTheme'].forEach(id => { $(id).textContent = THEME_LABEL[THEME]; $(id).setAttribute('aria-label', `화면 테마: ${THEME_LABEL[THEME]}. 눌러서 바꾸기`); }); }
 ['mTheme', 'pTheme'].forEach(id => $(id).onclick = () => {
@@ -76,6 +76,8 @@ addEventListener('keydown', e => {
   if (PORTRAIT_LOCK && PORTRAIT_LOCK.matches) return;   // 세로 안내가 가린 동안 Esc로 전투가 다시 돌거나 Space로 쏘지 않게
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape'){ mode === 'pause' ? closeMenu() : openMenu(); return; }
   if (mode === 'play' && (e.key === ' ' || e.key === 'Enter')){ if (!e.repeat) fire(); e.preventDefault(); }
+  // 대화창: 초점이 버튼 밖(상자를 눌러 넘긴 뒤)이어도 Space·Enter로 넘긴다. 버튼 위면 버튼이 알아서 눌린다
+  if (mode === 'story' && (e.key === ' ' || e.key === 'Enter') && !(e.target && e.target.tagName === 'BUTTON')){ if (!e.repeat) talkStep(); e.preventDefault(); }
 });
 
 // ── 메인 루프

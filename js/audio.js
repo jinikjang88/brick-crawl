@@ -125,6 +125,8 @@ const ORB_SND = {
   heavy: { wave:'square',   base:55 },
 };
 const SFX = {
+  // 대화 넘김: 아주 작은 단말기 클릭음(여러 번 눌러도 거슬리지 않게 짧고 작게)
+  talk:(d, t) => { tone(d, t, { f:midiHz(84), wave:'square', dur:0.025, vol:0.05 }); },
   // 발사: 짧게 올라가는 "퓽"
   fire:(d, t, { orb }) => { const s = ORB_SND[orb] || ORB_SND.basic; tone(d, t, { f:midiHz(s.base - 12), slide:midiHz(s.base + 5), wave:s.wave, dur:0.09, vol:0.18 }); },
   // 벽돌 충돌: 같은 구슬이 연달아 맞힐수록 반음씩 올라가 콤보가 귀로 들린다(최대 한 옥타브)

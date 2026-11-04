@@ -166,10 +166,15 @@ def build_chars():
 
 
 def build_bg():
-    img = Image.open(SRC / 'dungeon.png').convert('RGB')
+    # 2026-11-04: 게임 배경은 chasm.png(tools/draw_cyber_assets.py)로 바뀌었다. AI 일러스트 원본
+    # assets/illustrated/chasm.png(docs/ASSET_PROMPTS.md 6.1)가 생기면 그것을 줄여 chasm으로 쓴다. 옛 dungeon.png는 기록용 원본이다
+    src = SRC / 'chasm.png'
+    if not src.exists():
+        return
+    img = Image.open(src).convert('RGB')
     img = img.resize((180 * RES, 340 * RES), Image.LANCZOS)
     # 불투명 배경은 팔레트로 줄여도 티가 안 나고 크기가 크게 준다
-    save(img.quantize(colors=128, method=Image.MEDIANCUT, dither=Image.NONE), 'dungeon')
+    save(img.quantize(colors=128, method=Image.MEDIANCUT, dither=Image.NONE), 'chasm')
 
 
 def build_items():

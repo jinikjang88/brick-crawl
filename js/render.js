@@ -218,7 +218,7 @@ function renderOrbBar(){
     // 분열은 갈래 수로 나눈 값이 갈래 하나의 피해다: (⚔2 + 0) ÷3 = 1
     const expr = hp.k !== 1 ? `(${sum}) ×${+hp.k.toFixed(2)}` : sum;
     dmg.textContent = hp.div > 1 ? `(${expr}) ÷${hp.div} = ${hp.v}` : `${expr} = ${hp.v}`;
-    dmg.title = '천장 타격 피해 = (디버거 공격력 + 구슬 위력) × 코어 모듈' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
+    dmg.title = '천장 타격 피해 = (릭의 공격력 + 구슬 위력) × 코어 모듈' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
     name.append(dmg);
     label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
     const next = document.createElement('div'); next.className = 'orbNext';

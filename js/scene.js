@@ -32,29 +32,37 @@ function drawScene(dt){
   const g = sctx, calm = artCalm && artCalm.matches;
   g.setTransform(sceneRes, 0, 0, sceneRes, 0, 0);
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-  // 배경: 던전 그림의 아치 부분을 잘라 쓰고, 장면 분위기에 맞게 어둡게 덮는다
-  const bg = artImg('dungeon');
+  // 배경: 갱도 그림의 서버 탑 부분을 잘라 쓰고, 장면 분위기에 맞게 어둡게 덮는다
+  const bg = artImg('chasm');
   if (bg){
     const sw = bg.naturalWidth, sh = sw * SH / SW;
     g.drawImage(bg, 0, bg.naturalHeight * .22, sw, sh, 0, 0, SW, SH);
-  } else { g.fillStyle = '#3A322A'; g.fillRect(0, 0, SW, SH); }
-  g.fillStyle = '#15110D'; g.globalAlpha = SCENE === 'rest' ? .72 : .38; g.fillRect(0, 0, SW, SH); g.globalAlpha = 1;
+  } else { g.fillStyle = '#1A1E22'; g.fillRect(0, 0, SW, SH); }
+  g.fillStyle = '#0B0D0F'; g.globalAlpha = SCENE === 'rest' ? .72 : .38; g.fillRect(0, 0, SW, SH); g.globalAlpha = 1;
   if (SCENE === 'shop') drawShopScene(g, calm); else drawRestScene(g, dt, calm);
 }
 
 function drawShopScene(g, calm){
   const t = sceneT, bob = calm ? 0 : Math.sin(t * 2) * .6;
-  const mer = artImg('merchant');
+  // 윤은 정비소 유선 화물선 너머에서 말한다(대본 0.2): 상인 그림 대신 단말기 화면 속 초상. 초상이 없으면 옛 상인 그림
+  const yun = artImg('portrait_yun'), mer = yun ? null : artImg('merchant');
   const flick = calm ? .8 : .75 + Math.sin(t * 9) * .08 + Math.sin(t * 23) * .05;
   // 랜턴 빛이 상인 뒤 벽을 비춘다
   glowRings(g, 112, 40 + bob, 34, .32 * flick);
-  if (mer) g.drawImage(mer, 84, 8 + bob, 56, 60);
+  if (yun){
+    g.fillStyle = '#121518'; g.fillRect(84, 6, 56, 52);
+    g.fillStyle = '#5A646B'; g.fillRect(84, 6, 56, 1); g.fillRect(84, 57, 56, 1); g.fillRect(84, 6, 1, 52); g.fillRect(139, 6, 1, 52);
+    g.globalAlpha = flick; g.drawImage(yun, 88, 9, 48, 46); g.globalAlpha = 1;
+    // 화면 주사선: 두 줄마다 어둡게
+    g.fillStyle = '#0B0D0F'; g.globalAlpha = .28; for (let y = 10; y < 55; y += 2) g.fillRect(88, y, 48, 1); g.globalAlpha = 1;
+    g.fillStyle = '#2A3137'; g.fillRect(110, 58, 4, 4);
+  } else if (mer) g.drawImage(mer, 84, 8 + bob, 56, 60);
   glowRings(g, 128.5, 46 + bob, 9, .5 * flick);
-  // 카운터: 나무 상판 + 황동 테
-  g.fillStyle = '#463222'; g.fillRect(0, 62, SW, 22);
-  g.fillStyle = '#7C5B3E'; g.fillRect(0, 62, SW, 3);
-  g.fillStyle = '#A07D45'; g.fillRect(0, 65, SW, 1);
-  g.fillStyle = '#2E2116'; for (let x = 20; x < SW; x += 40) g.fillRect(x, 66, 1, 18);
+  // 작업대: 강철 상판 + 티타늄 테
+  g.fillStyle = '#1E2327'; g.fillRect(0, 62, SW, 22);
+  g.fillStyle = '#3A434A'; g.fillRect(0, 62, SW, 3);
+  g.fillStyle = '#8A949B'; g.fillRect(0, 65, SW, 1);
+  g.fillStyle = '#121518'; for (let x = 20; x < SW; x += 40) g.fillRect(x, 66, 1, 18);
   // 진열: 이번 상점의 팔지 않은 구슬, 그리고 코인 더미
   const items = (RUN && RUN.shop || []).filter(it => it.k === 'orb' && !it.sold);
   items.forEach((it, i) => {
@@ -67,11 +75,11 @@ function drawShopScene(g, calm){
 }
 
 function drawRestScene(g, dt, calm){
-  const t = sceneT, fire = artImg('campfire'), knight = artImg('knight');
+  const t = sceneT, fire = artImg('campfire'), knight = artImg('rick') || artImg('knight');
   const flick = calm ? .85 : .8 + Math.sin(t * 11) * .08 + Math.sin(t * 27) * .06;
   glowRings(g, 104, 58, 58, .34 * flick);
   // 바닥: 어두운 돌바닥 띠
-  g.fillStyle = '#1F1813'; g.fillRect(0, 74, SW, 10);
+  g.fillStyle = '#15191C'; g.fillRect(0, 74, SW, 10);
   // 기사는 불 곁에서 쉰다(숨쉬기만, 불빛 쪽으로 조금 밝게)
   if (knight){
     const kb = calm ? 0 : Math.sin(t * 1.6) * .5;

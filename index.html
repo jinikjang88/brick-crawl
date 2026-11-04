@@ -7,15 +7,14 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#EFE8DA">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1D1B18">
+<meta name="theme-color" content="#0E1012">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <!-- 세로 고정 게임: 가로로 눕힌 폰에서만 보인다(css/style.css "세로 고정") -->
 <div class="rotateHint" role="alert" aria-live="assertive"><div class="ri" aria-hidden="true"></div><b>기기를 세로로 세워 주세요</b><span>접속은 그 자리에서 멈춰 기다린다</span></div>
 <div class="app" id="app">
-  <div class="brandStrip"><span>BRICK / CRAWL</span><span>구슬로 여는 서버</span></div>
+  <div class="brandStrip"><span>BRICK / CRAWL</span><span>마지막 번개</span></div>
   <header class="hud">
     <div>
       <div class="hStage" id="hStage"></div>
@@ -33,15 +32,18 @@
     <canvas id="cv" aria-label="위는 전투 화면, 아래는 벽돌판"></canvas>
     <div class="banner" id="banner"><div class="b1" id="bn1"></div><div class="b2" id="bn2"></div></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <!-- 전투 무전 띠: 전투를 멈추지 않으므로 입력을 가로채지 않는다(pointer-events:none) -->
+    <div class="radio" id="radio" aria-live="polite"><img class="rPort" id="rPort" alt=""><div class="rBody"><b id="rWho"></b><span id="rTxt"></span></div></div>
 
     <div class="ov on ovMain" id="ovMain">
       <canvas class="logoCv" id="logoCv" role="img" aria-label="BRICK CRAWL"></canvas>
       <div class="logo">브릭 크롤</div>
-      <div class="orbShowcase" id="orbShowcase" aria-hidden="true"></div>
+      <div class="heroArt" aria-hidden="true"><img id="heroImg" src="assets/game/rick.png" alt=""></div>
+      <p class="lcd" id="mLcd" aria-hidden="true"></p>
       <p class="tagline">데이터 벽을 깨고, 버그를 튕겨라.</p>
-      <div class="whoRow"><div class="who"><span class="whoLbl">디버거</span><b id="mName"></b></div><button class="renameBtn" id="mRename" aria-label="디버거 이름 변경">변경</button></div>
+      <div class="whoRow"><div class="who"><span class="whoLbl">순위표 이름</span><b id="mName"></b></div><button class="renameBtn" id="mRename" aria-label="순위표 이름 변경">변경</button></div>
       <form class="renameForm" id="renameForm" hidden>
-        <label for="nameIn">새 디버거 이름 (한글·영문·숫자 2~12자, 일주일에 한 번)</label>
+        <label for="nameIn">새 순위표 이름 (한글·영문·숫자 2~12자, 일주일에 한 번)</label>
         <input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false">
         <div class="renameBtns"><button class="btn primary" id="nameSave" type="submit">바꾸기</button><button class="btn" id="nameCancel" type="button">취소</button></div>
         <p class="renameMsg" id="nameMsg" aria-live="polite"></p>
@@ -62,7 +64,7 @@
       <div class="sndRow"><button class="sndBtn" id="mBgm"></button><button class="sndBtn" id="mSfx"></button><button class="sndBtn" id="mTheme"></button></div>
       <div class="legalRow"><a class="linkbtn" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a><button class="linkbtn" id="mDelete" aria-expanded="false" aria-controls="deleteForm">내 기록 삭제</button></div>
       <div class="deleteForm" id="deleteForm" hidden>
-        <p>순위표에서 디버거 이름과 접속 기록을 지운다. 이 기기의 진행도(모듈·아카이브)는 그대로 남고, 디버거 이름은 새로 정해진다. 되돌릴 수 없다.</p>
+        <p>순위표에서 순위표 이름과 접속 기록을 지운다. 이 기기의 진행도(모듈·아카이브)는 그대로 남고, 순위표 이름은 새로 정해진다. 되돌릴 수 없다.</p>
         <div class="renameBtns"><button class="btn danger" id="deleteGo" type="button">순위표 기록 지우기</button><button class="btn" id="deleteCancel" type="button">취소</button></div>
         <p class="renameMsg" id="deleteMsg" aria-live="polite"></p>
       </div>
@@ -95,10 +97,22 @@
       <div class="mapBox" id="mapBox"></div>
     </div>
 
+    <!-- 이야기 대화: 한 줄씩 넘기는 대화창. 아무 곳이나 누르거나 "다음"으로 넘기고, 글자가 찍히는 중에 누르면 그 줄을 한 번에 보인다 -->
+    <div class="ov ovTalk" id="ovTalk">
+      <div class="tHead"><span class="tTitle" id="tTitle"></span><button class="tSkip" id="tSkip">건너뛰기</button></div>
+      <div class="tStage" id="tStage" aria-hidden="true"><img class="tPort l" id="tPL" alt=""><img class="tPort r" id="tPR" alt=""></div>
+      <div class="tBox" id="tBox">
+        <b class="tName" id="tName"></b>
+        <p class="tText" id="tText" aria-live="polite"></p>
+        <div class="tFoot"><span class="tCount" id="tCount" aria-hidden="true"></span><button class="btn primary tNext" id="tNext">다음</button></div>
+      </div>
+    </div>
+
     <div class="ov" id="ovChoose">
       <canvas class="sceneCv" id="sceneCv" aria-hidden="true" hidden></canvas>
       <div class="big" id="cTitle"></div>
       <p class="sub" id="cSub"></p>
+      <div class="say" id="cSay" hidden></div>
       <div class="cards" id="cCards"></div>
       <div class="btnRow" id="cBtns"></div>
     </div>

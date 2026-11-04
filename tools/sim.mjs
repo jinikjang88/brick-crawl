@@ -127,7 +127,9 @@ for (let run = 0; run < N; run++){
     const { RUN, G, mode } = __h.st();
     if (RUN && !entered.has(RUN.s)){ entered.add(RUN.s); session(RUN.s).entered++; }
     if (mode === 'map'){ __h.enterNode(pickOne(__h.reachable())); continue; }
-    if (['reward','rest','shop','remove','upgrade','swap','gift','result','story'].includes(mode)){
+    // 이야기 대화창은 건너뛴다(대화는 오버레이 ovTalk, 버튼은 tSkip)
+    if (mode === 'story'){ $('tSkip').onclick(); continue; }
+    if (['reward','rest','shop','remove','upgrade','swap','gift','result'].includes(mode)){
       if (mode === 'result'){ done = true; break; }
       const cards = $('cCards').children.filter(c => !c.disabled), btns = $('cBtns').children.filter(c => !c.disabled);
       // 상점: 살 수 있는 구슬을 사고 나간다. 구슬 보상이 정예·보스·상점으로 줄어 상점을 안 쓰는 봇은 실제보다 약하다

@@ -8,7 +8,9 @@ const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
   + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
-  + 'catchChoice:()=>{ const got = [], orig = showChoice; showChoice = o => { got.push(o); orig(o); }; return got; },'
+  // 이야기 대화창(showTalk)도 같은 모양({ mode:'story', title, buttons })으로 받아 검사를 하나로 쓴다
+  + 'catchChoice:()=>{ const got = [], orig = showChoice, ot = showTalk; showChoice = o => { got.push(o); orig(o); };'
+  + ' showTalk = o => { got.push({ mode:\'story\', title:o.title, lines:o.lines, buttons:[{ onClick:o.onDone }] }); ot(o); }; return got; },'
   + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName,MON,STORY};';
 // 프롤로그(첫 원정의 이야기)는 따로 검사한다. 다른 검사는 새 원정 → 바로 지도를 기대하므로 본 것으로 둔다
 let FRESH_STORY = false;
@@ -288,7 +290,7 @@ function seeded(mathSeed, seed = 777){
   const M2 = u.META();
   ok('근원 격파: 진 엔딩 이야기·아침 배지·고난 6 완주 기록', got2.some(o => o.mode === 'story' && o.title === u.STORY.end.title) && M2.badges.root >= 1 && M2.ascClear[6] === 1);
   const fin = got2.find(o => o.mode === 'story'); fin.buttons[0].onClick();
-  ok('진 엔딩 → 결과 화면 "알고리즘이 멈췄다"', got2.some(o => o.mode === 'result' && o.title === '알고리즘이 멈췄다'));
+  ok('진 엔딩 → 결과 화면 "완전한 아침이 왔다"', got2.some(o => o.mode === 'result' && o.title === '완전한 아침이 왔다'));
 }
 { // 근원 페이즈: 2페이즈부터 다음 봉인 예고·턴마다 이동, 3페이즈 봉인 3칸
   const t = boot(); click('mNew'); t.newBattle({ r:4, l:2, t:'boss', mon:'king' }); const G = t.G;
@@ -482,7 +484,10 @@ async function renameWith(reply, prof = {}){
 // privacy.html은 법적 문서라 "닉네임·서버·플레이어 식별자"를 그대로 쓰므로 검사하지 않는다. GLOSSARY의 "쓰지 않는 말"을 고치면 여기도 함께 고친다
 {
   // 시스템 용어 + 2026-10-28 세계관 전환 전의 중세 화면 이름. '서버'는 세계관 단어(들어가는 곳)가 되어 뺐다
-  const BANNED = /코인|골드|배지|업적|랭킹|리더보드|스킬\s?트리|포인트|닉네임|메인\s?화면|메뉴|휴식|상점|판매됨|덜어내기|다시 뽑기|다시 뒤지기|리롤|노드|핵심|곱연산|완주|이어하기|플레이어|유저|세션|페이즈|덱|기사|탑(?!재)|원정|몬스터|성벽|금화|훈장|수련|비기|공적|상인|모닥불|고난|심연|명예의 전당|유물|도감|붕괴|주머니|익히기|다시 살피기/;
+  const BANNED = /코인|골드|배지|업적|랭킹|리더보드|스킬\s?트리|포인트|닉네임|메인\s?화면|메뉴|휴식|상점|판매됨|덜어내기|다시 뽑기|다시 뒤지기|리롤|노드|핵심|곱연산|완주|이어하기|플레이어|유저|세션|페이즈|덱|기사|탑(?!재)|원정|몬스터|성벽|금화|훈장|수련|비기|공적|상인|모닥불|고난|심연|명예의 전당|유물|도감|붕괴|주머니|익히기|다시 살피기|문지기 데몬|관리자 프로세스|화요일의 알고리즘|하람|디버거/;
+  // 2026-11-04 시나리오 v6.0: 옛 보스 이름·동생 이름과 플레이어 라벨 "디버거"(D2)도 쓰지 않는다.
+  // 이야기 대본(talk(`…`))은 세계 안의 물건을 말하므로 MP3 플레이어·주머니·휴식·연산 탑은 허용한다(시스템 용어가 아니다)
+  const IN_STORY = /플레이어|주머니|휴식/g, ANYWHERE = /경비기|30년 만의 휴식|연산 탑/g;
   const BS = '\\';
   function literals(src){
     const out = []; let i = 0, line = 1;
@@ -492,22 +497,24 @@ async function renameWith(reply, prof = {}){
       if (c === '/' && d === '/'){ while (i < src.length && src[i] !== '\n') i++; continue; }
       if (c === '/' && d === '*'){ i += 2; while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')){ if (src[i] === '\n') line++; i++; } i += 2; continue; }
       if (c === '"' || c === "'" || c === '`'){
-        const q = c, at = line; let s = ''; i++;
+        const q = c, at = line, story = q === '`' && src.slice(i - 5, i) === 'talk('; let s = ''; i++;
         while (i < src.length && src[i] !== q){
           if (src[i] === BS){ s += src[i + 1]; i += 2; continue; }
           if (q === '`' && src[i] === '$' && src[i + 1] === '{'){ let dep = 1; i += 2; s += ' '; while (i < src.length && dep){ if (src[i] === '{') dep++; else if (src[i] === '}') dep--; i++; } continue; }
           if (src[i] === '\n') line++;
           s += src[i++];
         }
-        i++; out.push({ line:at, s }); continue;
+        i++; out.push({ line:at, s, story }); continue;
       }
       i++;
     }
     return out;
   }
   const hits = [];
-  for (const f of srcs) for (const { line, s } of literals(fs.readFileSync(path.join(ROOT, f), 'utf8')))
-    if (/[가-힣]/.test(s) && BANNED.test(s)) hits.push(`${f}:${line} "${s.slice(0, 40)}"`);
+  for (const f of srcs) for (const { line, s, story } of literals(fs.readFileSync(path.join(ROOT, f), 'utf8'))){
+    const t = (story ? s.replace(IN_STORY, '') : s).replace(ANYWHERE, '');
+    if (/[가-힣]/.test(t) && BANNED.test(t)) hits.push(`${f}:${line} "${t.slice(0, 40)}"`);
+  }
   const body = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<!--[\s\S]*?-->/g, '');
   for (const t of [...body.matchAll(/>([^<]+)</g)].map(m => m[1]).concat([...body.matchAll(/(?:aria-label|title|placeholder|alt)="([^"]*)"/g)].map(m => m[1])))
     if (BANNED.test(t)) hits.push(`index.html "${t.trim().slice(0, 40)}"`);

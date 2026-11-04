@@ -88,11 +88,15 @@ function takeReward(apply, kind){
   saveRun(); showMap();
 }
 
+// 충전소·브로커의 한 줄(대본 6.1·6.2). 연출이라 Math.random으로 고르고, 같은 방문 안에서는 줄이 바뀌지 않게 기억한다
+const pickLine = list => list[Math.floor(Math.random() * list.length)];
+let restSay = null, shopSay = null;
 // ── 휴식
 function showRest(){
+  if (!restSay) restSay = pickLine(REST_TALK[Math.min(RUN.s, REST_TALK.length - 1)]);
   const amt = Math.ceil(RUN.maxHp * 0.4) + (tree('e5') ? 5 : 0) + (rel('bandage') ? 3 : 0);
   setHeader(`${stageName(RUN.s)}`, '충전소');
-  showChoice({ mode:'rest', scene:'rest', title:'충전소', sub:`체력 ${RUN.hp}/${RUN.maxHp}. 잠시 전원을 꽂고 숨을 돌린다.`, cards:[
+  showChoice({ mode:'rest', scene:'rest', title:'충전소', sub:`체력 ${RUN.hp}/${RUN.maxHp}. 잠시 전원을 꽂고 숨을 돌린다.`, say:[restSay], cards:[
     { name:'충전하기', desc:`체력 ${amt} 회복`, disabled:RUN.hp >= RUN.maxHp,
       onPick:() => { RUN.hp = Math.min(RUN.maxHp, RUN.hp + amt); sfx('heal'); finishNonBattle(); } },
   ], buttons:[{ label:'지나가기', onClick:finishNonBattle }] });
@@ -142,7 +146,7 @@ function showShop(){
   setHeader(`${stageName(RUN.s)}`, '브로커');
   const cards = RUN.shop.map((it, i) => {
     const poor = RUN.coins < it.price, tag = it.sold ? '품절' : `크레딧 ${it.price}`;
-    const buy = after => { RUN.coins -= it.price; it.sold = true; sfx('coin'); after(); saveRun(); showShop(); };
+    const buy = after => { RUN.coins -= it.price; it.sold = true; sfx('coin'); shopSay = pickLine(SHOP_TALK.bought); after(); saveRun(); showShop(); };
     // 덱이 가득 차면 바꿀 구슬을 고른 뒤에야 값을 치른다(취소하면 돈이 그대로)
     if (it.k === 'orb') return { name:ORBS[it.id].name, tag:tierTag(orbTier(it.id)) + ' · ' + (it.sold || !deckFull() ? tag : tag + ' · 교체'), desc:orbDesc(it.id), rare:orbTier(it.id) >= 3,
       disabled:it.sold || poor, onPick:() => addOrb(it.id, () => buy(() => {}), showShop) };
@@ -158,5 +162,7 @@ function showShop(){
       disabled:it.sold || poor || RUN.deck.length <= 2,
       onPick:() => showRemove(() => { RUN.coins -= it.price; it.sold = true; sfx('coin'); saveRun(); showShop(); }, showShop) };
   });
-  showChoice({ mode:'shop', scene:'shop', title:'떠돌이 브로커', sub:`크레딧 ${RUN.coins}`, cards, buttons:[{ label:'떠나기', primary:true, onClick:finishNonBattle }] });
+  // 처음 들어올 때: 살 수 있는 것이 하나도 없으면 "크레딧이 모자란다", 아니면 인사
+  if (!shopSay) shopSay = pickLine(cards.every(c => c.disabled) ? SHOP_TALK.poor : SHOP_TALK.enter);
+  showChoice({ mode:'shop', scene:'shop', title:'떠돌이 브로커', sub:`크레딧 ${RUN.coins}`, say:[shopSay], cards, buttons:[{ label:'떠나기', primary:true, onClick:finishNonBattle }] });
 }
