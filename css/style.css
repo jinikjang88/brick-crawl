@@ -451,6 +451,24 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .abil .none{padding:0}
 .ov .sub,.ov .big{max-width:var(--content)}
 
+/* ── 시나리오 대화창 프로필 & 지도 무전 표시줄 */
+.cards.dlgBox{display:flex;flex-direction:column;gap:8px;width:100%;max-width:var(--content);max-height:46vh;overflow-y:auto;padding:4px 2px}
+.dlgRow{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--panel);border:2px solid var(--ink);text-align:left;word-break:keep-all}
+.dlgRow.enemy{flex-direction:row-reverse;border-color:var(--accent)}
+.dlgRow.enemy .dlgBody{text-align:right}
+.dlgRow.enemy .dlgWho{color:var(--accent)}
+.dlgPort{width:46px;height:46px;flex:none;image-rendering:pixelated;border:2px solid var(--ink);background:var(--bg)}
+.dlgRow.enemy .dlgPort{border-color:var(--accent)}
+.dlgBody{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.dlgWho{font-size:13px;font-weight:700;color:var(--ink);line-height:1.2}
+.dlgTxt{font-size:14px;color:var(--ink2);line-height:1.45}
+.mapRadio{display:flex;align-items:center;gap:10px;margin-top:6px;padding:6px 10px;background:var(--panel);border:2px solid var(--ink);text-align:left;cursor:pointer;max-width:var(--content);margin-left:auto;margin-right:auto}
+.mapRadio .dlgPort{width:40px;height:40px}
+.mapRadioBody{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.mapRadioBody b{font-size:12px;color:var(--ink);line-height:1.2}
+.mapRadioBody span{font-size:13px;color:var(--ink2);line-height:1.35;word-break:keep-all}
+.bIc.dlgIc{width:40px;height:40px;image-rendering:pixelated;border:1px solid var(--ink)}
+
 /* ── 태블릿(세로 900px 이상 + 폭 700px 이상): 열을 760px까지 넓히고 글자·버튼·카드를 약 1.2배로 키운다.
    폰 크기 글자가 큰 화면에서 작게 읽혔다. 픽셀 제목 글꼴은 11px 정수배 규칙에 따라 33 → 44px */
 @media (min-width:700px) and (min-height:900px){
