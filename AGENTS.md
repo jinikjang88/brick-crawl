@@ -2,6 +2,7 @@
 
 벽돌깨기 + 턴제 전투 + 덱빌딩 로그라이크. 브라우저에서 도는 정적 HTML 게임.
 자세한 규칙과 수치는 `docs/GAME_DESIGN.md`, 진행할 작업은 `docs/tasks/`를 본다.
+이야기·인물은 `docs/SCENARIO.md`(〈마지막 번개〉 v6.0), 화면 용어는 `docs/GLOSSARY.md`, 에셋 프롬프트는 `docs/ASSET_PROMPTS.md`가 기준이다.
 
 > 이 파일이 AI 코딩 에이전트(Claude Code, Codex, Cursor, Copilot, Gemini CLI 등) 공통 지침의 **원본**이다.
 > `CLAUDE.md`는 이 파일을 불러오기만 한다. 규칙을 고칠 때는 이 파일만 고친다(두 곳에 나눠 적으면 어긋난다).
@@ -49,9 +50,9 @@
   | `index.html` | DOM 골격(HUD·캔버스·오버레이)과 스크립트 로드 순서 |
   | `css/style.css` | 색 토큰(`--bg` 등, 다크 모드 포함)과 레이아웃 |
   | `js/config.js` | 화면 상수(W·H·COLS…), `$`·`clamp`·`rnd`·`pickW` 등 유틸, `readColors()` |
-  | `js/data.js` | 데이터: `MON`·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS`·`TREE`(스킬 트리)·`BADGES`(배지) |
+  | `js/data.js` | 데이터: `MON`·`FLOOR_BOSS`(1~4층 보스 이름·그림)·`WALL`·`SCALE`·`monCfg`·`ORBS`·`RELICS`·`TREE`(스킬 트리)·`BADGES`(배지)·`STORY`(이야기·대사 `lines`)·`STORY_FLOOR`·`STORY_RADIO` |
   | `js/sprites.js` | 도트 리소스(`SPR`·`ICON`·`FONT`)와 `drawText`·`drawIcon`·`drawSprite` |
-  | `js/art.js` | 일러스트 에셋(`assets/game`) 로드와 그리기(`drawCharArt`·`drawBrickArt`·`drawBgArt`). 로드 전·실패·Node에서는 false를 돌려 도트로 폴백 |
+  | `js/art.js` | 일러스트 에셋(`assets/game`) 로드와 그리기(`drawCharArt`·`drawBrickArt`·`drawBgArt`), 대화 초상(`ART_PORTRAITS`). 아직 없는 사이버펑크 그림은 `ART_FALLBACK`의 대응 그림으로, 로드 전·실패·Node에서는 false를 돌려 도트로 폴백 |
 | `js/audio.js` | 소리: 효과음 합성(`sfx`·`SFX`), 장면별 BGM(`bgm`·합성 `SONGS`·음원 `TRACKS`), 켬/끔 설정(`AUDIO`·`setAudio`) |
   | `js/save.js` | `localStorage` 저장·불러오기(원정·메타) |
   | `js/profile.js` | 임의 닉네임 생성(3음절 × 3단어), 플레이어 프로필(`PROFILE`)·`uuid()`·`runProgress()` |
@@ -71,6 +72,7 @@
 
 ## UI·시각 규칙
 - 테마: 자동(기기 설정)·밝게·어둡게를 메뉴에서 고른다(`html[data-theme]`). 패널 그림은 라이트 = 양피지(`ui_panel`), 다크 = 석판(`ui_bar`).
+- 그림체(2026-11-04): 캐릭터·보스·대화 초상은 사이버펑크 도트 일러스트(`docs/ASSET_PROMPTS.md`). 공용 배경(`dungeon.png`)·패널 그림·기본 구슬 7종은 아직 옛 중세 그림이고, 터미널·배경의 색 방향(아래 베이지 규칙을 유지할지)은 `docs/tasks/07-cyberpunk-visual.md`에서 소유자 결정 대기다. 결정 전에는 이 규칙들을 바꾸지 않는다.
 - 배경은 베이지 계열, 강조색은 **화(火) #C1443C 하나만**. 나머지는 무채색 위계(ink, ink2, ink3, line).
 - 붉은색의 의미는 "위험"으로 고정: 버그(몬스터) 공격 예고, 독, 피해, 오버플로선 경고, 보스·정예 표시, 희귀 등급.
 - 색은 CSS 변수(`--bg` 등)로만 정의하고, 캔버스도 `readColors()`로 같은 토큰을 읽는다. 다크 모드 대응 유지.
@@ -127,7 +129,7 @@
   - 예외(2026-10 결정): 최대 체력은 보스 처치 +4와 스킬 트리 "메모리 증설"(+4)으로만 오른다(출발 선물은 기능이 빠졌다. 칩(유물) "위험한 약관"은 −8). 몬스터 공·방이 세션마다 오르는 것을 버티는 최소 보정이다. 다른 수치 성장은 넣지 않는다.
   - 구슬 성장은 강화(+)로 효과를 한 단계 올리는 방식만 쓴다(`ORBS[*].up`).
   - 예외(2026-10 결정): 곱연산은 **스킬 트리 갈래 끝 핵심 노드에만** 둔다(영구 성장, 엔드게임 심연용). 원정 안의 보상·유물·구슬에는 곱연산을 넣지 않는다.
-  - 천장 타격 피해 = 기사 공격력(⚔, 기본 1) + 구슬 보정(`ORB_BONUS`) + 트리 덧셈 → 트리 곱셈. 계산은 `hitDmg()` 하나로만 한다(HUD와 실제 피해가 어긋나지 않게).
+  - 천장 타격 피해 = 디버거 공격력(⚔, 기본 1) + 구슬 보정(`ORB_BONUS`) + 트리 덧셈 → 트리 곱셈. 계산은 `hitDmg()` 하나로만 한다(HUD와 실제 피해가 어긋나지 않게).
   - 덱은 최대 `DECK_MAX`(5)개. 원정은 5세션(세션 5 보스 = 최종), 그 뒤 엔드게임은 메인에서 들어가는 심연(`RUN.abyss`).
   - 스킬 포인트는 칸 최초 돌파 +1, 보스 최초 돌파 +3만. 트리 총비용이 본편 포인트(35)의 약 3배가 되게 유지한다(다 찍히지 않게).
 

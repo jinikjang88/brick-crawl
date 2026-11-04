@@ -336,3 +336,19 @@ Mobile game app icon, square full-bleed composition (no rounded corners, no bord
    python3 tools/build_action_assets.py
    ```
 3. 새 캐릭터·보스·장면 파일명(`rick`, `sludge`, `drone`, `guardian`, `disperser`, `sentinel`, `codex`, `gemini`, `claude`, `omnis`, `zero`, `yun`, `heater`, `chasm`)과 대화 프로필(`portrait_*.png`), 강화 오라(`orb_up_1`~`5`)는 에셋이 준비되는 대로 `js/art.js`·`js/data.js`·`js/screens.js`·`tools/build_*.py`에 연결합니다.
+
+---
+
+## 8. 생성 현황 (2026-11-04, main `c98f358` 기준)
+
+`assets/game/`에 실제로 있는 파일 기준이다. "옛 그림"은 2026-10 중세 던전 화풍(상아·황동·석재)으로, 사이버펑크 화면과 톤이 어긋난다. 터미널·배경·UI 프레임을 어떤 색 방향으로 바꿀지는 [작업 07](tasks/07-cyberpunk-visual.md)에서 결정 대기 중이며, 6.1 배경 프롬프트도 그 결정에 맞춰 고친다(지금 문구는 `aged brass`·`no neon`이라 사이버펑크보다 폐허 벙커가 나온다).
+
+| 구분 | 생성·적용됨 | 아직 없음(폴백·옛 그림) |
+|---|---|---|
+| 1. 캐릭터 | `rick`·`sludge`·`drone`·`guardian`·`disperser`·`sentinel`·`gemini`·`omnis` | `codex`·`claude`·`zero` → `ART_FALLBACK`(`js/art.js`)으로 다른 보스 그림 |
+| 2. 액션 시트 | `rick`·`sentinel` | 나머지 9종(정지 그림 + 흔들림으로 표시) |
+| 3. 대화 초상 | 14종 전부(`portrait_*`) | — |
+| 4. 구슬 | 17종(`items/orb_*`, 2026-10-09 화풍) | 기본 7종(`basic`·`bomb`·`drill`·`guard`·`heavy`·`split`·`venom`, `collection.png` 출신, 황동), 강화 오라 `orb_up_1`~`5` |
+| 5. 칩 | 40종(2026-10-09 화풍) | 사이버펑크 재생성 전 |
+| 6. 배경·장면 | — | 전투 배경 `chasm`(→ 옛 `dungeon.png`), 브로커 `yun`(→ 옛 `merchant`), 충전소 `heater`(→ 옛 `campfire`), 벽돌 6종(#33 상아·황동판), 앱 아이콘(기사) |
+| UI 프레임 | — | `ui_bar`(금박 프레임)·`ui_panel`(양피지)·`ui_frame` — 프롬프트 없음 |

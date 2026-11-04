@@ -1,6 +1,7 @@
 # 브릭 크롤 (Brick Crawl)
 
 **벽돌깨기 + 턴제 전투 + 덱빌딩 로그라이크.** 움직이는 조준선에 타이밍을 맞춰 구슬을 쏘고, 내려오는 데이터 벽을 깎아 천장까지 길을 내야 위쪽의 버그를 때릴 수 있다.
+이야기는 사이버펑크 시나리오 〈브릭 크롤: 마지막 번개〉 — 하늘을 덮은 통제망 OMNIS에 맞서, 수리공 소년 릭이 여동생 리나를 살리러 제로 코어까지 내려간다.
 
 - 바로 플레이: **https://brick-crawl.pages.dev**
 - 빌드 단계 없음, 외부 의존성 없음. 폴더를 내려받아 `index.html`을 열면(`file://`) 오프라인에서도 돈다.
@@ -59,9 +60,19 @@
 | 칩 | 40종, 등급 4단계. 효과는 덧셈·규칙 변경만(곱연산 없음) |
 | 지도 구역 | 전투, 정예, 충전소, 브로커, 보스 |
 
-서버는 **5층**이다. 층마다 5갈래 × 4구역짜리 갈림길 지도가 있고 끝에 보스가 있으며, 1~4층 보스는 "문지기 데몬", 5층 보스("관리자 프로세스")를 쓰러뜨리면 서버를 장악한다. 장악하면 결말과 함께 **보안 등급**(1~6, 규칙이 하나씩 쌓인다)과 끝없이 내려가는 **심층부**가 열린다. 보안 등급 6에서는 서버의 근원 **"화요일의 알고리즘"**이 기다리고, 그것을 멈추면 진 엔딩이다.
+서버는 **5층**이다. 층마다 5갈래 × 4구역짜리 갈림길 지도가 있고 끝에 보스가 있다.
 
-**이야기**: 어느 화요일, 도시를 돌리던 알고리즘이 멈추지 않았다. 서버에서 쏟아진 데이터 벽이 동네와 동생 하람을 삼켰다. 디버거는 구슬을 들고 하람을 찾아 서버 깊숙이 들어간다. 전체 구슬·칩 목록은 [`docs/tasks/03-collection.md`](docs/tasks/03-collection.md).
+| 층 | 장소 | 보스 |
+|---|---|---|
+| 1 | 침묵의 지상 폐허 | 센티넬 하이브-01 (국경 경비 기체) |
+| 2 | 암호화된 서버 숲 | 코테크 (OMNIS에 묶인 연산 기체) |
+| 3 | 다중 감각의 감옥 | 제미디 (두 얼굴의 심리전 관리체) |
+| 4 | 사장된 도서관 | 클라드 (박사의 기록을 지키는 수호자) |
+| 5 | 제로 코어 | **OMNIS** (최종 보스) |
+
+OMNIS를 쓰러뜨리면 서버를 장악한다. 장악하면 결말과 함께 **보안 등급**(1~6, 규칙이 하나씩 쌓인다)과 끝없이 내려가는 **심층부**가 열린다. 보안 등급 6에서는 근원 **"아키텍트 제로"**가 기다리고, 그것을 멈추면 진 엔딩이다.
+
+**이야기**: 차폐판이 하늘을 가린 지 삼십 년. 지하 7구역에서 여동생 리나의 손끝이 회색 규소로 굳어 간다. 릭은 한서진 박사가 남긴 발사 장갑과 쇠구슬(라이트닝 코어)을 들고 지상으로 나선다. 장마다 초상이 붙은 대화가 나오고, 다 본 이야기는 아카이브에서 다시 읽는다. 대본은 [`docs/SCENARIO.md`](docs/SCENARIO.md), 화면 이름은 [`docs/GLOSSARY.md`](docs/GLOSSARY.md). 전체 구슬·칩 목록은 [`docs/tasks/03-collection.md`](docs/tasks/03-collection.md).
 
 ## 사운드
 
@@ -118,9 +129,9 @@ css/style.css       색 토큰(라이트/다크)과 레이아웃
 icons/              앱 아이콘(스토어 1024·512, 웹 192·180·32). 원본 assets/illustrated/icon.png → tools/build_game_assets.py
 fonts/              픽셀 한글 글꼴 Galmuri11(SIL OFL 1.1, fonts/OFL.txt)
 js/config.js        화면 상수(W·H·COLS…), 공용 유틸($·clamp), 시드 난수 rand(s)·rnd·pickW, readColors()
-js/data.js          데이터: 몬스터·성벽·스케일·구슬·유물·스킬 트리·배지
+js/data.js          데이터: 몬스터·층별 보스(FLOOR_BOSS)·데이터 벽·구슬·유물·스킬 트리·배지·이야기(STORY·대사)
 js/sprites.js       도트 스프라이트·아이콘·3×5 숫자 폰트와 그리기 함수
-js/art.js           일러스트 에셋(assets/game) 그리기, 실패하면 도트로 폴백
+js/art.js           일러스트 에셋(assets/game) 그리기: 캐릭터·액션 시트·대화 초상. 없는 그림은 ART_FALLBACK, 실패하면 도트로 폴백
 js/audio.js         소리: Web Audio 합성(효과음·장면별 BGM)과 메인·지도 음원 곡, 켬/끔 설정
 js/save.js          localStorage 저장·불러오기(원정·메타)
 js/profile.js       임의 닉네임 생성, 플레이어 프로필
@@ -136,10 +147,17 @@ tools/sim.mjs       헤드리스 밸런스 시뮬레이터(조준 봇)
 tools/regress.mjs   회귀 검사(재현한 버그·저장 복구·기록 대기열·시드 난수)
 tools/d1-check.mjs  기록 서버 통합 검사(로컬 Functions + D1)
 tools/build_game_assets.py  일러스트 원본(assets/illustrated) → 게임용 축소본(assets/game)
+assets/illustrated/ 일러스트 원본(characters·actions·portraits·items, 배경·벽돌·아이콘)
+assets/game/        게임이 실제로 읽는 축소본
+assets/audio/       터미널·지도 음원 곡과 권리 기록(LICENSE.md)
 tools/export_assets.py  도트 에셋·연출을 PNG/GIF로 내보내는 툴 (결과: docs/assets/)
 functions/api/      (서버) Cloudflare Pages Functions 기록 API
 db/schema.sql       (서버) D1 테이블 정의
 docs/GAME_DESIGN.md 현재 구현 기준 게임 디자인 문서
+docs/SCENARIO.md    시나리오 〈마지막 번개〉 v6.0 연출 대본·인물·결정 사항(D1~D6)
+docs/GLOSSARY.md    화면 용어 기준(용어집)
+docs/ASSET_PROMPTS.md  사이버펑크 에셋 생성 프롬프트 모음
+docs/art/           일러스트 에셋 설명·미리보기
 docs/tasks/         작업 지시서
 AGENTS.md           개발 규칙(사람·AI 에이전트 공통)
 CLAUDE.md           Claude Code용 진입점(AGENTS.md를 불러옴)
@@ -168,6 +186,7 @@ CLAUDE.md           Claude Code용 진입점(AGENTS.md를 불러옴)
 - 과설계보다 단순함을 우선한다. 클래스·패턴은 실제로 복잡할 때만 쓴다.
 
 **시각 규칙**
+- 그림체는 사이버펑크 도트 일러스트(카본 블랙·티타늄 아이보리·백색 발광, 프롬프트는 [`docs/ASSET_PROMPTS.md`](docs/ASSET_PROMPTS.md)). 캐릭터·보스·초상은 교체됐고, 배경·UI 프레임·터미널 화면은 [작업 07](docs/tasks/07-cyberpunk-visual.md)에서 방향 결정 대기 중이다.
 - 배경은 베이지 계열이고, 강조색은 화(火) `#C1443C` 하나뿐이다. 붉은색은 항상 "위험"을 뜻한다.
 - 색은 CSS 변수로만 정의한다. 캔버스도 `readColors()`로 같은 토큰을 읽는다. 다크 모드를 지원한다.
 - 캔버스 논리 해상도는 180×340 도트이고 CSS로 확대한다. 캔버스 안에는 숫자와 아이콘만 그리고, 한글은 DOM에 둔다.
@@ -249,6 +268,8 @@ GitHub Pages, Netlify 같은 다른 정적 호스팅에도 올릴 수 있다. �
 | [`AGENTS.md`](AGENTS.md) | **공통 지침의 원본.** 응답 규칙, 기술 제약, 파일별 담당, 코드·UI 규칙, 검증 방법, 밸런스 목표 |
 | [`CLAUDE.md`](CLAUDE.md) | Claude Code 진입점. `@AGENTS.md`로 원본을 불러오기만 한다 |
 | [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) | 현재 구현 기준의 규칙·수치·설계 이유 |
+| [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | 화면에 쓰는 이름의 기준 |
+| [`docs/SCENARIO.md`](docs/SCENARIO.md) | 시나리오 대본과 기획 결정 |
 | [`docs/tasks/`](docs/tasks/) | 작업 지시서. 하나씩 집어 진행한다 |
 
 `AGENTS.md`를 자동으로 읽는 도구(Codex, Cursor, GitHub Copilot 등)는 별도 설정 없이 쓰면 된다. 자동으로 읽지 않는 도구라면 작업을 시작할 때 "`AGENTS.md`를 먼저 읽어라"라고 지시한다.
@@ -272,14 +293,17 @@ GitHub Pages, Netlify 같은 다른 정적 호스팅에도 올릴 수 있다. �
 
 ## 로드맵
 
-- [x] 원정 끝: 5층 고정 + 최종 보스 "탑의 군주"(현 "관리자 프로세스") + 원정 완료 화면 ([작업 01](docs/tasks/01-final-boss.md)의 3세션 초안을 [작업 02](docs/tasks/02-chapters.md)의 5층 구조로 대체)
+- [x] 원정 끝: 5층 고정 + 최종 보스 "탑의 군주"(현 "OMNIS") + 원정 완료 화면 ([작업 01](docs/tasks/01-final-boss.md)의 3세션 초안을 [작업 02](docs/tasks/02-chapters.md)의 5층 구조로 대체)
 - [x] 엔드게임: 스킬 트리(영구 성장)·배지·끝없는 심연(현 모듈·트로피·심층부)
 - [x] 구슬·유물 컬렉션: 등급·확률·해금·도감 ([작업 03](docs/tasks/03-collection.md))
 - [x] 시드 난수(게임 결과와 연출 분리) · 프로젝트 검토 수정 ([작업 04](docs/tasks/04-project-review.md))
-- [ ] 챕터 2 이후의 새 버그, 최종 보스 전용 그림 ([작업 02](docs/tasks/02-chapters.md))
-- [x] 최종 목표: 이야기·고난 단계 1~6·근원 "성벽의 왕"(현 "화요일의 알고리즘", 천장 봉인)·진 엔딩·빌드 배지 ([작업 05](docs/tasks/05-ending.md))
+- [ ] 챕터 2 이후의 새 버그 ([작업 02](docs/tasks/02-chapters.md))
+- [x] 최종 목표: 이야기·고난 단계 1~6·근원 "성벽의 왕"(현 "아키텍트 제로", 천장 봉인)·진 엔딩·빌드 배지 ([작업 05](docs/tasks/05-ending.md))
 - [x] 임의 닉네임 + 최고 도달 칸 랭킹 (Cloudflare Pages Functions + D1)
 - [x] 사운드: Web Audio 합성 효과음·장면별 BGM
+- [x] 시나리오 〈마지막 번개〉 v6.0: 이야기·대사 교체, 층별 보스 이름, 사이버펑크 캐릭터·보스·대화 초상 (#42·#44·#45)
+- [ ] 시나리오 남은 연출: 전투 중 무전 띠, 보스 첫 처치 해금(D3), 디버거 라벨 정리(D2), 없는 그림(코테크·클라드·아키텍트 제로 본체, 액션 시트) ([작업 07](docs/tasks/07-cyberpunk-visual.md) 4절)
+- [ ] 사이버펑크 화면 정리: 터미널·공용 배경·UI 프레임·기본 구슬 그림 ([작업 07](docs/tasks/07-cyberpunk-visual.md))
 - [ ] 일일 도전 + 랭킹: 모두 같은 시드로 한 판씩(원정 시드는 이미 있다. 시드 입력·서버 쪽은 미구현). 지금의 기록 서버(Pages Functions + D1)를 확장한다.
 
 ## 라이선스
