@@ -193,6 +193,8 @@ const ORB_BONUS_UP = { heavy:3, comet:6 };
 // 장갑 슬롯(장전 칸): 3칸에서 시작. 릭 5레벨에 4칸, 12레벨에 5칸(작업 08 6절). 회전 탄창 칩은 침투 중 +1
 const DECK_MAX = 3;
 const baseSlots = () => DECK_MAX + (rickLv() >= 5 ? 1 : 0) + (rickLv() >= 12 ? 1 : 0);
+// 장갑 슬롯이 가장 많을 때(릭 12레벨). 저장 보정은 META.lv를 믿기 전에 돌아서 레벨과 무관한 이 상한으로 자른다
+const SLOT_MAX = DECK_MAX + 2;
 const deckMax = () => baseSlots() + (rel('pouch') ? 1 : 0);
 // 구슬 저장 형식: '코어/회로/회로'. 회로 뒤의 '+'는 Ⅱ 등급(합성). 예: 'bomb/venom+', 'split/chain/guard'
 // 전투에 들고 들어갈 때는 끝에 '@레벨'을 붙인다(구슬 레벨은 차고에 따로 쌓인다: META.g.oxp). 예: 'bomb/venom@3'
