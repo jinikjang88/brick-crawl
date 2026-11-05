@@ -181,30 +181,30 @@ Use case: stylized-concept. ONE isolated cyberpunk high-tech spherical core asse
 
 | 구슬 ID (`orb_<id>.png`) | 화면 이름 | 등급 | `<ORB_DESCRIPTION>` (템플릿에 삽입할 묘사) |
 |---|---|---|---|
-| `orb_basic` | **기본 구슬 (라이트닝 코어)** | 기본 | `L-01 Lightning Core, a smooth brushed-steel and warm-ivory analog electromagnetic sphere with a recessed brushed-titanium equator seam and tiny ivory spark contacts` |
-| `orb_bomb` | **폭탄 구슬 (축전기 모듈)** | 일반 | `EMP Capacitor Orb, a dark gunmetal sphere fitted with Sentinel's cylindrical brushed-titanium high-voltage capacitor and a glowing muted-vermilion fuse tip on top` |
-| `orb_drill` | **송곳 구슬 (집속 관통체)** | 일반 | `Focused Piercing Orb, an ivory and gunmetal sphere tipped with a sharp spiral brushed-titanium plasma drill cone pointing upward` |
-| `orb_guard` | **실드 구슬** | 일반 | `Barrier Field Orb, a sturdy spherical core encased in interlocking hexagonal weathered-ivory and titanium armor plates` |
-| `orb_bounce` | **탄력 구슬** | 일반 | `Repulsion Coil Orb, an ivory core wrapped in a thick shock-absorbing dark steel and brushed-titanium compression spring` |
-| `orb_herb` | **패치 구슬** | 일반 | `Nano-Repair Patch Orb, a clean warm-ivory medical sphere with a raised brushed-titanium cross emblem and sealed ampoule ring` |
-| `orb_thorn` | **가시 구슬** | 일반 | `Shrapnel Spike Orb, a dark iron sphere bristling with six sharp ivory and titanium contact spikes` |
-| `orb_weaken` | **약화 구슬** | 고급 | `Dampener Orb, an ivory sphere engraved with a downward-pointing broken titanium chevron and signal-jamming fins` |
-| `orb_disarm` | **무장해제 구슬** | 고급 | `Circuit Breaker Orb, an ivory and gunmetal sphere featuring a severed weapon-cable emblem in brushed titanium` |
-| `orb_rust` | **포맷 구슬** | 고급 | `Decompiler Format Orb, a weathered corroded iron sphere with a cracking fractured shield emblem` |
-| `orb_magnet` | **자석 구슬** | 고급 | `Electromagnet Orb, an ivory core gripped by a U-shaped dark iron and copper-titanium horseshoe electromagnet` |
-| `orb_hammer` | **망치 구슬** | 고급 | `Pile-Driver Orb, a heavy dark steel sphere embossed with a massive industrial titanium piston hammer head` |
-| `orb_split` | **분열 구슬 (광학 렌즈)** | 희귀 | `Gemidi Prism Splitter Orb, a central titanium sphere flanked by two smaller satellite ivory lens spheres splitting apart` |
-| `orb_venom` | **독 구슬** | 희귀 | `Corrosive Nano-Acid Orb, a dark gunmetal sphere with glowing muted-vermilion (#C1443C) hazard vents and dripping red droplets` |
-| `orb_heavy` | **묵직한 구슬** | 희귀 | `High-Density Tungsten Core, an oversized riveted dark charcoal and heavy titanium sphere that looks visibly heavier and denser than standard orbs` |
-| `orb_chain` | **사슬 구슬** | 희귀 | `Relay Chain Orb, an ivory electromagnetic sphere tightly bound in interlocking heavy iron link chains` |
-| `orb_stun` | **기절 구슬** | 희귀 | `Arc Shock Stun Orb, a dark sphere surrounded by three sharp ivory lightning-spark prongs around a central impact node` |
-| `orb_vamp` | **흡혈 구슬** | 희귀 | `Energy Siphon Orb, an ivory sphere with two curved titanium siphon prongs and a muted-vermilion energy core drop` |
-| `orb_toxin` | **맹독 구슬** | 희귀 | `Viral Lockdown Orb, a dark sphere bearing a muted-vermilion (#C1443C) biohazard skull emblem and three pressurized red ampoules` |
-| `orb_mirror` | **거울 구슬** | 희귀 | `Reflective Deflector Orb, a polished mirror-bright silver-ivory sphere framed in an ornate brushed-titanium gyroscopic rim` |
+| `orb_basic` | **번개 구슬** | 기본 | `L-01 Lightning Core, a smooth brushed-steel and warm-ivory analog electromagnetic sphere with a recessed brushed-titanium equator seam and tiny ivory spark contacts` |
+| `orb_bomb` | **EMP 구슬** | 일반 | `EMP Capacitor Orb, a dark gunmetal sphere fitted with Sentinel's cylindrical brushed-titanium high-voltage capacitor and a glowing muted-vermilion fuse tip on top` |
+| `orb_drill` | **관통 구슬** | 일반 | `Focused Piercing Orb, an ivory and gunmetal sphere tipped with a sharp spiral brushed-titanium plasma drill cone pointing upward` |
+| `orb_guard` | **차폐 구슬** | 일반 | `Barrier Field Orb, a sturdy spherical core encased in interlocking hexagonal weathered-ivory and titanium armor plates` |
+| `orb_bounce` | **반발 구슬** | 일반 | `Repulsion Coil Orb, an ivory core wrapped in a thick shock-absorbing dark steel and brushed-titanium compression spring` |
+| `orb_herb` | **수리 구슬** | 일반 | `Nano-Repair Patch Orb, a clean warm-ivory medical sphere with a raised brushed-titanium cross emblem and sealed ampoule ring` |
+| `orb_thorn` | **파편 구슬** | 일반 | `Shrapnel Spike Orb, a dark iron sphere bristling with six sharp ivory and titanium contact spikes` |
+| `orb_weaken` | **감쇠 구슬** | 고급 | `Dampener Orb, an ivory sphere engraved with a downward-pointing broken titanium chevron and signal-jamming fins` |
+| `orb_disarm` | **차단기 구슬** | 고급 | `Circuit Breaker Orb, an ivory and gunmetal sphere featuring a severed weapon-cable emblem in brushed titanium` |
+| `orb_rust` | **분해 구슬** | 고급 | `Decompiler Format Orb, a weathered corroded iron sphere with a cracking fractured shield emblem` |
+| `orb_magnet` | **전자석 구슬** | 고급 | `Electromagnet Orb, an ivory core gripped by a U-shaped dark iron and copper-titanium horseshoe electromagnet` |
+| `orb_hammer` | **항타 구슬** | 고급 | `Pile-Driver Orb, a heavy dark steel sphere embossed with a massive industrial titanium piston hammer head` |
+| `orb_split` | **프리즘 구슬** | 희귀 | `Gemidi Prism Splitter Orb, a central titanium sphere flanked by two smaller satellite ivory lens spheres splitting apart` |
+| `orb_venom` | **부식 구슬** | 희귀 | `Corrosive Nano-Acid Orb, a dark gunmetal sphere with glowing muted-vermilion (#C1443C) hazard vents and dripping red droplets` |
+| `orb_heavy` | **텅스텐 구슬** | 희귀 | `High-Density Tungsten Core, an oversized riveted dark charcoal and heavy titanium sphere that looks visibly heavier and denser than standard orbs` |
+| `orb_chain` | **릴레이 구슬** | 희귀 | `Relay Chain Orb, an ivory electromagnetic sphere tightly bound in interlocking heavy iron link chains` |
+| `orb_stun` | **충격 구슬** | 희귀 | `Arc Shock Stun Orb, a dark sphere surrounded by three sharp ivory lightning-spark prongs around a central impact node` |
+| `orb_vamp` | **사이펀 구슬** | 희귀 | `Energy Siphon Orb, an ivory sphere with two curved titanium siphon prongs and a muted-vermilion energy core drop` |
+| `orb_toxin` | **바이러스 구슬** | 희귀 | `Viral Lockdown Orb, a dark sphere bearing a muted-vermilion (#C1443C) biohazard skull emblem and three pressurized red ampoules` |
+| `orb_mirror` | **반사 구슬** | 희귀 | `Reflective Deflector Orb, a polished mirror-bright silver-ivory sphere framed in an ornate brushed-titanium gyroscopic rim` |
 | `orb_wreck` | **철거 구슬** | 희귀 | `Demolition Wrecking Sphere, a brutalist dark steel sphere studded with heavy square rivets and a short anchor chain` |
-| `orb_comet` | **혜성 구슬 (아크 라이트닝)** | 전설 | `Overload Arc-Lightning Core (Clad's Safety Core fused), a radiant warm-ivory sphere trailing a sculpted tail of brushed-titanium and white-hot plasma arcs` |
-| `orb_time` | **시간 구슬** | 전설 | `Chrono-Reset Orb, a transparent ivory sphere housing a precision brushed-titanium hourglass and clockwork escapement gears` |
-| `orb_crown` | **관리자 구슬** | 전설 | `Root-Access Admin Orb, a prestigious ivory and dark gunmetal sphere crowned with a circuit-patterned brushed-titanium crest` |
+| `orb_comet` | **아크 구슬** | 전설 | `Overload Arc-Lightning Core (Clad's Safety Core fused), a radiant warm-ivory sphere trailing a sculpted tail of brushed-titanium and white-hot plasma arcs` |
+| `orb_time` | **리셋 구슬** | 전설 | `Chrono-Reset Orb, a transparent ivory sphere housing a precision brushed-titanium hourglass and clockwork escapement gears` |
+| `orb_crown` | **루트 구슬** | 전설 | `Root-Access Admin Orb, a prestigious ivory and dark gunmetal sphere crowned with a circuit-patterned brushed-titanium crest` |
 
 ---
 
@@ -239,55 +239,55 @@ Use case: stylized-concept. ONE isolated sci-fi analog hardware relic asset: <RE
 | `relic_whetstone.png` | **오버클럭** (시작 ⚔+1) | `Overclock jumper module, a small dark circuit board with a raised brushed-titanium voltage dial turned to maximum` |
 | `relic_buckler.png` | **보호 필름** (첫 턴 방어+3) | `Tempered ballistic glass lens shield framed in a compact hexagonal brushed-titanium bezel` |
 | `relic_wallet.png` | **대용량 지갑** (승리 크레딧+3) | `Heavy ruggedized metal hardware wallet case with a titanium latch and credit chip slot` |
-| `relic_bandage.png` | **핫픽스** (충전 회복+3) | `Roll of conductive silver-ivory insulation tape with a titanium dispenser clip` |
-| `relic_luckycoin.png` | **난수 시드** (브로커 -10%) | `Octagonal brushed-titanium hardware token engraved with a binary die pattern` |
-| `relic_callus.png` | **내구 코팅** (첫 오버플로 무시) | `Reinforced mechanic's fingerless leather-and-titanium gauntlet liner with insulated palm plates` |
-| `relic_mason.png` | **블록 빌더** (특수 벽돌 증가) | `Magnetic signal beacon clamp resting atop a small cracked data block` |
-| `relic_lantern.png` | **디버그 로그** (정예 크레딧+10) | `Compact portable vacuum-tube diagnostic lamp in an brushed-titanium cage emitting warm ivory light` |
+| `relic_bandage.png` | **절연 테이프** (충전 회복+3) | `Roll of conductive silver-ivory insulation tape with a titanium dispenser clip` |
+| `relic_luckycoin.png` | **할인 토큰** (브로커 -10%) | `Octagonal brushed-titanium hardware token engraved with a binary die pattern` |
+| `relic_callus.png` | **장갑 안감** (첫 오버플로 무시) | `Reinforced mechanic's fingerless leather-and-titanium gauntlet liner with insulated palm plates` |
+| `relic_mason.png` | **신호 비컨** (특수 벽돌 증가) | `Magnetic signal beacon clamp resting atop a small cracked data block` |
+| `relic_lantern.png` | **진단 램프** (정예 크레딧+10) | `Compact portable vacuum-tube diagnostic lamp in an brushed-titanium cage emitting warm ivory light` |
 | `relic_medkit.png` | **복구 키트** (승리 체력+2) | `Rugged warm-ivory metal field medical case embossed with a dark charcoal cross and titanium clasps` |
-| `relic_focus.png` | **포커스 모드** (조준선 -15%) | `Precision brushed-titanium optical crosshair loupe with concentric calibration rings` |
+| `relic_focus.png` | **조준경** (조준선 -15%) | `Precision brushed-titanium optical crosshair loupe with concentric calibration rings` |
 
 ### 5.2 고급 등급 (10종)
 | 파일명 | 화면 이름 (효과) | `<RELIC_DESCRIPTION>` |
 |---|---|---|
-| `relic_combo.png` | **콤보 카운터** (타격 상한+1) | `Mechanical three-digit tally counter in an brushed-titanium casing with a thumb clicker` |
-| `relic_harvest.png` | **채굴기** (⚔·🛡 벽돌 효과+1) | `Compact rotary core-extractor tool with a curved tungsten-and-titanium claw` |
-| `relic_armor.png` | **하드 케이스** (시작 방어+3) | `Heavy bolted weathered-ivory and dark steel chest blast-plate vest` |
-| `relic_brace.png` | **완충 버퍼** (오버플로 피해 1로) | `Heavy-duty hydraulic shock absorber strut with a thick titanium coil spring` |
-| `relic_antidote.png` | **백신** (독 감소+1) | `Pressurized glass-and-titanium auto-injector ampoule filled with clean warm-ivory neutralizing serum` |
-| `relic_rebound.png` | **리바운드** (25% 바닥 반동) | `Electromagnetic repulsion pad shaped like a flat titanium coil disc with upward arrows` |
-| `relic_sting.png` | **악성 코드** (독 부여+1) | `Corrupted data injector needle with a glowing muted-vermilion (#C1443C) tip` |
-| `relic_thorns.png` | **역추적** (피격 시 반격 1) | `High-voltage feedback harness with short brushed-titanium discharge prongs` |
-| `relic_breath.png` | **쿨다운** (대기 턴 체력+2) | `Copper-and-titanium heat sink fin array with a small cooling fan` |
+| `relic_combo.png` | **계수기** (타격 상한+1) | `Mechanical three-digit tally counter in an brushed-titanium casing with a thumb clicker` |
+| `relic_harvest.png` | **코어 추출기** (⚔·🛡 벽돌 효과+1) | `Compact rotary core-extractor tool with a curved tungsten-and-titanium claw` |
+| `relic_armor.png` | **방탄판** (시작 방어+3) | `Heavy bolted weathered-ivory and dark steel chest blast-plate vest` |
+| `relic_brace.png` | **완충기** (오버플로 피해 1로) | `Heavy-duty hydraulic shock absorber strut with a thick titanium coil spring` |
+| `relic_antidote.png` | **해독 주사** (독 감소+1) | `Pressurized glass-and-titanium auto-injector ampoule filled with clean warm-ivory neutralizing serum` |
+| `relic_rebound.png` | **반발 패드** (25% 바닥 반동) | `Electromagnetic repulsion pad shaped like a flat titanium coil disc with upward arrows` |
+| `relic_sting.png` | **오염 주입기** (독 부여+1) | `Corrupted data injector needle with a glowing muted-vermilion (#C1443C) tip` |
+| `relic_thorns.png` | **역전류 하네스** (피격 시 반격 1) | `High-voltage feedback harness with short brushed-titanium discharge prongs` |
+| `relic_breath.png` | **방열판** (대기 턴 체력+2) | `Copper-and-titanium heat sink fin array with a small cooling fan` |
 | `relic_scout.png` | **스캐너** (지도 적 표시) | `Foldable radar rangefinder scope with an brushed-titanium lens hood` |
 
 ### 5.3 희귀 등급 (10종)
 | 파일명 | 화면 이름 (효과) | `<RELIC_DESCRIPTION>` |
 |---|---|---|
-| `relic_counter.png` | **카운터 스크립트** (방어 반사) | `Deflection relay shield module embossed with a returning lightning arrow in warm ivory` |
+| `relic_counter.png` | **반사 릴레이** (방어 반사) | `Deflection relay shield module embossed with a returning lightning arrow in warm ivory` |
 | `relic_leech.png` | **전력 흡수** (3타마다 체력+1) | `Dual-prong inductive power vampire clamp with a muted-vermilion energy core` |
 | `relic_endure.png` | **무정전 전원** (연속 공격 첫 타 무시) | `Industrial UPS backup battery unit in a scarred dark iron and titanium casing` |
 | `relic_wrath.png` | **과부하** (체력 30% 이하 피해+2) | `Cracked thermal limiter gauge with a glowing muted-vermilion (#C1443C) warning needle in the red zone` |
 | `relic_heart.png` | **백업 전원** (1회 체력 1 생존) | `Mechanical pacemaker core of brushed titanium with a glowing muted-vermilion central chamber` |
-| `relic_alchemy.png` | **컴파일러** (남은 독만큼 크레딧) | `Glass-and-titanium condenser tube converting dark nano-dust into a titanium credit token` |
-| `relic_twin.png` | **미러링** (3턴마다 2회 발사) | `Dual-barrel split synchronization adapter holding two ivory contact rings side by side` |
-| `relic_smith.png` | **리팩터링 툴** (강화 확률+10%p) | `Precision soldering iron and calibration caliper crossed together in brushed titanium and dark steel` |
-| `relic_charm.png` | **체크섬** (강화 실패 시 단계 유지) | `Locked brushed-titanium memory cartridge with a protective ivory seal latch` |
-| `relic_pouch.png` | **확장 슬롯** (큐 +1칸) | `Six-slot revolving titanium ammo cylinder rack with an ivory orb peeking out` |
+| `relic_alchemy.png` | **분진 응축기** (남은 독만큼 크레딧) | `Glass-and-titanium condenser tube converting dark nano-dust into a titanium credit token` |
+| `relic_twin.png` | **이중 어댑터** (3턴마다 2회 발사) | `Dual-barrel split synchronization adapter holding two ivory contact rings side by side` |
+| `relic_smith.png` | **납땜 인두** (강화 확률+10%p) | `Precision soldering iron and calibration caliper crossed together in brushed titanium and dark steel` |
+| `relic_charm.png` | **잠금 카트리지** (강화 실패 시 단계 유지) | `Locked brushed-titanium memory cartridge with a protective ivory seal latch` |
+| `relic_pouch.png` | **회전 탄창** (큐 +1칸) | `Six-slot revolving titanium ammo cylinder rack with an ivory orb peeking out` |
 
 ### 5.4 전설 등급 (10종)
 | 파일명 | 화면 이름 (효과) | `<RELIC_DESCRIPTION>` |
 |---|---|---|
-| `relic_kingsword.png` | **루트 키** (⚔ 벽돌 효과+2) | `Master Root-Key hardware dongle shaped like an ornate brushed-titanium skeleton key with a glowing ivory blade` |
-| `relic_hourglass.png` | **타이머** (적 연속 공격 -1) | `Precision atomic-clock vacuum tube hourglass in an brushed-titanium frame` |
-| `relic_ring.png` | **영구 라이선스** (1회 50% 부활) | `Golden-titanium infinity loop core ring with an unbroken warm-ivory filament` |
-| `relic_crusher.png` | **벽 해체기** (매 턴 하단 벽돌 파괴) | `Heavy industrial hydraulic jaw crusher head in dark gunmetal and titanium` |
+| `relic_kingsword.png` | **마스터 키** (⚔ 벽돌 효과+2) | `Master Root-Key hardware dongle shaped like an ornate brushed-titanium skeleton key with a glowing ivory blade` |
+| `relic_hourglass.png` | **원자 시계** (적 연속 공격 -1) | `Precision atomic-clock vacuum tube hourglass in an brushed-titanium frame` |
+| `relic_ring.png` | **재점화 링** (1회 50% 부활) | `Golden-titanium infinity loop core ring with an unbroken warm-ivory filament` |
+| `relic_crusher.png` | **유압 분쇄기** (매 턴 하단 벽돌 파괴) | `Heavy industrial hydraulic jaw crusher head in dark gunmetal and titanium` |
 | `relic_plague.png` | **웜** (독이 방어도 깎고 유지) | `Segmented mechanical centipede-worm chip with a glowing muted-vermilion (#C1443C) head` |
-| `relic_giant.png` | **대형 매크로** (분열 피해 감소 없음) | `Heavy exoskeletal power-gauntlet servo frame in dark iron and brushed titanium` |
-| `relic_warp.png` | **타임 워프** (조준선 0.5초 정지) | `Stasis field pocket chronometer with a frozen bent ivory dial and titanium gears` |
-| `relic_greed.png` | **채굴 중독** (승리 크레딧+12, 상점+15) | `Overclocked mining rig module overflowing with titanium credit tokens and hot exhaust vents` |
-| `relic_pact.png` | **위험한 약관** (최대 체력-8, 피해+1) | `Unsealed high-voltage neural bypass cable stained with a muted-vermilion (#C1443C) warning seal` |
-| `relic_collector.png` | **크롤러** (수집 구슬 5종당 시작 ⚔+1) | `Miniature multi-legged archive crawler drone carrying three tiny ivory spheres on its back` |
+| `relic_giant.png` | **파워 프레임** (분열 피해 감소 없음) | `Heavy exoskeletal power-gauntlet servo frame in dark iron and brushed titanium` |
+| `relic_warp.png` | **정지장 시계** (조준선 0.5초 정지) | `Stasis field pocket chronometer with a frozen bent ivory dial and titanium gears` |
+| `relic_greed.png` | **과열 채굴기** (승리 크레딧+12, 상점+15) | `Overclocked mining rig module overflowing with titanium credit tokens and hot exhaust vents` |
+| `relic_pact.png` | **신경 우회 케이블** (최대 체력-8, 피해+1) | `Unsealed high-voltage neural bypass cable stained with a muted-vermilion (#C1443C) warning seal` |
+| `relic_collector.png` | **기록 수집 드론** (수집 구슬 5종당 시작 ⚔+1) | `Miniature multi-legged archive crawler drone carrying three tiny ivory spheres on its back` |
 
 ---
 
