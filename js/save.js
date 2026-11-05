@@ -4,19 +4,26 @@
 // ── 저장: 원정 진행(전투 사이 시점)과 영구 기록(메타)을 따로 보관
 // v4(2026-10-16): 이야기·고난 단계가 들어간 새 시작에 맞춰 모든 사용자의 진행도를 초기화했다(사용자 결정).
 // 옛 원정·메타(v2·v3)는 옮기지 않고 지운다. 프로필(닉네임·플레이어 id)은 그대로 둔다(profile.js)
-const SAVE_KEY = 'brickquest:run:v4', META_KEY = 'brickquest:meta:v4';
-const OLD_KEYS = ['brickquest:run:v2', 'brickquest:run:v3', 'brickquest:meta:v2', 'brickquest:meta:v3'];
+// v5(2026-11-05, 작업 08): 구슬이 차고의 영구 장비가 됐다. 메타는 v4를 읽어 차고를 붙여 옮기고(진행도 유지),
+// 원정은 구조가 전혀 달라(덱 → 장전, 적재함) v4 원정은 버린다
+const SAVE_KEY = 'brickquest:run:v5', META_KEY = 'brickquest:meta:v5', META_OLD = 'brickquest:meta:v4';
+const OLD_KEYS = ['brickquest:run:v2', 'brickquest:run:v3', 'brickquest:run:v4', 'brickquest:meta:v2', 'brickquest:meta:v3'];
 for (const k of OLD_KEYS) try { localStorage.removeItem(k); } catch(e){}
 // seen = 도감: 한 번이라도 손에 넣은 구슬·유물. 필드만 늘었고 예전 메타도 빈 도감으로 그대로 읽히므로 키 버전은 올리지 않는다
 // asc = 열린 최고 고난 단계, ascPick = 메인에서 고른 단계, ascClear = 단계별 완주 횟수, story = 본 이야기 조각(작업 05).
 // 필드만 늘어 예전 메타도 기본값으로 읽히므로 키 버전은 그대로다
-const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{}, seen:{ orb:{}, relic:{} }, asc:0, ascPick:0, ascClear:{}, story:{} });
+// g = 차고: orbs = 조립한 구슬(영구), load = 장전한 구슬 번호, cores·circs = 보관함의 낱개 부품 개수, scrap = 고철
+// 처음 시작하는 릭은 번개 구슬 하나뿐이다(소유자 결정: 나머지는 파밍해 조립한다)
+const GARAGE_BASE = () => ({ orbs:['basic'], load:[0], cores:{}, circs:{}, scrap:0 });
+const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{}, seen:{ orb:{}, relic:{} }, asc:0, ascPick:0, ascClear:{}, story:{}, g:GARAGE_BASE() });
 // p칸까지 처음 돌파하며 받는 포인트 합계(본편·심연 모두 5칸째가 보스)
 const ptsUpTo = p => { let t = 0; for (let i = 1; i <= p; i++) t += i % 5 === 0 ? PTS.boss : PTS.cell; return t; };
 let META = META_BASE();
 (function loadMeta(){
   try {
-    const m = JSON.parse(localStorage.getItem(META_KEY));
+    // v5가 없으면 v4를 읽어 옮긴다(모듈·트로피·보안 등급·이야기는 그대로, 차고는 아래에서 새로 만든다)
+    let m = JSON.parse(localStorage.getItem(META_KEY));
+    if (!m) m = JSON.parse(localStorage.getItem(META_OLD));
     // best 하나가 깨졌다고 통째로 버리면 다음 saveMeta()가 정상 포인트·트리·배지까지 덮어쓴다. 칸별 보정은 아래에서
     if (m && typeof m === 'object' && !Array.isArray(m)){ META = META_BASE(); for (const k of Object.keys(META)) if (hasKey(m, k)) META[k] = m[k]; return; }
   } catch(e){}
@@ -32,10 +39,31 @@ for (const k of ['ascClear', 'story']) if (!META[k] || typeof META[k] !== 'objec
 if (META.clears > 0 && META.asc < 1) META.asc = 1;
 META.asc = Math.min(Math.floor(META.asc), ASC_MAX); META.ascPick = Math.min(Math.floor(META.ascPick), META.asc);
 for (const k of ['orb', 'relic']) if (!META.seen[k] || typeof META.seen[k] !== 'object') META.seen[k] = {};
+// 값 검사 도우미: 차고(아래)와 원정 저장 검사가 함께 쓴다. 로드 즉시 쓰이므로 위에 둔다
+const isObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
+const isInt = (x, lo, hi) => Number.isInteger(x) && x >= lo && x <= hi;
+const numOr = (x, d, lo = 0) => typeof x === 'number' && isFinite(x) && x >= lo ? x : d;
+// 차고 검사: 깨진 칸은 기본값으로 메우고, 쓸 수 없는 구슬·장전 번호는 뺀다. 구슬이 하나도 없으면 번개 구슬 하나로 되살린다
+// (차고가 비면 침투를 시작할 수 없다)
+function fixGarage(g){
+  const out = GARAGE_BASE();
+  if (!isObj(g)) return out;
+  const cnt = (src, part) => { const o = {}; if (isObj(src)) for (const k in src) if (hasKey(ORBS, k) && ORBS[k].part === part && isInt(src[k], 1, 9999)) o[k] = src[k]; return o; };
+  out.cores = cnt(g.cores, 'core'); out.circs = cnt(g.circs, 'circ');
+  out.scrap = Math.floor(numOr(g.scrap, 0));
+  const orbs = Array.isArray(g.orbs) ? g.orbs.filter(orbValid) : [];
+  if (orbs.length){
+    out.orbs = orbs;
+    out.load = Array.isArray(g.load) ? [...new Set(g.load.filter(i => isInt(i, 0, orbs.length - 1)))].slice(0, DECK_MAX) : [];
+    if (!out.load.length) out.load = [0];
+  }
+  return out;
+}
+META.g = fixGarage(META.g);
 function markSeen(kind, id){ if (META.seen[kind][id]) return; META.seen[kind][id] = 1; saveMeta(); }
 // 데이터에서 빠진 옛 id는 세지 않는다
 const seenCount = kind => Object.keys(META.seen[kind]).filter(k => (kind === 'orb' ? ORBS : RELICS)[k]).length;
-function saveMeta(){ try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch(e){} }
+function saveMeta(){ try { localStorage.setItem(META_KEY, JSON.stringify(META)); localStorage.removeItem(META_OLD); } catch(e){} }
 function saveRun(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(RUN)); } catch(e){} }
 function loadRun(){
   try { return fixRun(JSON.parse(localStorage.getItem(SAVE_KEY))); } catch(e){}
@@ -44,9 +72,6 @@ function loadRun(){
 // 원정 저장 검사: JSON이 읽혔다고 쓸 수 있는 저장은 아니다. 메인 화면도 이 저장으로 배경 전투를 그리므로
 // 깨진 값이 하나라도 지나가면 이어하기 전에 메인부터 멈춘다.
 // 고칠 수 있는 값(빠진 필드·범위 밖 수치·사라진 구슬/유물 id)은 기본값으로 메우고, 지도·덱처럼 되살릴 수 없으면 버린다
-const isObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
-const isInt = (x, lo, hi) => Number.isInteger(x) && x >= lo && x <= hi;
-const numOr = (x, d, lo = 0) => typeof x === 'number' && isFinite(x) && x >= lo ? x : d;
 function fixMap(map){
   if (!Array.isArray(map) || map.length !== 5) return false;
   for (let r = 0; r < 5; r++){
@@ -64,14 +89,19 @@ function fixMap(map){
 }
 const cellOk = (map, c) => isObj(c) && isInt(c.r, 0, 4) && map[c.r].some(n => n.l === c.l);
 function fixRun(r){
-  if (!isObj(r) || r.v !== 4 || !fixMap(r.map)) return null;
+  if (!isObj(r) || r.v !== 5 || !fixMap(r.map)) return null;
   // 시드가 없거나 깨졌으면 새로 붙인다. 이미 정해진 지도·보상 후보·상점은 저장된 그대로 쓰므로 진행이 바뀌지 않는다
   if (!isInt(r.seed, 0, 4294967295)) r.seed = Math.floor(Math.random() * 4294967296) >>> 0;
   if (!isObj(r.rng) || !isInt(r.rng.reward, 0, 4294967295)) r.rng = { reward:seedOf(r.seed, 'reward') };
 
   if (!Array.isArray(r.deck)) return null;
-  r.deck = r.deck.filter(o => typeof o === 'string' && hasKey(ORBS, orbKind(o)) && orbLv(o) <= UP_MAX);
+  // deck = 이번 침투의 장전(구슬 문자열). 조립이 깨진 구슬은 뺀다
+  r.deck = r.deck.filter(orbValid).slice(0, DECK_MAX + 1);
   if (!r.deck.length) return null;
+  // 적재함: 못 보낸 부품. 깨졌으면 비운다(잃는 것은 이번 침투의 부품뿐)
+  const cg = isObj(r.cargo) ? r.cargo : {};
+  const pick = (src, part) => { const o = {}; if (isObj(src)) for (const k in src) if (hasKey(ORBS, k) && ORBS[k].part === part && isInt(src[k], 1, 999)) o[k] = src[k]; return o; };
+  r.cargo = { cores:pick(cg.cores, 'core'), circs:pick(cg.circs, 'circ'), scrap:Math.floor(numOr(cg.scrap, 0)) };
   const relics = {};
   if (isObj(r.relics)) for (const k in r.relics)
     if (hasKey(RELICS, k) && isInt(r.relics[k], 1, 99)) relics[k] = Math.min(r.relics[k], RELICS[k].max || 1);
@@ -95,10 +125,10 @@ function fixRun(r){
   r.badges = Array.isArray(r.badges) ? r.badges.filter(id => BADGES.some(b => b.id === id)) : [];
   if (typeof r.pendingReward !== 'string') r.pendingReward = null;
   // 보상 후보·상점 진열은 다시 뽑으면 된다: 하나라도 이상하면 통째로 비운다
-  const idOk = (k, id) => k === 'orb' ? hasKey(ORBS, id) : k === 'relic' ? hasKey(RELICS, id) : ['heal', 'upgrade', 'remove'].includes(k);
-  // 구슬 보상엔 구슬만, 유물 보상엔 유물만: 엇갈리면 보상 화면이 다른 표에서 이름을 찾다 멈춘다
+  const idOk = (k, id) => k === 'circ' ? hasKey(ORBS, id) && ORBS[id].part === 'circ' : k === 'relic' ? hasKey(RELICS, id) : k === 'heal';
+  // 보상은 칩 3택1뿐이다(구슬 보상은 부품 드롭으로 바뀌었다)
   if (!(isObj(r.reward) && typeof r.reward.kind === 'string' && Array.isArray(r.reward.stock)
-    && r.reward.stock.every(id => (isOrbReward(r.reward.kind) ? ORBS : RELICS)[id]))) r.reward = null;
+    && r.reward.stock.every(id => hasKey(RELICS, id)))) r.reward = null;
   else r.reward.reroll = Math.floor(numOr(r.reward.reroll, 0));
   if (!(Array.isArray(r.shop) && r.shop.every(it => isObj(it) && idOk(it.k, it.id) && numOr(it.price, -1) >= 0))) r.shop = null;
   return r;

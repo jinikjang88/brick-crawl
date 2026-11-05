@@ -19,7 +19,9 @@ const MON = {
     pattern:[{t:'atk',n:2},{t:'poison'},{t:'atk',n:2},{t:'spore'}],
     row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 }, poison:.2 } },
   // 체력 20 → 14(2026-10-07): 일반 전투 구슬 보상을 없애 1층 보스 전 덱이 얇아졌다. 시뮬레이터 300회 1층 돌파 18% → 32%
-  boss: { name:'센티넬 하이브-01', spr:'sentinel', hp:14, atk:1, def:1, sweep:1.4, boss:true,
+  // def 1 → 0(2026-11-05, 작업 08): 첫 계정은 번개 구슬 하나로 시작해(EMP 구슬이 빠졌다) 보스 방어도에 피해가 다 막혔다.
+  // 시뮬레이터 새 계정 60회: def 1 = 1층 돌파 15%, def 0 = 22%(목표 20~30%). 층마다 오르는 방어도(SCALE.def)는 그대로
+  boss: { name:'센티넬 하이브-01', spr:'sentinel', hp:14, atk:1, def:0, sweep:1.4, boss:true,
     // 세션마다 공격력이 +1씩 오르므로 연속 턴이 길면 후반 한 묶음 피해가 최대 체력을 넘는다(3세션 2페이즈 4×6=24). 턴 수로 묶음 크기를 누른다
     pattern:[{t:'atk',n:3},{t:'summon'}],
     pattern2:[{t:'atk',n:4},{t:'summon'}],
@@ -81,72 +83,120 @@ const RARITY = [
   { name:'희귀', w:10, orb:38, relic:70 },
   { name:'전설', w:2,  orb:55, relic:95 },
 ];
-// ── 구슬: 덱에서 한 턴에 하나씩 꺼내 쏜다. 구슬마다 손맛이 달라야 한다
-// rar = 등급(RARITY). lock = 해금 조건(배지 id 또는 심연 칸): 메타에 영구로 풀리고, 풀리기 전에는 보상·상점에 나오지 않는다
-// 디버프 구슬(약화·무장해제·포맷·기절·시간)은 몬스터를 직접 약하게 한다: 깎는 대신 막는 길도 덱으로 고를 수 있게
+// ── 구슬 = 코어 1개 + 회로 칸(작업 08). 차고에서 조립해 영구로 갖고, 장갑 슬롯에 장전해 들고 나간다
+// part = 'core'(구슬 몸체: 움직임 규칙) | 'circ'(회로: 맞혔을 때 붙는 효과) | 'res'(공명 전용으로 남겨 둔 효과: 3단계에서 연다)
+// rar = 등급(RARITY): 정비소 값과 드롭 등급. 0 = 시작 코어(드롭에 나오지 않음)
+// core: heat = 쏜 뒤 쉬는 턴(과열), slots = 회로 칸. 번개 코어만 과열 0이라 아무것도 못 쏘는 턴은 없다
+// short = 구슬 이름에 붙는 짧은 이름("EMP 구슬 · 부식·차폐")
 const ORBS = {
-  basic:  { name:'번개 구슬',     rar:0, desc:'특별한 효과 없음', up:'천장을 한 번 더 칠 수 있다',
+  // 코어
+  basic:  { part:'core', short:'번개', name:'번개 코어',   rar:0, heat:0, slots:1, desc:'튕긴다. 천장을 3번까지 친다', up:'천장을 한 번 더 칠 수 있다',
     lore:'한서진 박사가 깎은 아날로그 전자기 구체. 무선 회로가 없어 OMNIS도 해킹하지 못한다.' },
-  bomb:   { name:'EMP 구슬',     rar:1, desc:'처음 부순 벽돌의 주변 8칸이 함께 터진다', up:'주변 8칸에 2씩 피해',
-    lore:'14호 방위선을 30년간 지키던 센티넬의 흉부 축전기. 아직 미지근한 열기가 남아 있다.' },
-  drill:  { name:'관통 구슬',     rar:1, desc:'어떤 벽돌이든 3개까지 한 번에 뚫는다', up:'어떤 벽돌이든 5개까지 뚫는다',
+  drill:  { part:'core', short:'관통', name:'관통 코어',   rar:2, heat:1, slots:1, desc:'어떤 벽돌이든 3개까지 한 번에 뚫는다', up:'어떤 벽돌이든 5개까지 뚫는다',
     lore:"코테크가 자신의 집속 회로를 떼어 만들어 준 관통 모듈. 주석에 '30년 만의 휴식'이라 적혀 있다." },
-  guard:  { name:'차폐 구슬',     rar:1, desc:'벽돌을 부술 때마다 방어도 +1', up:'벽돌을 부술 때마다 방어도 +2' },
-  bounce: { name:'반발 구슬',     rar:1, desc:'이 구슬은 천장을 한 번 더 칠 수 있다', up:'이 구슬은 천장을 두 번 더 칠 수 있다' },
-  herb:   { name:'수리 구슬',     rar:1, desc:'처음 천장을 칠 때 체력 +1', up:'처음 천장을 칠 때 체력 +2' },
-  thorn:  { name:'파편 구슬',     rar:1, desc:'벽돌 2개를 부술 때마다 기체에게 피해 1', up:'벽돌을 부술 때마다 기체에게 피해 1' },
-  weaken: { name:'감쇠 구슬',     rar:2, desc:'천장을 치면 기체의 남은 연속 공격 -1 (발사마다 1번, 최소 1)', up:'남은 연속 공격 -1을 발사마다 2번까지' },
-  disarm: { name:'차단기 구슬', rar:2, desc:'천장을 치면 이번 전투 기체 ⚔ -1 (전투마다 3번, 최소 1)', up:'기체 ⚔ -1을 전투마다 4번까지' },
-  rust:   { name:'분해 구슬',     rar:2, desc:'천장을 치면 기체 방어도가 0이 된다', up:'방어도를 0으로 + 기체의 다음 수비 행동이 헛돈다' },
-  magnet: { name:'전자석 구슬',     rar:2, desc:'바닥에 닿으면 한 번 다시 튀어 오른다', up:'바닥에서 두 번 다시 튀어 오른다' },
-  hammer: { name:'항타 구슬',     rar:2, desc:'돌 벽돌에 피해 3', up:'돌 벽돌에 피해 5' },
-  split:  { name:'프리즘 구슬',     rar:3, desc:'세 갈래로 갈라져 발사된다(갈래 피해 ÷3)', up:'다섯 갈래로 갈라져 발사된다(갈래 피해 ÷5)',
+  bomb:   { part:'core', short:'EMP',  name:'EMP 코어',    rar:2, heat:1, slots:1, desc:'처음 부순 벽돌의 주변 8칸이 함께 터진다', up:'주변 8칸에 2씩 피해',
+    lore:'14호 방위선을 30년간 지키던 센티넬의 흉부 축전기. 아직 미지근한 열기가 남아 있다.' },
+  magnet: { part:'core', short:'전자석', name:'전자석 코어', rar:2, heat:1, slots:2, desc:'바닥에 닿으면 한 번 다시 튀어 오른다', up:'바닥에서 두 번 다시 튀어 오른다' },
+  heavy:  { part:'core', short:'텅스텐', name:'텅스텐 코어', rar:3, heat:2, slots:1, desc:'한 방이 무겁다(구슬 위력 +2)', up:'한 방이 더 무겁다' },
+  split:  { part:'core', short:'분광', name:'분광 코어',   rar:3, heat:2, slots:2, desc:'세 갈래로 갈라져 발사된다(갈래 피해 ÷3)', up:'다섯 갈래로 갈라져 발사된다(갈래 피해 ÷5)',
     lore:'제미디의 광학 분열 렌즈. 허상을 만드는 대신, 진짜 탄도를 여러 갈래로 나눈다.' },
-  venom:  { name:'부식 구슬',       rar:3, desc:'천장을 칠 때마다 기체에게 독 +1', up:'천장을 칠 때마다 기체에게 독 +2' },
-  heavy:  { name:'텅스텐 구슬',   rar:3, desc:'한 방이 무겁다', up:'한 방이 더 무겁다' },
-  chain:  { name:'릴레이 구슬',     rar:3, desc:'같은 구슬의 천장 타격마다 피해 +1씩 쌓인다', up:'천장 타격마다 피해 +2씩 쌓인다' },
-  stun:   { name:'충격 구슬',     rar:3, desc:'천장을 2번 치면 기체가 다음 행동을 건너뛴다(전투마다 1번)', up:'천장을 1번만 쳐도 기절(전투마다 1번)' },
-  vamp:   { name:'사이펀 구슬',     rar:3, desc:'천장을 2번 칠 때마다 체력 +1', up:'천장을 칠 때마다 체력 +1' },
-  toxin:  { name:'바이러스 구슬',     rar:3, lock:{ badge:'venom' },    desc:'천장을 칠 때마다 독 +1, 이번 전투 기체 독이 줄지 않는다', up:'독 +2, 기체 독이 줄지 않는다' },
-  mirror: { name:'반사 구슬',     rar:3, lock:{ badge:'counter' },  desc:'쏜 턴에 기체 공격 피해의 절반(올림)을 되돌린다', up:'쏜 턴에 기체 공격 피해를 그대로 되돌린다' },
-  wreck:  { name:'철거 구슬',     rar:3, lock:{ badge:'demolish' }, desc:'천장 타격 피해 + 이 구슬이 부순 벽돌 수 ÷ 3', up:'천장 타격 피해 + 부순 벽돌 수 ÷ 2' },
-  comet:  { name:'아크 구슬',     rar:4, lock:{ badge:'oneshot' },  desc:'모든 벽돌을 뚫고 천장을 한 번만 친다', up:'모든 벽돌을 뚫고, 더 무겁다',
+  comet:  { part:'core', short:'아크', name:'아크 코어',   rar:4, heat:3, slots:2, desc:'모든 벽돌을 뚫고 천장을 한 번만 친다(구슬 위력 +4)', up:'모든 벽돌을 뚫고, 더 무겁다',
     lore:'클라드의 안전 제어 코어가 융합된 형태. 사용자의 신경을 태우지 않고 최대 출력을 낸다.' },
-  time:   { name:'리셋 구슬',     rar:4, lock:{ abyss:15 },         desc:'천장을 치면 기체 행동이 처음으로 돌아가고 연속 공격 -2 (전투마다 1번)', up:'처음으로 되돌리기를 전투마다 2번' },
-  crown:  { name:'루트 구슬',   rar:4, lock:{ badge:'rich' },     desc:'추가 피해 = 가진 크레딧 ÷ 25', up:'추가 피해 = 가진 크레딧 ÷ 15' },
+  // 회로
+  venom:  { part:'circ', short:'부식', name:'부식 회로',     rar:1, desc:'천장을 칠 때마다 기체에게 독 +1', up:'천장을 칠 때마다 기체에게 독 +2' },
+  toxin:  { part:'circ', short:'바이러스', name:'바이러스 회로', rar:3, desc:'천장을 치면 이번 전투 기체 독이 줄지 않는다', up:'+ 독이 방어도도 깎는다' },
+  guard:  { part:'circ', short:'차폐', name:'차폐 회로',     rar:1, desc:'벽돌을 부술 때마다 방어도 +1', up:'벽돌을 부술 때마다 방어도 +2' },
+  mirror: { part:'circ', short:'반사', name:'반사 회로',     rar:3, desc:'쏜 턴에 기체 공격 피해의 절반(올림)을 되돌린다', up:'쏜 턴에 기체 공격 피해를 그대로 되돌린다' },
+  herb:   { part:'circ', short:'수리', name:'수리 회로',     rar:1, desc:'처음 천장을 칠 때 체력 +1', up:'처음 천장을 칠 때 체력 +2' },
+  vamp:   { part:'circ', short:'사이펀', name:'사이펀 회로', rar:2, desc:'천장을 2번 칠 때마다 체력 +1', up:'천장을 칠 때마다 체력 +1' },
+  thorn:  { part:'circ', short:'파편', name:'파편 회로',     rar:1, desc:'벽돌 2개를 부술 때마다 기체에게 피해 1', up:'벽돌을 부술 때마다 기체에게 피해 1' },
+  wreck:  { part:'circ', short:'철거', name:'철거 회로',     rar:2, desc:'천장 타격 피해 + 이 구슬이 부순 벽돌 수 ÷ 3', up:'천장 타격 피해 + 부순 벽돌 수 ÷ 2' },
+  chain:  { part:'circ', short:'릴레이', name:'릴레이 회로', rar:2, desc:'같은 구슬의 천장 타격마다 피해 +1씩 쌓인다', up:'천장 타격마다 피해 +2씩 쌓인다' },
+  hammer: { part:'circ', short:'항타', name:'항타 회로',     rar:1, desc:'돌 벽돌에 피해 3', up:'돌 벽돌에 피해 5' },
+  rust:   { part:'circ', short:'분해', name:'분해 회로',     rar:2, desc:'천장을 치면 기체 방어도가 0이 된다', up:'방어도를 0으로 + 기체의 다음 수비 행동이 헛돈다' },
+  weaken: { part:'circ', short:'감쇠', name:'감쇠 회로',     rar:2, desc:'천장을 치면 기체의 남은 연속 공격 -1 (발사마다 1번, 최소 1)', up:'남은 연속 공격 -1을 발사마다 2번까지' },
+  disarm: { part:'circ', short:'차단기', name:'차단기 회로', rar:2, desc:'천장을 치면 이번 전투 기체 ⚔ -1 (전투마다 3번, 최소 1)', up:'기체 ⚔ -1을 전투마다 4번까지' },
+  stun:   { part:'circ', short:'충격', name:'충격 회로',     rar:3, desc:'천장을 2번 치면 기체가 다음 행동을 건너뛴다(전투마다 1번)', up:'천장을 1번만 쳐도 기절(전투마다 1번)' },
+  // 공명 전용(3단계): 데이터·전투 코드는 남겨 두고 드롭·정비소·아카이브에는 내보내지 않는다
+  bounce: { part:'res', short:'반발', name:'반발', rar:1, desc:'이 구슬은 천장을 한 번 더 칠 수 있다', up:'이 구슬은 천장을 두 번 더 칠 수 있다' },
+  time:   { part:'res', short:'리셋', name:'리셋', rar:4, desc:'천장을 치면 기체 행동이 처음으로 돌아가고 연속 공격 -2 (전투마다 1번)', up:'처음으로 되돌리기를 전투마다 2번' },
+  crown:  { part:'res', short:'루트', name:'루트', rar:4, desc:'추가 피해 = 가진 크레딧 ÷ 25', up:'추가 피해 = 가진 크레딧 ÷ 15' },
 };
-// 해금 조건 문구(도감·잠긴 카드에 보여 줘 목표가 되게 한다)
-const lockText = l => l.badge ? `"${BADGES.find(b => b.id === l.badge).name}" 트로피를 받으면 풀린다` : `심층부 ${Math.ceil(l.abyss / 5)}층 보스를 쓰러뜨리면 풀린다`;
-const orbOpen = k => { const l = ORBS[k].lock; return !l || (l.badge ? !!(META.badges && META.badges[l.badge]) : (META.abyssBest || 0) >= l.abyss); };
-// 천장 타격 피해 = 기사 공격력(⚔) + 구슬 보정. 공격력은 1에서 시작해 ⚔ 벽돌로 전투 중에만 오르고,
-// 구슬 보정은 구슬마다 고정이다. 두 숫자를 더한 값이 피해라서 "⚔을 올릴지, 센 구슬을 쓸지"가 한 식으로 이어진다
+const CORES = Object.keys(ORBS).filter(k => ORBS[k].part === 'core');
+const CIRCS = Object.keys(ORBS).filter(k => ORBS[k].part === 'circ');
+// 잠금은 없앴다(부품 파밍으로 얻는다). 옛 아카이브 호출이 깨지지 않게 함수는 남긴다
+const lockText = () => '';
+const orbOpen = k => hasKey(ORBS, k) && ORBS[k].part !== 'res';
+// 천장 타격 피해 = 릭 공격력(⚔) + 구슬 위력. 구슬 위력은 코어가 정한다(텅스텐·아크)
 const ORB_BONUS = { heavy:2, comet:4 };
 const ORB_BONUS_UP = { heavy:3, comet:6 };
-// 덱 상한: 구슬은 최대 5개(깊은 주머니 유물 +1). 가득 차면 새 구슬은 가진 구슬과 바꿔야 한다(덱이 무한히 커지는 조합을 막는다)
-const DECK_MAX = 5;
+// 장갑 슬롯(장전 칸): 3칸에서 시작. 회전 탄창 칩 +1(침투 중), 릭 레벨 슬롯은 3단계
+const DECK_MAX = 3;
 const deckMax = () => DECK_MAX + (rel('pouch') ? 1 : 0);
-// 강화는 +1~+5 다회. +1은 고유 효과가 한 단계 오르고(up), +2부터는 단계마다 피해 보정 +1.
-// 저장 형식: 'bomb+'(=+1, 예전 저장과 같다), 'bomb+2' … 'bomb+5'
-const orbKind = o => o.replace(/\+\d*$/, '');
-const orbLv = o => { const m = /\+(\d*)$/.exec(o); return m ? (+m[1] || 1) : 0; };
+// 구슬 저장 형식: '코어/회로/회로'. 각 조각 뒤의 '+'는 Ⅱ 등급(코어는 구슬 레벨, 3단계). 예: 'bomb/venom', 'split/chain/guard'
+const orbSegs = o => String(o).split('/');
+const segKind = s => s.replace(/\+\d*$/, '');
+const segLv = s => { const m = /\+(\d*)$/.exec(s); return m ? (+m[1] || 1) : 0; };
+const orbKind = o => segKind(orbSegs(o)[0]);
+const orbLv = o => segLv(orbSegs(o)[0]);
 const orbUp = o => orbLv(o) > 0;
-const orbAt = (kind, lv) => lv > 0 ? kind + '+' + (lv > 1 ? lv : '') : kind;
-const orbName = o => ORBS[orbKind(o)].name + (orbUp(o) ? '+' + orbLv(o) : '');
-function orbBonus(o){
-  const k = orbKind(o), up = orbUp(o);
-  // 왕관: 코인이 곧 힘이다. 상점에서 쓸지, 쥐고 싸울지 고르게 한다
-  const base = k === 'crown' ? Math.floor(((RUN && RUN.coins) || 0) / (up ? 15 : 25))
-    : (up && ORB_BONUS_UP[k] !== undefined ? ORB_BONUS_UP[k] : ORB_BONUS[k] || 0);
-  return base + Math.max(0, orbLv(o) - 1);
+const orbCircs = o => orbSegs(o).slice(1).map(segKind);
+const orbMake = (core, circs = []) => [core, ...circs].join('/');
+// 구슬이 가진 효과 목록: { 코어·회로 종류: Ⅱ 등급인가 }. 전투 코드는 이것만 본다(같은 효과를 코어든 회로든 똑같이 처리)
+function orbFeats(o){
+  const f = {};
+  for (const s of orbSegs(o)) f[segKind(s)] = segLv(s) > 0;
+  return f;
 }
-// 강화 성공률(%): 지금 단계 → 다음 단계. 높을수록 어렵고, +3 이상에서 실패하면 한 단계 내려간다(긴장감)
-const UP_MAX = 5, UP_RATE = [90, 70, 50, 35, 20], UP_DROP_FROM = 3;
-const upRate = lv => Math.min(100, UP_RATE[lv] + (rel('smith') ? 10 : 0));
-// 분열 구슬은 갈래 수만큼 피해를 나눈다(최소 1): 갈래마다 전체 피해가 들어가면 강화 5갈래가 5배가 된다.
-// 대신 넓게 부숴 길을 여는 "청소용" 구슬이 된다(거인의 손 유물이 있으면 나누지 않는다)
+// 저장·차고에서 읽은 구슬 문자열이 쓸 수 있는 조립인가: 코어 하나 + 회로(칸 수 이하, 중복 없음)
+function orbValid(o){
+  if (typeof o !== 'string') return false;
+  const segs = orbSegs(o), core = segKind(segs[0]);
+  if (!hasKey(ORBS, core) || ORBS[core].part !== 'core') return false;
+  const cs = segs.slice(1).map(segKind);
+  if (cs.length > ORBS[core].slots || new Set(cs).size !== cs.length) return false;
+  return cs.every(c => hasKey(ORBS, c) && ORBS[c].part === 'circ');
+}
+// 과열: 코어 기본값 + 끼운 회로 수. 강한 구슬일수록 오래 쉰다. 축전기 튜닝(o1)·납땜 인두(smith)가 줄인다
+function orbHeat(o){
+  const core = orbKind(o);
+  let h = ORBS[core].heat + orbCircs(o).length;
+  if (core === 'bomb' && tree('o1')) h--;
+  if (h >= 2 && rel('smith')) h--;
+  return Math.max(0, h);
+}
+const orbName = o => ORBS[orbKind(o)].short + ' 구슬' + (orbUp(o) ? '+' + orbLv(o) : '')
+  + (orbCircs(o).length ? ' · ' + orbCircs(o).map(c => ORBS[c].short).join('·') : '');
+function orbBonus(o){
+  const k = orbKind(o), up = orbUp(o), f = orbFeats(o);
+  // 루트(공명 전용): 크레딧이 곧 힘이다
+  const root = f.crown !== undefined ? Math.floor(((RUN && RUN.coins) || 0) / (f.crown ? 15 : 25)) : 0;
+  return root + (up && ORB_BONUS_UP[k] !== undefined ? ORB_BONUS_UP[k] : ORB_BONUS[k] || 0) + Math.max(0, orbLv(o) - 1);
+}
+// 분광 코어는 갈래 수만큼 피해를 나눈다(최소 1). 파워 프레임 칩이 있으면 나누지 않는다
 const splitN = o => orbKind(o) !== 'split' ? 1 : orbUp(o) ? 5 : 3;
 const splitWays = o => rel('giant') ? 1 : splitN(o);
-const orbDesc = o => (orbBonus(o) ? `피해 ⚔+${orbBonus(o)} · ` : '') + (orbUp(o) ? ORBS[orbKind(o)].up : ORBS[orbKind(o)].desc);
+const partDesc = (k, up) => up ? ORBS[k].up : ORBS[k].desc;
+const orbDesc = o => (orbBonus(o) ? `피해 ⚔+${orbBonus(o)} · ` : '')
+  + orbSegs(o).map(s => partDesc(segKind(s), segLv(s) > 0)).join(' / ') + ` · 과열 ${orbHeat(o)}`;
+// ── 부품 드롭(작업 08 5절). 확률은 % 정수. 결과는 원정 시드 흐름 rand('reward')로 굴린다(새로고침으로 바뀌지 않게)
+// 기체별 회로 표: 일반 전투에서 한 번 굴린다(합이 100 미만이면 나머지는 회로 없음)
+const DROP_CIRC = {
+  slime: [['herb', 25], ['vamp', 10]],
+  bat:   [['chain', 20], ['weaken', 12]],
+  golem: [['guard', 25], ['mirror', 8]],
+  shroom:[['venom', 25], ['toxin', 8]],
+};
+const DROP = {
+  scrap:{ battle:[2, 4], elite:[5, 8], boss:[10, 10] },
+  eliteBonusCirc:30, eliteCore:12,
+  eliteCores:['drill', 'bomb', 'magnet', 'heavy'],
+  // 층 보스 코어(대본에서 그 보스가 남기는 물건). OMNIS·심층부 보스는 넷 중 무작위
+  bossCore:['bomb', 'drill', 'split', 'comet'],
+};
+// 적재함: 침투 중 얻은 코어·회로를 담는다(고철은 칸을 쓰지 않는다). 잠금 카트리지 칩 +3
+const CARGO_MAX = 10;
+const cargoMax = () => CARGO_MAX + (rel('charm') ? 3 : 0);
 // ── 유물: 원정 내내 유지되는 패시브. t = 등급(RARITY)
 // 원정 안의 보상에는 곱연산을 두지 않는다(곱은 스킬 트리 핵심 노드만): 효과는 덧셈이거나 규칙을 바꾸는 것
 const RELICS = {
@@ -181,20 +231,20 @@ const RELICS = {
   heart:    { t:3, name:'백업 전원',  max:1, desc:'전투마다 한 번, 쓰러질 피해를 받아도 체력 1로 버틴다' },
   alchemy:  { t:3, name:'분진 응축기',   max:1, desc:'이기면 기체에게 남아 있던 독만큼 크레딧' },
   twin:     { t:3, name:'이중 어댑터',       max:1, desc:'3턴마다 같은 구슬을 한 번 더 쏜다' },
-  smith:    { t:3, name:'납땜 인두', max:1, desc:'구슬 강화 성공률 +10%p' },
-  charm:    { t:3, name:'잠금 카트리지',     max:1, desc:'구슬 강화에 실패해도 단계가 내려가지 않는다' },
-  pouch:    { t:3, name:'회전 탄창',  max:1, desc:'큐 +1개 (6개)' },
+  smith:    { t:3, name:'납땜 인두', max:1, desc:'구슬의 과열이 2턴 이상이면 과열 -1' },
+  charm:    { t:3, name:'잠금 카트리지',     max:1, desc:'적재함 +3칸' },
+  pouch:    { t:3, name:'회전 탄창',  max:1, desc:'장갑 슬롯 +1칸' },
   // 전설
   kingsword:{ t:4, name:'마스터 키',    max:1, desc:'⚔ 벽돌 효과 +2' },
   hourglass:{ t:4, name:'원자 시계',     max:1, desc:'기체의 모든 연속 공격 -1 (최소 1)' },
   ring:     { t:4, name:'재점화 링', max:1, desc:'침투마다 한 번, 쓰러지면 체력 50%로 일어난다' },
   crusher:  { t:4, name:'유압 분쇄기',  max:1, desc:'기체 턴마다 가장 아래 벽돌 하나를 부순다' },
   plague:   { t:4, name:'웜',         max:1, desc:'기체 독이 방어도도 깎고, 줄어들지 않는다' },
-  giant:    { t:4, name:'파워 프레임', max:1, desc:'프리즘 구슬이 피해를 나누지 않는다' },
+  giant:    { t:4, name:'파워 프레임', max:1, desc:'분광 코어가 피해를 나누지 않는다' },
   warp:     { t:4, name:'정지장 시계',  max:1, desc:'매 턴 조준선이 처음 0.5초 동안 멈춰 있다' },
   greed:    { t:4, name:'과열 채굴기',  max:1, desc:'전투에서 이길 때마다 크레딧 +12, 브로커 가격 +15' },
   pact:     { t:4, name:'신경 우회 케이블', max:1, desc:'얻는 즉시 최대 체력 -8, 천장 타격 피해 +1' },
-  collector:{ t:4, name:'기록 수집 드론',     max:1, desc:'아카이브에 모은 구슬 5종마다 전투 시작 ⚔ +1' },
+  collector:{ t:4, name:'기록 수집 드론',     max:1, desc:'아카이브에 모은 코어·회로 5종마다 전투 시작 ⚔ +1' },
 };
 // ── 스킬 트리(영구 성장): 칸을 처음 돌파할 때 포인트를 얻어 노드를 찍는다(POE2식 갈래).
 // 포인트: 칸 최초 돌파 +1, 세션 보스 최초 돌파 +3 → 본편 전부 35점. 트리 전체는 108점이라 본편만으로는 1/3 정도만 찍힌다.
@@ -219,17 +269,17 @@ const TREE = [
   { id:'d5', name:'장갑판 보강',     cost:3, req:'d2',   x:64.3, y:93, desc:'🛡 벽돌의 방어도 +1 추가' },
   { id:'d6', name:'완전 차폐', cost:8, req:'d5',   x:78.7, y:93, key:true, desc:'전투 중 얻는 방어도 ×1.5' },
   // 구슬(왼쪽)
-  { id:'o1', name:'축전기 튜닝', cost:2, req:'root', x:35.7, y:50, desc:'시작 EMP 구슬이 EMP 구슬+' },
-  { id:'o2', name:'부품 감별', cost:3, req:'o1',   x:21.3, y:50, desc:'구슬 보상 후보 +1개' },
+  { id:'o1', name:'축전기 튜닝', cost:2, req:'root', x:35.7, y:50, desc:'EMP 코어 구슬의 과열 -1' },
+  { id:'o2', name:'부품 감별', cost:3, req:'o1',   x:21.3, y:50, desc:'회로 드롭률 +5%p' },
   { id:'o3', name:'재스캔 회로', cost:3, req:'o2',   x:7,  y:35.7, desc:'보상 다시 스캔하기 +1회' },
-  { id:'o4', name:'파형 동기화',     cost:8, req:'o3',   x:7,  y:21.3, key:true, desc:'강화(+) 구슬의 천장 타격 피해 ×2' },
+  { id:'o4', name:'파형 동기화',     cost:8, req:'o3',   x:7,  y:21.3, key:true, desc:'회로를 2개 끼운 구슬의 천장 타격 피해 ×2' },
   { id:'o5', name:'조준 보정',  cost:3, req:'o2',   x:7,  y:64.3, desc:'조준선이 15% 느려진다' },
-  { id:'o6', name:'고압 사출',     cost:8, req:'o5',   x:7,  y:78.7, key:true, desc:'텅스텐·EMP 구슬의 천장 타격 피해 ×2' },
+  { id:'o6', name:'고압 사출',     cost:8, req:'o5',   x:7,  y:78.7, key:true, desc:'텅스텐·EMP 코어 구슬의 천장 타격 피해 ×2' },
   // 경제(오른쪽, 화면 이름은 자원)
   { id:'e1', name:'비상금', cost:2, req:'root', x:64.3, y:50, desc:'시작 크레딧 +30' },
   { id:'e2', name:'단골 할인',    cost:3, req:'e1',   x:78.7, y:50, desc:'브로커 가격 -20%' },
   { id:'e3', name:'고철 수거', cost:3, req:'e2',   x:93, y:35.7, desc:'전투 승리 크레딧 +5' },
-  { id:'e4', name:'예비 부품', cost:8, req:'e3',  x:93, y:21.3, key:true, desc:'무작위 칩 하나를 지니고 출발' },
+  { id:'e4', name:'예비 칩', cost:8, req:'e3',  x:93, y:21.3, key:true, desc:'무작위 칩 하나를 지니고 출발' },
   { id:'e5', name:'수리 숙련',  cost:3, req:'e2',   x:93, y:64.3, desc:'충전소·복구 패치 회복 +5' },
   { id:'e6', name:'비상 재시동',     cost:8, req:'e5',   x:93, y:78.7, key:true, desc:'침투마다 한 번, 쓰러지면 체력 30%로 일어난다' },
 ];
@@ -660,9 +710,9 @@ const SHOP_TALK = {
 const BUILD_BADGES = {
   path_poison:['venom', 'toxin'],
   path_bomb:['bomb', 'drill', 'wreck', 'hammer'],
-  path_curse:['weaken', 'disarm', 'rust', 'stun', 'time'],
+  path_curse:['weaken', 'disarm', 'rust', 'stun'],
   path_shield:['guard', 'mirror', 'thorn'],
-  path_split:['split', 'chain', 'bounce'],
+  path_split:['split', 'chain'],
 };
 
 const BADGES = [
@@ -674,13 +724,13 @@ const BADGES = [
   { id:'demolish', name:'벽 해체',    icon:'brick',   desc:'한 번 발사로 벽돌 12개를 부순다' },
   { id:'venom',    name:'감염',       icon:'skull',   desc:'독으로 기체의 마지막 체력을 깎는다' },
   { id:'counter',  name:'역공',       icon:'o_bomb',  desc:'반사 릴레이로 기체를 쓰러뜨린다' },
-  { id:'light',    name:'경량화',     icon:'o_basic', desc:'큐에 구슬 3개 이하만 넣고 최종 보스를 쓰러뜨린다' },
+  { id:'light',    name:'경량화',     icon:'o_basic', desc:'장갑에 구슬 1개만 장전하고 최종 보스를 쓰러뜨린다' },
   { id:'abyss5',   name:'심층부 바닥', icon:'o_heavy', desc:'심층부 5층 보스를 쓰러뜨린다' },
   { id:'rich',     name:'고래',       icon:'coin',    desc:'한 침투에서 크레딧 200을 모은다' },
   { id:'root',     name:'완전한 아침', icon:'up',      desc:'보안 등급 6에서 근원 "아키텍트 제로"를 멈추고 진 엔딩을 본다' },
-  { id:'path_poison', name:'독의 길',   icon:'skull',   desc:'큐의 구슬 절반 이상이 독 계열(부식·바이러스)인 채로 OMNIS를 멈춘다' },
-  { id:'path_bomb',   name:'폭파의 길', icon:'o_bomb',  desc:'큐의 구슬 절반 이상이 폭파 계열(EMP·관통·철거·항타)인 채로 OMNIS를 멈춘다' },
-  { id:'path_curse',  name:'저주의 길', icon:'o_basic', desc:'큐의 구슬 절반 이상이 저주 계열(감쇠·차단기·분해·충격·리셋)인 채로 OMNIS를 멈춘다' },
-  { id:'path_shield', name:'차폐의 길', icon:'shield',  desc:'큐의 구슬 절반 이상이 차폐 계열(차폐·반사·파편)인 채로 OMNIS를 멈춘다' },
-  { id:'path_split',  name:'갈래의 길', icon:'o_split', desc:'큐의 구슬 절반 이상이 갈래 계열(프리즘·릴레이·반발)인 채로 OMNIS를 멈춘다' },
+  { id:'path_poison', name:'독의 길',   icon:'skull',   desc:'장전한 구슬 절반 이상이 독 계열(부식·바이러스)을 단 채로 OMNIS를 멈춘다' },
+  { id:'path_bomb',   name:'폭파의 길', icon:'o_bomb',  desc:'장전한 구슬 절반 이상이 폭파 계열(EMP·관통·철거·항타)을 단 채로 OMNIS를 멈춘다' },
+  { id:'path_curse',  name:'저주의 길', icon:'o_basic', desc:'장전한 구슬 절반 이상이 저주 계열(감쇠·차단기·분해·충격)을 단 채로 OMNIS를 멈춘다' },
+  { id:'path_shield', name:'차폐의 길', icon:'shield',  desc:'장전한 구슬 절반 이상이 차폐 계열(차폐·반사·파편)을 단 채로 OMNIS를 멈춘다' },
+  { id:'path_split',  name:'갈래의 길', icon:'o_split', desc:'장전한 구슬 절반 이상이 갈래 계열(분광·릴레이)을 단 채로 OMNIS를 멈춘다' },
 ];

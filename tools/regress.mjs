@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollOrbs,rollRelics,burst,spawnRow,showShop,resetAim,showUpgrade,'
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollRelics,burst,spawnRow,showShop,resetAim,rollDrops,addCargo,sendCargo,showGarage,pickSlot,autoGarage,orbValid,orbHeat,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   // 이야기 대화창(showTalk)도 같은 모양({ mode:'story', title, buttons })으로 받아 검사를 하나로 쓴다
   + 'catchChoice:()=>{ const got = [], orig = showChoice, ot = showTalk; showChoice = o => { got.push(o); orig(o); };'
@@ -90,7 +90,7 @@ ok('R04+굳은살: 남은 벽돌 붕괴는 굳은살이 막는다', descend([[10
 M.tree = {};
 
 // ── R02: 깨진 저장으로도 메인이 뜨고, 이어하기·새 원정이 막히지 않는다
-const RUN_KEY = 'brickquest:run:v4', META_KEY = 'brickquest:meta:v4', PROF_KEY = 'brickquest:profile:v2';
+const RUN_KEY = 'brickquest:run:v5', META_KEY = 'brickquest:meta:v5', PROF_KEY = 'brickquest:profile:v2';
 const goodRun = (() => { const t = boot(); click('mNew'); return JSON.parse(JSON.stringify(t.RUN)); })();
 const mut = f => { const r = JSON.parse(JSON.stringify(goodRun)); f(r); return JSON.stringify(r); };
 const cases = {
@@ -187,7 +187,7 @@ for (const [name, st] of [['통신 실패', null], ['500', 500], ['503', 503], [
   ok('R05 서버 없음: 원정 덮어쓰기·새 원정' + (err ? ' (' + err.message + ')' : ''), !err && t.mode === 'map' && t.PROFILE.queue.length === 1); }
 
 // ── R06: 게임 결과 난수는 원정 시드에서, 연출 난수는 Math.random에서
-const snap = t => ({ map:JSON.stringify(t.RUN.map), bricks:JSON.stringify(t.G.bricks.map(b => [b.r, b.c, b.type, b.hp])), draw:t.G.draw.join(), aim:t.G.aim.toFixed(6) });
+const snap = t => ({ map:JSON.stringify(t.RUN.map), bricks:JSON.stringify(t.G.bricks.map(b => [b.r, b.c, b.type, b.hp])), draw:t.G.heat.join() + '|' + t.G.sel, aim:t.G.aim.toFixed(6) });
 function seeded(mathSeed, seed = 777){
   // Math.random 시드가 달라도(=연출·닉네임·uuid 소비가 달라도) 원정 시드가 같으면 같은 결과여야 한다
   const t = boot({}, false, null, mathSeed); click('mNew');
@@ -198,7 +198,8 @@ function seeded(mathSeed, seed = 777){
 { const a = seeded(1), b = seeded(99999), A = snap(a.t), B = snap(b.t);
   ok('R06 같은 시드: 지도 재현', A.map === B.map);
   ok('R06 같은 시드: 첫 전투 벽돌·덱 순서·첫 조준 재현', A.bricks === B.bricks && A.draw === B.draw && A.aim === B.aim);
-  ok('R06 같은 시드: 보상 후보 재현', a.t.rollOrbs().join() === b.t.rollOrbs().join() && a.t.rollRelics(3, true).join() === b.t.rollRelics(3, true).join());
+  const el = { t:'elite', mon:'bat' };
+  ok('R06 같은 시드: 부품 드롭·보상 후보 재현', JSON.stringify(a.t.rollDrops(el)) === JSON.stringify(b.t.rollDrops(el)) && a.t.rollRelics(3, true).join() === b.t.rollRelics(3, true).join());
   const c = seeded(1, 778); ok('R06 다른 시드: 지도가 달라진다', snap(c.t).map !== A.map); }
 { // 파티클을 많이 뿌려도 다음 벽돌 줄이 그대로
   const a = seeded(5), b = seeded(5);
@@ -215,19 +216,52 @@ function seeded(mathSeed, seed = 777){
   t.showShop(); const shop = JSON.stringify(t.RUN.shop);
   const saved = JSON.parse(store[RUN_KEY]);
   ok('R06 보상 흐름 저장: 상점을 연 뒤 rng.reward 진행이 저장됨', saved.rng.reward !== before && JSON.stringify(saved.shop) === shop); }
-{ // 강화 결과: 같은 저장에서 몇 번을 시도해도(새로고침) 같은 결과, 고른 즉시 저장
-  const store = {}; const t = boot(store); click('mNew'); t.RUN.deck = ['bomb+3', 'basic', 'basic']; t.saveRun();
+{ // 부품 드롭: 같은 저장에서 몇 번을 다시 해도(새로고침) 같은 드롭(작업 08)
+  const store = {}; const t = boot(store); click('mNew'); t.saveRun();
   const base = store[RUN_KEY], res = [];
-  let savedOk = true;
-  for (const ms of [1, 2, 3]){
-    const st = { [RUN_KEY]:base }; const u = boot(st, false, null, ms); click('mContinue');
-    const got = u.catchChoice(); u.showUpgrade(() => {}, () => {});
-    got[0].cards.find(c => c.orb === 'bomb+3').onPick();
-    res.push(u.RUN.deck.join());
-    savedOk = savedOk && JSON.parse(st[RUN_KEY]).deck.join() === u.RUN.deck.join();
-  }
-  ok('R06 강화 결과 고정: 다시 시도해도 같은 결과(' + res[0] + ')', res.every(x => x === res[0]));
-  ok('R06 강화 결과: 고른 즉시 저장', savedOk); }
+  for (const ms of [1, 2, 3]){ const u = boot({ [RUN_KEY]:base }, false, null, ms); click('mContinue'); res.push(JSON.stringify(u.rollDrops({ t:'boss', mon:'boss' }))); }
+  ok('작업 08 드롭 고정: 다시 해도 같은 부품(' + res[0] + ')', res.every(x => x === res[0]));
+  ok('작업 08 1층 보스는 EMP 코어를 떨어뜨린다', JSON.parse(res[0]).cores[0] === 'bomb');
+}
+{ // 첫 계정은 번개 구슬 하나뿐이고, 장전이 곧 침투의 슬롯이 된다
+  const t = boot(); const M = t.META(); click('mNew');
+  ok('작업 08 첫 차고: 번개 구슬 1개 장전', M.g.orbs.join() === 'basic' && M.g.load.join() === '0' && t.RUN.deck.join() === 'basic');
+}
+{ // 적재함 → 송신 → 차고에서 조립 → 장전이 다음 침투에 들어간다. 쓰러지면 못 보낸 적재함만 잃는다
+  const store = {}; const t = boot(store); const M = t.META(); click('mNew');
+  t.addCargo({ scrap:5, cores:['bomb'], circs:['venom', 'guard'] });
+  t.sendCargo();
+  ok('작업 08 송신: 코어·회로·고철이 차고로', M.g.cores.bomb === 1 && M.g.circs.venom === 1 && M.g.circs.guard === 1 && M.g.scrap === 5 && t.RUN.cargo.scrap === 0);
+  M.g.orbs.push('bomb/venom'); M.g.load = [0, 1]; store[META_KEY] = JSON.stringify(M);
+  const u = boot(store); click('mNew'); click('mNew');
+  ok('작업 08 장전: 조립한 구슬이 다음 침투 슬롯에', u.RUN.deck.join() === 'basic,bomb/venom');
+  u.addCargo({ scrap:3, cores:[], circs:['herb'] }); u.newBattle({ r:0, l:0, t:'battle', mon:'slime' }); u.G.p.hp = 0; u.setLose(u.G); u.battleEnd(false);
+  const w = boot(store);
+  ok('작업 08 익스트랙션: 쓰러지면 적재함만 잃고 차고는 그대로', !w.META().g.circs.herb && w.META().g.orbs.includes('bomb/venom'));
+}
+{ // 과열: 쏜 슬롯은 과열 턴 동안 못 고르고, 번개 구슬(과열 0)은 늘 쏠 수 있다
+  const t = boot(); click('mNew'); t.RUN.deck = ['basic', 'bomb/venom']; t.startBattle({ r:0, l:0, t:'battle', mon:'slime' });
+  const G = t.G; t.pickSlot(1);
+  const picked = G.sel === 1 && G.orb === 'bomb/venom';
+  G.aimT = 1; G.phase = 'aim';
+  ok('작업 08 과열 값: EMP 1 + 회로 1 = 2, 번개 0', t.orbHeat('bomb/venom') === 2 && t.orbHeat('basic') === 0);
+  ok('작업 08 슬롯 고르기', picked);
+}
+{ // 조립 검사: 칸 수 초과·중복·코어 아님은 쓸 수 없는 구슬
+  const t = boot();
+  ok('작업 08 조립 검사', t.orbValid('split/chain/guard') && !t.orbValid('basic/venom/guard') && !t.orbValid('split/chain/chain') && !t.orbValid('venom') && !t.orbValid('constructor'));
+}
+{ // 차고가 깨져도 번개 구슬 하나로 되살아난다(침투를 시작할 수 있게)
+  const t = boot({ [META_KEY]:JSON.stringify({ best:3, g:{ orbs:['nope', 7], load:[9], cores:{ toString:1, drill:'x' }, circs:null, scrap:-4 } }) });
+  const g = t.META().g;
+  ok('작업 08 차고 보정', g.orbs.join() === 'basic' && g.load.join() === '0' && !Object.keys(g.cores).length && g.scrap === 0 && t.META().best === 3);
+}
+{ // 메타 v4 → v5: 진행도는 옮기고 차고를 붙인다. v4 키는 저장할 때 지운다
+  const store = { 'brickquest:meta:v4':JSON.stringify({ best:12, pts:7, tree:{ a1:1 }, badges:{ rich:1 } }) };
+  const t = boot(store); click('mNew');
+  ok('작업 08 메타 이전: 기록·모듈·트로피 유지, 차고 기본값, v4 키 삭제', t.META().best === 12 && t.META().tree.a1 === 1 && t.META().badges.rich === 1
+    && t.META().g.orbs.join() === 'basic' && !('brickquest:meta:v4' in store) && META_KEY in store);
+}
 { // 전체 진행도 초기화(2026-10-16): 옛 원정·메타(v2·v3)는 읽지 않고 지운다. 프로필(닉네임·id)은 남고 못 보낸 옛 기록만 비운다
   const old = { v:3, deck:['bomb+5'], map:goodRun.map, hp:24, maxHp:24 };
   const store = { 'brickquest:run:v3':JSON.stringify(old), 'brickquest:run:v2':JSON.stringify(old),
@@ -238,8 +272,8 @@ function seeded(mathSeed, seed = 777){
   ok('초기화: 옛 원정 없음(이어하기 숨김)·옛 키 삭제', els.mContinue.hidden === true && !['brickquest:run:v3', 'brickquest:run:v2', 'brickquest:meta:v3', 'brickquest:meta:v2'].some(k => k in store));
   ok('초기화: 프로필 v1 → v2(닉네임·id·등록 유지, 옛 대기열 버림, v1 키 삭제)', t.PROFILE.name === '바삭한 우울한 냉장고' && t.PROFILE.id.endsWith('0001') && t.PROFILE.registered === true
     && t.PROFILE.queue.length === 0 && !('brickquest:profile:v1' in store) && JSON.parse(store[PROF_KEY]).name === '바삭한 우울한 냉장고');
-  const u = boot(store); click('mNew'); ok('초기화 뒤 새 원정은 v4 키에 저장', JSON.parse(store[RUN_KEY]).v === 4);
-  const w = boot(store); ok('초기화는 한 번만: 다음 접속 때 v4 진행도 유지', w.META().runs === 1 && els.mContinue.hidden === false);
+  const u = boot(store); click('mNew'); ok('초기화 뒤 새 원정은 v5 키에 저장', JSON.parse(store[RUN_KEY]).v === 5);
+  const w = boot(store); ok('초기화는 한 번만: 다음 접속 때 진행도 유지', w.META().runs === 1 && els.mContinue.hidden === false);
 }
 
 // ── 작업 05: 고난 단계·근원·이야기
@@ -267,7 +301,7 @@ function seeded(mathSeed, seed = 777){
   const shoot = sealed => {
     const t = boot(); click('mNew'); t.newBattle({ r:0, l:0, t:'battle', mon:'slime' }); const G = t.G;
     G.bricks = []; G.seal = sealed ? [3] : []; G.phase = 'fire'; G.queue = []; G.fireEl = 0; G.shot = { full:true, hits:0, broke:0 };
-    G.balls = [{ x:6 + 3 * 24 + 12, y:40, vx:0, vy:-300, hits:0, orb:'basic', kind:'basic', up:false, broke:0, bombed:false, drill:0, bounces:0 }];
+    G.balls = [{ x:6 + 3 * 24 + 12, y:40, vx:0, vy:-300, hits:0, orb:'basic', kind:'basic', up:false, f:{ basic:false }, broke:0, bombed:false, drill:0, bounces:0 }];
     for (let i = 0; i < 10; i++) t.update(1 / 60);
     return { hits:G.balls[0] ? G.balls[0].hits : -1, projs:G.projs.filter(p => p.kind === 'dmg').length };
   };
@@ -330,7 +364,7 @@ function seeded(mathSeed, seed = 777){
 }
 { // 빌드 배지: 덱 절반 이상이 한 계열이면
   const t = boot(); const M = t.META(); M.story = { intro:1, end1:1 }; click('mNew');
-  t.RUN.deck = ['venom', 'toxin+2', 'basic', 'bomb']; t.newBattle({ r:4, l:2, t:'boss', mon:'lord' }); t.RUN.pending = { r:4, l:2 }; t.catchChoice(); t.victory();
+  t.RUN.deck = ['basic/venom', 'basic/toxin+', 'basic', 'bomb']; t.newBattle({ r:4, l:2, t:'boss', mon:'lord' }); t.RUN.pending = { r:4, l:2 }; t.catchChoice(); t.victory();
   ok('빌드 배지: 독 2/4 → 독의 길, 폭파 1/4 → 없음', M.badges.path_poison === 1 && !M.badges.path_bomb);
 }
 { // 저장 보정: 범위 밖 고난 단계

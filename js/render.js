@@ -197,17 +197,30 @@ function setHeader(stage, name){ $('hStage').textContent = stage; $('hName').tex
 function renderCoins(){ const h = $('hCoin'), on = RUN && mode !== 'main'; h.textContent = on ? `${RUN.coins}` : ''; h.setAttribute('aria-label', on ? `크레딧 ${RUN.coins}` : ''); }
 function deckSummary(){
   const cnt = {}; RUN.deck.forEach(o => cnt[o] = (cnt[o] || 0) + 1);
-  return Object.keys(cnt).map(o => `${orbName(o).replace(' 구슬', '')} ${cnt[o]}`).join(', ');
+  return Object.keys(cnt).map(o => orbName(o) + (cnt[o] > 1 ? ` ${cnt[o]}` : '')).join(', ');
 }
 function renderOrbBar(){
   const el = $('orbBar'); el.textContent = '';
   if (!RUN || mode === 'main') return;
   if (G && mode === 'play'){
+    // 장갑 슬롯(작업 08): 고른 슬롯은 넓게(이름 + 피해 식), 나머지는 그림 + 과열 숫자. 누르면 그 구슬로 바꾼다
+    const slots = document.createElement('div'); slots.className = 'slots';
+    RUN.deck.forEach((o, i) => {
+      if (i === G.sel) return;
+      const b = document.createElement('button'); b.className = 'slot';
+      const hot = G.heat[i] > 0;
+      b.disabled = hot || G.phase !== 'aim';
+      b.append(orbPortrait(orbKind(o)));
+      if (hot){ const h = document.createElement('i'); h.textContent = G.heat[i]; b.append(h); }
+      b.setAttribute('aria-label', `${i + 1}번 슬롯 ${orbName(o)}${hot ? `, 과열 ${G.heat[i]}턴` : ''}`);
+      b.onclick = e => { e.stopPropagation(); pickSlot(i); };
+      slots.append(b);
+    });
     const current = document.createElement('div'); current.className = 'orbCurrent';
     const label = document.createElement('div');
     // 쏜 순간부터 다음 턴 조준 전까지 "발사!": 누른 입력이 먹혔다는 걸 바로 보여준다
     const fired = G.phase !== 'aim';
-    const small = document.createElement('small'); small.textContent = fired ? '발사!' : '조준';
+    const small = document.createElement('small'); small.textContent = fired ? '발사!' : `조준 · ${G.sel + 1}번`;
     if (fired) small.className = 'fired';
     const name = document.createElement('b'); name.textContent = orbName(G.orb);
     // 피해 = 기사 ⚔ + 구슬 보정을 식으로 보여 준다. ⚔ 벽돌을 깨면 왼쪽 숫자가, 센 구슬을 쓰면 오른쪽 숫자가 오른다.
@@ -221,11 +234,8 @@ function renderOrbBar(){
     dmg.title = '천장 타격 피해 = (릭의 공격력 + 구슬 위력) × 코어 모듈' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
     name.append(dmg);
     label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
-    const next = document.createElement('div'); next.className = 'orbNext';
-    const text = document.createElement('span'); text.textContent = '다음';
-    next.append(text, orbPortrait(orbKind(nextOrb())), orbName(nextOrb()).replace(' 구슬', ''));
-    el.append(current, next); el.title = orbDesc(G.orb);
-  } else el.append(`큐 ${RUN.deck.length}/${deckMax()}: ${deckSummary()}`);
+    el.append(current, slots); el.title = orbDesc(G.orb);
+  } else el.append(`장전 ${RUN.deck.length}/${deckMax()}: ${deckSummary()}` + (RUN.cargo ? ` · 적재함 ${cargoParts()}/${cargoMax()}` : ''));
 }
 function renderAbil(){
   const box = $('abil'); box.textContent = '';

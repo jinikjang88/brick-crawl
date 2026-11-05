@@ -15,7 +15,8 @@ function newBattle(node){
     heart:false, callus:false, disarm:0, stunUsed:false, timeUsed:0, mirror:0, toxic:false,
     bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], queue:[],
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
-    draw:[], disc:[], orb:'basic',
+    // 장갑 슬롯(작업 08): sel = 고른 슬롯, heat = 슬롯별 남은 과열 턴. orb = 지금 쏠 구슬
+    sel:0, heat:[], orb:'basic',
     // 전투 난수 흐름: 시드·세션·칸으로 정한다. 같은 칸에 다시 들어오면(새로고침) 같은 벽돌·덱 순서·첫 조준
     // 근원은 군주와 같은 칸이라 흐름을 따로 갈라 같은 판이 되지 않게
     // (근원이 아닌 전투의 시드는 예전과 같게 둔다: 같은 원정이 같은 판으로 재현되게)
@@ -23,7 +24,7 @@ function newBattle(node){
     // 봉인된 천장 칸(그 칸에 닿은 구슬은 튕기기만 한다), 다음 턴 봉인 칸(예고)
     seal:[], sealNext:null,
   };
-  G.draw = shuffle(RUN.deck, 'battle');
+  G.heat = RUN.deck.map(() => 0);
   // 고난 1: 정예가 처음부터 분노한다
   if (cfg.elite && ascOn(1)) G.m.rage = true;
   // 근원은 cfg.seal칸, 고난 5부터는 다른 보스도 한 칸을 봉인한다
@@ -55,14 +56,23 @@ function replaceInRow0(n, make){
   for (const c of cols) G.bricks.push(Object.assign({ r:0, c, y:rowY(0) - ROWH, flash:0, dead:false }, make()));
 }
 
-// 구슬 뽑기: 뽑을 더미가 비면 버린 더미를 섞어 채운다. 다음 구슬을 미리 보여주려고 바로 채워 둔다
+// 슬롯 고르기(작업 08): 고정 순서 대신 매 턴 장갑 슬롯에서 쏠 구슬을 고른다. 과열 중인 슬롯은 못 고른다.
+// 턴이 시작되면 직전에 쓴 슬롯이 식었으면 그대로, 아니면 식은 첫 슬롯을 고른다(한 번만 탭해도 쏘던 조작 그대로).
+// 모든 슬롯이 과열이면 가장 먼저 식을 슬롯을 바로 식힌다: 아무것도 못 쏘는 턴은 없다
 function drawOrb(){
-  if (!G.draw.length){ G.draw = shuffle(G.disc, 'battle'); G.disc = []; }
-  G.orb = G.draw.pop() || 'basic';
-  if (!G.draw.length && G.disc.length){ G.draw = shuffle(G.disc, 'battle'); G.disc = []; }
+  const h = G.heat;
+  if (h[G.sel] > 0){
+    let i = h.findIndex(v => v === 0);
+    if (i < 0){ i = h.indexOf(Math.min(...h)); h[i] = 0; }
+    G.sel = i;
+  }
+  G.orb = RUN.deck[G.sel] || RUN.deck[0] || 'basic';
   renderOrbBar();
 }
-const nextOrb = () => G.draw.length ? G.draw[G.draw.length - 1] : G.orb;
+function pickSlot(i){
+  if (mode !== 'play' || !G || G.phase !== 'aim' || !(i in RUN.deck) || G.heat[i] > 0 || G.sel === i) return;
+  G.sel = i; G.orb = RUN.deck[i]; sfx('pick'); renderOrbBar();
+}
 
 function resetAim(){
   // 매 턴 시작 위치·방향을 무작위로: 같은 타이밍을 외워서 누르는 걸 막는다
@@ -109,13 +119,14 @@ function bossDrop(){
 // "⚔2 + 3 = 8"처럼 배율이 빠진 식이 나오지 않는다
 // ball: 구슬마다 쌓이는 보정(사슬 = 몇 번째 타격인지, 철거 = 이 구슬이 부순 벽돌 수). HUD는 첫 타 기준으로 생략한다
 function hitParts(o, n = 1, ball){
-  const k0 = orbKind(o), up = orbUp(o);
+  const f = orbFeats(o);
   const base = G.p.atk + orbBonus(o) + (n >= 3 && tree('a5') ? 1 : 0) + rel('pact')
     + (rel('wrath') && G.p.hp <= G.p.max * .3 ? 2 : 0)
-    + (k0 === 'chain' ? (n - 1) * (up ? 2 : 1) : 0)
-    + (k0 === 'wreck' && ball ? Math.floor((ball.broke || 0) / (up ? 2 : 3)) : 0);
+    + (f.chain !== undefined ? (n - 1) * (f.chain ? 2 : 1) : 0)
+    + (f.wreck !== undefined && ball ? Math.floor((ball.broke || 0) / (f.wreck ? 2 : 3)) : 0);
   let k = 1;
-  if (orbUp(o) && tree('o4')) k *= 2;
+  // 파형 동기화: 회로를 두 개 끼운 구슬(조립을 끝까지 한 구슬)
+  if (orbCircs(o).length >= 2 && tree('o4')) k *= 2;
   if (['heavy', 'bomb'].includes(orbKind(o)) && tree('o6')) k *= 2;
   if (tree('a6')) k *= 1.5;
   if (tree('a4') && G.m.hp <= G.m.max / 2) k *= 1.5;
@@ -201,9 +212,9 @@ function onBreak(b){
     burst(bx, by, C.ink, 5);
   }
 }
-// 구슬 종류별 파괴 효과
+// 구슬 효과는 코어·회로를 가리지 않고 b.f(효과 목록)로 본다: b.f.guard === undefined면 차폐 없음, true면 Ⅱ
 function ballBreak(b, br){
-  if (b.kind === 'guard'){ const v = defGain(b.up ? 2 : 1); G.p.def += v; pop(PX + 12, 88, '+' + v, C.ink2, 'shield'); }
+  if (b.f.guard !== undefined){ const v = defGain(b.f.guard ? 2 : 1); G.p.def += v; pop(PX + 12, 88, '+' + v, C.ink2, 'shield'); }
   if (b.kind === 'bomb' && !b.bombed){
     b.bombed = true; G.shake = Math.max(G.shake, 3); sfx('boom');
     burst(OX + br.c * CW + CW / 2, br.y + BRH / 2, C.ink, 16);
@@ -290,7 +301,7 @@ function hitBricks(b){
     if (b.x < l || b.x > r || b.y < t || b.y > bo) continue;
     // 송곳 구슬만 뚫고 지나간다. 나머지는 부숴도 튕긴다(한 줄씩 깎아 길을 내야 천장에 닿는다)
     const drilled = b.drill > 0;
-    if (drilled){ b.drill--; br.hp = 0; } else br.hp -= b.kind === 'hammer' && br.type === 'stone' ? (b.up ? 5 : 3) : 1;
+    if (drilled){ b.drill--; br.hp = 0; } else br.hp -= b.f.hammer !== undefined && br.type === 'stone' ? (b.f.hammer ? 5 : 3) : 1;
     br.flash = 0.07; b.impact = .12;
     // 같은 구슬이 연달아 맞힐수록 소리가 올라간다(콤보를 귀로 느끼게)
     b.combo = (b.combo || 0) + 1;
@@ -299,7 +310,7 @@ function hitBricks(b){
     if (br.hp <= 0){ br.dead = true; onBreak(br); ballBreak(b, br); }
     if (br.hp <= 0){
       b.broke++;
-      if (b.kind === 'thorn' && b.broke % (b.up ? 1 : 2) === 0 && !G.m.dead) strike(OX + br.c * CW + CW / 2, br.y, 1);
+      if (b.f.thorn !== undefined && b.broke % (b.f.thorn ? 1 : 2) === 0 && !G.m.dead) strike(OX + br.c * CW + CW / 2, br.y, 1);
     }
     if (br.dead && G.shot && ++G.shot.broke === 12) earnBadge('demolish');
     if (drilled) return;
@@ -327,7 +338,7 @@ function moveBall(b, dt){
         b.hits++;
         sfx('ceil', { orb:b.kind, n:b.hits - 1 });
         const v = hitDmg(b.orb, b.hits, b);
-        G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:['venom', 'toxin'].includes(b.kind) ? (b.up ? 2 : 1) : 0, shot:G.shot });
+        G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.f.venom !== undefined ? (b.f.venom ? 2 : 1) : 0, shot:G.shot });
         if (b.hits === 3 && rel('leech')) heal(1);
         orbCeil(b);
         G.cf.push({ x:b.x, t:0.25 });
@@ -351,27 +362,33 @@ function moveBall(b, dt){
 }
 
 // 구슬마다 천장 타격 상한: 기본 + 기본 구슬 강화 1 + 탄력 구슬. 혜성은 모든 벽돌을 뚫는 대신 한 번만 친다
-const ballCap = b => b.kind === 'comet' ? 1 : hitCap() + (b.kind === 'basic' && b.up ? 1 : 0) + (b.kind === 'bounce' ? (b.up ? 2 : 1) : 0);
+const ballCap = b => b.kind === 'comet' ? 1 : hitCap() + (b.kind === 'basic' && b.up ? 1 : 0) + (b.f.bounce !== undefined ? (b.f.bounce ? 2 : 1) : 0);
 function heal(v){ const p = G.p, before = p.hp; p.hp = Math.min(p.max, p.hp + v); if (p.hp > before) pop(PX, 30, '+' + (p.hp - before), C.ink, 'heart'); }
 // 천장 타격 때 구슬별 효과. 디버프는 맞는 즉시 몬스터 예고(머리 위 숫자)가 바뀌어 효과가 눈으로 보인다
+// 회로가 둘이면 효과도 둘 다 든다(예전엔 구슬 하나 = 효과 하나라 else if였다)
 function orbCeil(b){
-  const m = G.m, up = b.up, it = intent();
-  if (b.kind === 'herb' && b.hits === 1) heal(up ? 2 : 1);
-  else if (b.kind === 'vamp' && (up || b.hits % 2 === 0)) heal(1);
-  else if (b.kind === 'weaken' && G.shot.weak < (up ? 2 : 1) && it.t === 'atk' && atkLeft(it) > 1){
+  const m = G.m, f = b.f, it = intent();
+  if (f.herb !== undefined && b.hits === 1) heal(f.herb ? 2 : 1);
+  if (f.vamp !== undefined && (f.vamp || b.hits % 2 === 0)) heal(1);
+  if (f.weaken !== undefined && G.shot.weak < (f.weaken ? 2 : 1) && it.t === 'atk' && atkLeft(it) > 1){
     G.shot.weak++; m.ai++; pop(MX, 20, '-1', C.ink, 'sword');
-  } else if (b.kind === 'disarm' && G.disarm < (up ? 4 : 3) && m.atk > 1){
+  }
+  if (f.disarm !== undefined && G.disarm < (f.disarm ? 4 : 3) && m.atk > 1){
     G.disarm++; m.atk--; pop(MX + 16, 88, '-1', C.ink, 'sword');
-  } else if (b.kind === 'rust'){
+  }
+  if (f.rust !== undefined){
     if (m.def) pop(MX + 16, 76, '0', C.ink, 'shield');
-    m.def = 0; if (up) m.noGuard = true;
-  } else if (b.kind === 'stun' && !G.stunUsed && b.hits === (up ? 1 : 2)){
+    m.def = 0; if (f.rust) m.noGuard = true;
+  }
+  if (f.stun !== undefined && !G.stunUsed && b.hits === (f.stun ? 1 : 2)){
     G.stunUsed = true; m.stun = true; pop(MX, 20, '', C.ink, 'dots'); sfx('block');
-  } else if (b.kind === 'time' && G.timeUsed < (up ? 2 : 1)){
+  }
+  if (f.time !== undefined && G.timeUsed < (f.time ? 2 : 1)){
     G.timeUsed++; m.pi = 0; m.ai = 0;
     const first = intent(); if (first.t === 'atk') m.ai = Math.min(atkN(first) - 1, 2);
     pop(MX, 20, '', C.ink, 'up');
-  } else if (b.kind === 'toxin') G.toxic = true;
+  }
+  if (f.toxin !== undefined) G.toxic = true;
 }
 
 function fire(){
@@ -386,7 +403,10 @@ function fire(){
   // 쌍발: 3턴마다 같은 구슬을 한 번 더(같은 방향)
   if (rel('twin') && g.turn % 3 === 0) g.queue = g.queue.concat(g.queue);
   g.shot.weak = 0;
-  g.mirror = orbKind(g.orb) === 'mirror' ? (orbUp(g.orb) ? 1 : .5) : 0;
+  const ff = orbFeats(g.orb);
+  g.mirror = ff.mirror !== undefined ? (ff.mirror ? 1 : .5) : 0;
+  // 과열: 쏜 슬롯은 orbHeat턴 동안 쉰다(+1은 다음 턴 시작에 바로 1 줄기 때문)
+  const hh = orbHeat(g.orb); g.heat[g.sel] = hh ? hh + 1 : 0;
   renderOrbBar();   // "조준" → "발사!"
   sfx('fire', { orb:orbKind(g.orb) });
 }
@@ -444,7 +464,7 @@ function update(dt){
       g.fireT = 0;
       const a = g.queue.shift();
       g.balls.push({ x:g.lx, y:FLOOR - 2, vx:Math.cos(a) * BALL_SPEED, vy:Math.sin(a) * BALL_SPEED,
-                     hits:0, orb:g.orb, kind:orbKind(g.orb), up:orbUp(g.orb), broke:0, bombed:false,
+                     hits:0, orb:g.orb, kind:orbKind(g.orb), up:orbUp(g.orb), f:orbFeats(g.orb), broke:0, bombed:false,
                      drill:orbKind(g.orb) === 'comet' ? 99 : orbKind(g.orb) === 'drill' ? (orbUp(g.orb) ? 5 : 3) : 0,
                      bounces:orbKind(g.orb) === 'magnet' ? (orbUp(g.orb) ? 2 : 1) : 0 });
     }
@@ -567,6 +587,7 @@ function enemyUpdate(dt){
     // phase를 먼저 바꾼다: drawOrb가 구슬 줄을 다시 그릴 때 "발사!"가 "발사 대기"로 돌아오게
     g.phase = 'aim'; g.turn++; g.cur = null;
     if (g.sealNext){ g.seal = g.sealNext; g.sealNext = sealShift(g.seal); }
-    g.disc.push(g.orb); drawOrb(); resetAim();
+    for (let i = 0; i < g.heat.length; i++) if (g.heat[i] > 0) g.heat[i]--;
+    drawOrb(); resetAim();
   }
 }

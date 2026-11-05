@@ -155,9 +155,16 @@ img.bIc{object-fit:contain;image-rendering:auto}
 /* 발사!: 반전 칩으로 눈에 띄게. 붉은색은 위험 전용이라 쓰지 않는다 */
 .orbCurrent small.fired{display:inline-block;background:var(--ink);color:var(--bg);font-weight:800;padding:0 5px;letter-spacing:.05em}
 .orbCurrent b{display:block;font-size:16px}
-.orbNext{font-size:12px;flex-wrap:wrap;justify-content:flex-end}
-.orbNext .orbPortrait{width:30px;height:30px}
-.orbNext span{font-size:11px}
+/* 장갑 슬롯(작업 08): 고르지 않은 구슬. 누르면 그 구슬로 바꾼다. 과열 중이면 흐리게 + 남은 턴 숫자 */
+.slots{display:flex;gap:6px;flex:none}
+.slot{position:relative;width:44px;height:44px;padding:0;border:2px solid var(--line);border-radius:0;background:var(--field);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s}
+.slot .orbPortrait{width:30px;height:30px}
+.slot:disabled{opacity:.45;cursor:default}
+.slot i{position:absolute;right:2px;bottom:0;font-style:normal;font-size:12px;font-weight:800;line-height:1.2;color:var(--ink)}
+.slot:active:not(:disabled){transform:translateY(2px)}
+.slot:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
+@media(hover:hover){.slot:hover:not(:disabled){transform:translateY(-1px);border-color:var(--ink)}}
+@media(prefers-reduced-motion:reduce){.slot{transition:none}.slot:active:not(:disabled),.slot:hover:not(:disabled){transform:none}}
 .orbCard{display:flex;gap:10px;align-items:center;padding:10px}
 .cardBody{flex:1;min-width:0}
 .rCard{transition:background .15s}
@@ -169,7 +176,7 @@ img.bIc{object-fit:contain;image-rendering:auto}
 /* 이야기 대화 중에는 전투 줄(헤더·구슬·칩)을 감춰 대화창이 화면을 다 쓴다(일시정지는 Esc·P로 열린다) */
 .app[data-mode="story"] .hud,.app[data-mode="story"] .orbBar,.app[data-mode="story"] .abil{display:none}
 .abil .none{color:var(--ink2)}
-@media(max-width:360px){.orbCurrent b{font-size:14px}.orbCurrent .orbPortrait{width:38px;height:38px}.orbNext{gap:3px}.ov{padding:12px 10px}.big{font-size:25px}}
+@media(max-width:360px){.orbCurrent b{font-size:14px}.orbCurrent .orbPortrait{width:38px;height:38px}.slots{gap:4px}.ov{padding:12px 10px}.big{font-size:25px}}
 @media(prefers-reduced-motion:reduce){.rCard{transition:none}}
 /* 일러스트 구슬(<img>)은 원본이 세밀해서 도트처럼 최근접 축소하면 오히려 깨진다 */
 img.orbPortrait{image-rendering:auto;object-fit:contain}
@@ -217,6 +224,8 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .orbCurrent b .dmg{font-style:normal;font-size:12px;font-weight:800;margin-left:6px;padding:0 5px;border:1px solid var(--ink3);color:var(--ink2);vertical-align:2px}
 /* 스킬 트리: 십자 갈래(위 공격·아래 방어·왼쪽 구슬·오른쪽 경제). 핵심 노드는 마름모 */
 .app[data-mode="tree"] .hud,.app[data-mode="tree"] .orbBar,.app[data-mode="tree"] .abil{display:none}
+/* 차고(작업 08): 터미널에서 열면 침투 HUD가 의미 없고, 정비소에서 열어도 보관함 줄이 같은 정보를 보여 준다 */
+.app[data-mode="garage"] .hud,.app[data-mode="garage"] .orbBar,.app[data-mode="garage"] .abil{display:none}
 .ovTree{justify-content:flex-start;gap:6px}
 .treeBox{position:relative;width:100%;max-width:320px;aspect-ratio:1/1.05;flex:none;margin:6px 0}
 .treeBox svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}

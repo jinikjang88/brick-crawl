@@ -168,10 +168,13 @@ function showMain(){
   $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 구역이 없다' : '첫 침투를 시작해 보자')
     + (META.runs ? ` · 침투 ${META.runs}회` : '') + (META.clears ? ` · 하늘 개방 ${META.clears}회` : '');
   $('mTree').textContent = '모듈';
-  const tp = document.createElement('small'); tp.textContent = `부품 ${META.pts}`; $('mTree').append(tp);
+  const tp = document.createElement('small'); tp.textContent = `설계도 ${META.pts}`; $('mTree').append(tp);
+  // 차고: 조립한 구슬 수와 장전 칸
+  $('mGarage').textContent = '차고';
+  const gp = document.createElement('small'); gp.textContent = `구슬 ${META.g.orbs.length} · 장전 ${META.g.load.length}/${DECK_MAX}`; $('mGarage').append(gp);
   // 도감: 구슬·유물·배지를 한 화면에서 모은다. 버튼에는 모은 총수만
   $('mBadge').textContent = '아카이브';
-  const total = Object.keys(ORBS).length + Object.keys(RELICS).length + BADGES.length;
+  const total = [...CORES, ...CIRCS].length + Object.keys(RELICS).length + BADGES.length;
   const got = seenCount('orb') + seenCount('relic') + BADGES.filter(b => META.badges[b.id]).length;
   const bp = document.createElement('small'); bp.textContent = `${got} / ${total}`; $('mBadge').append(bp);
   ensureProfile(); $('mName').textContent = PROFILE.name; $('renameForm').hidden = true;
@@ -254,7 +257,7 @@ $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); else if (mode === 'map') showMap(); else if (mode === 'pause') themeDirty = true; }); } catch(e){}
 let startRadio = false;
 function startNewRun(abyss){
-  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => markSeen('orb', orbKind(o))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
+  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => Object.keys(orbFeats(o)).forEach(k => markSeen('orb', k))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
   // 첫 원정에는 이야기의 시작을 먼저 보여 준다(한 번만). 이미 본 계정은 첫 지도에서 접속 시작 무전을 한 줄
   startRadio = !abyss && !!META.story.intro;
   storyOnce('intro', () => showMap());
@@ -325,7 +328,7 @@ const TREE_TOTAL = TREE.reduce((a, n) => a + n.cost, 0);
 function showTree(back){
   treeBack = back || treeBack || showMain;
   const spent = TREE.reduce((a, n) => a + (tree(n.id) ? n.cost : 0), 0);
-  $('treeSub').textContent = `부품 ${META.pts} · 쓴 부품 ${spent}/${TREE_TOTAL} · 구역을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
+  $('treeSub').textContent = `설계도 ${META.pts} · 쓴 설계도 ${spent}/${TREE_TOTAL} · 구역을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
   const box = $('treeBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('aria-hidden', 'true');
@@ -360,7 +363,7 @@ function showTree(back){
     info.append(h, d);
     if (st === 'open' || st === 'poor'){
       const buy = document.createElement('button'); buy.className = 'btn primary'; buy.disabled = st === 'poor';
-      buy.textContent = st === 'poor' ? `부품 ${n.cost} 필요` : `설치하기 (부품 ${n.cost})`;
+      buy.textContent = st === 'poor' ? `설계도 ${n.cost} 필요` : `설치하기 (설계도 ${n.cost})`;
       buy.onclick = () => { if (mode !== 'tree' || treeState(n) !== 'open') return;
         META.pts -= n.cost; META.tree[n.id] = 1; saveMeta(); sfx('coin'); showTree(); };
       info.append(buy);
@@ -369,6 +372,7 @@ function showTree(back){
   setMode('tree', 'ovTree');
 }
 $('mTree').onclick = () => { treePick = null; showTree(showMain); };
+$('mGarage').onclick = () => showGarage(showMain, false);
 $('treeBack').onclick = () => { if (mode === 'tree') treeBack(); };
 
 // ── 배지: 메달 도트(ICON 글리프를 둥근 테 안에). 못 딴 배지는 흐린 테와 ?로, 조건은 보여 줘 목표가 되게 한다
@@ -397,16 +401,17 @@ function bookHead(text){ const li = document.createElement('li'); li.className =
 const UNKNOWN = { icon:'dots' };
 function showBadges(){
   const box = $('badgeBox'); box.textContent = '';
-  const orbs = Object.keys(ORBS), relics = Object.keys(RELICS);
+  const orbs = [...CORES, ...CIRCS], relics = Object.keys(RELICS);
   const gotB = BADGES.filter(b => META.badges[b.id]).length;
-  $('badgeSub').textContent = `구슬 ${seenCount('orb')}/${orbs.length} · 칩 ${seenCount('relic')}/${relics.length} · 트로피 ${gotB}/${BADGES.length}`;
+  $('badgeSub').textContent = `코어·회로 ${orbs.filter(k => META.seen.orb[k]).length}/${orbs.length} · 칩 ${seenCount('relic')}/${relics.length} · 트로피 ${gotB}/${BADGES.length}`;
   // 등급 순(기본 → 전설)으로 늘어놓는다: 아래로 갈수록 귀한 것
-  box.append(bookHead('구슬'));
-  for (const k of orbs.slice().sort((a, b) => ORBS[a].rar - ORBS[b].rar)){
-    const o = ORBS[k], own = !!META.seen.orb[k], open = orbOpen(k);
+  // 코어 다음 회로, 각각 등급 순(기본 → 전설): 아래로 갈수록 귀한 것
+  box.append(bookHead('코어·회로'));
+  for (const k of orbs.slice().sort((a, b) => (ORBS[a].part === ORBS[b].part ? 0 : ORBS[a].part === 'core' ? -1 : 1) || ORBS[a].rar - ORBS[b].rar)){
+    const o = ORBS[k], own = !!META.seen.orb[k];
     const icon = own ? orbPortrait(k, 'bIc') : badgeIcon(UNKNOWN, false);
-    box.append(bookRow(icon, own ? o.name : '???', RARITY[o.rar].name + (open ? '' : ' · 잠김'),
-      own ? o.desc + (o.lore ? ' — ' + o.lore : '') : open ? '보상이나 브로커에게서 만날 수 있다' : lockText(o.lock), own));
+    box.append(bookRow(icon, own ? o.name : '???', (o.part === 'core' ? '코어 · ' : '회로 · ') + RARITY[o.rar].name,
+      own ? o.desc + (o.lore ? ' — ' + o.lore : '') : o.part === 'core' ? '정예·보스가 떨어뜨린다' : '기체가 떨어뜨리거나 정비소에서 판다', own));
   }
   box.append(bookHead('칩'));
   for (const k of relics.slice().sort((a, b) => RELICS[a].t - RELICS[b].t)){
@@ -448,7 +453,7 @@ function resumeRun(){
   // 출발 선물 시절 저장(선물 고르기 전): 선물 없이 지도로
   if (RUN.gift){ RUN.gift = false; RUN.giftStock = null; saveRun(); }
   // 깨진 저장(문자열이 아닌 보상 단계)은 보상을 건너뛰고 지도로: 이어하기가 막히지 않게
-  const PR = ['orb', 'elite', 'boss', 'elite-orb', 'boss-orb'];
+  const PR = ['elite', 'boss'];
   if (RUN.pendingReward && !PR.includes(RUN.pendingReward)){ RUN.pendingReward = null; saveRun(); }
   if (RUN.pendingReward) return showReward(RUN.pendingReward);
   if (RUN.pending) return enterNode(nodeAt(RUN.pending.r, RUN.pending.l));
@@ -494,7 +499,7 @@ function showMap(note){
   // 본편은 "세션 2 / 5"처럼 남은 거리를, 심연은 층만 보여 준다(끝이 없다)
   $('mapTitle').textContent = RUN.abyss ? stageName(RUN.s) : `${stageName(RUN.s)} / ${SESSIONS}`;
   $('ovMap').classList.toggle('abyss', !!RUN.abyss);
-  $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  크레딧 ${RUN.coins}  큐 ${RUN.deck.length}/${deckMax()}`;
+  $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  크레딧 ${RUN.coins}  적재함 ${cargoParts()}/${cargoMax()}`;
   // 일반 전투는 보상 화면 없이 지도로 돌아오므로, 얻은 코인을 부제 앞에 한 번 보여 준다
   if (note) $('mapSub').textContent = `${note} · ${$('mapSub').textContent}`;
   if (RUN.asc) $('mapTitle').textContent += ` · 보안 등급 ${RUN.asc}`;
@@ -578,7 +583,7 @@ function completeNode(){
 }
 function finishNonBattle(){
   completeNode(); RUN.shop = null; saveRun();
-  if (RUN.lastPts) toast(`부품 +${RUN.lastPts} · 첫 돌파`);
+  if (RUN.lastPts) toast(`설계도 +${RUN.lastPts} · 첫 돌파`);
   showMap();
 }
 
@@ -611,13 +616,17 @@ function battleEnd(win){
   RUN.coins += gain; RUN.lastGain = gain;
   if (RUN.coins >= 200) earnBadge('rich');
   if (n.t === 'boss' && RUN.abyss && RUN.s === 4) earnBadge('abyss5');
+  // 부품 드롭(작업 08): 결과는 원정 시드로 정해진다. 화면에 한 줄로 알린다
+  const drop = rollDrops(n), dres = addCargo(drop);
+  RUN.lastDrop = dropText(drop, dres); RUN.lastSent = null;
   if (G.cfg.final) return victory();
+  if (n.t === 'boss'){ const s = sendCargo(); RUN.lastSent = `층 보스 송신 · 부품 ${s.parts}개를 차고로 보냈다.`; }
   // 세션 돌파: 최대 체력 +4 후 절반 회복. 몬스터는 세션마다 공·방이 오르는데 기사 체력만 고정이면 후반이 벽이 된다
   if (n.t === 'boss'){ RUN.maxHp += 4; if (!ascOn(3)) RUN.hp = Math.min(RUN.maxHp, RUN.hp + 4 + Math.ceil(RUN.maxHp / 2)); }
   completeNode();
   sfx('win'); bgm(calmSong());
-  // 구슬 보상은 정예·보스(유물 다음)와 상점에서만: 매 전투마다 덱이 불면 구슬 하나하나의 무게가 가벼워진다
-  if (n.t === 'battle'){ RUN.pendingReward = null; saveRun(); if (RUN.lastPts) toast(`부품 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 크레딧 +${gain}` + (RUN.lastPts ? ` · 부품 +${RUN.lastPts}` : '')); return; }
+  // 일반 전투는 보상 화면 없이 지도로(드롭은 지도 부제에 한 줄). 정예·보스는 칩 3택1
+  if (n.t === 'battle'){ RUN.pendingReward = null; const dt = RUN.lastDrop; RUN.lastDrop = null; saveRun(); if (RUN.lastPts) toast(`설계도 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 크레딧 +${gain}` + (dt ? ` · ${dt}` : '') + (RUN.lastPts ? ` · 설계도 +${RUN.lastPts}` : '')); return; }
   RUN.pendingReward = n.t;
   saveRun();
   // 1~4층 보스를 처음 쓰러뜨리면 격파 장면(대본 C*-BOSS-OUT) 뒤에 보상. 저장은 이미 보상 대기라 새로고침해도 보상은 남는다
@@ -635,18 +644,19 @@ function victory(){
   if (opened){ META.asc = asc + 1; META.ascPick = META.asc; }
   saveMeta();
   earnBadge('final');
-  if (RUN.deck.length <= 3) earnBadge('light');
+  if (RUN.deck.length <= 1) earnBadge('light');
+  const sent = sendCargo();
   if (king) earnBadge('root');
   // 빌드 배지: 덱 구슬의 절반 이상이 한 계열이면
   for (const [id, kinds] of Object.entries(BUILD_BADGES))
-    if (RUN.deck.filter(o => kinds.includes(orbKind(o))).length * 2 >= RUN.deck.length) earnBadge(id);
+    if (RUN.deck.filter(o => Object.keys(orbFeats(o)).some(k => kinds.includes(k))).length * 2 >= RUN.deck.length) earnBadge(id);
   clearRun(); endRun(RUN);
   sfx('win'); bgm('calm');
   const got = (RUN.badges || []).map(id => BADGES.find(b => b.id === id).name);
   const result = () => showChoice({
     mode:'result', title:king ? '완전한 아침이 왔다' : '하늘이 열렸다',
     sub:`${king ? '아키텍트 제로를' : 'OMNIS를'} 멈췄다${asc ? `(보안 등급 ${asc})` : ''}. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개.`
-      + ` 이번 침투 부품 +${RUN.pts || 0}.` + (got.length ? ` 트로피: ${got.join(', ')}.` : '')
+      + ` 송신 부품 ${sent.parts}개 · 고철 ${sent.scrap}. 이번 침투 설계도 +${RUN.pts || 0}.` + (got.length ? ` 트로피: ${got.join(', ')}.` : '')
       + (firstClear ? ' 터미널에 심층부로 가는 길이 열렸다.' : '')
       + (opened ? ` 이제 보안 등급 ${META.asc}(${ASC[META.asc].name})까지 고를 수 있다.` : ''),
     cards:[], buttons:[{ label:'터미널', primary:true, onClick:showMain }],
@@ -660,12 +670,15 @@ function runOver(){
   const n = G.node;
   if (!G.ended){ G.ended = true; clearRun(); endRun(RUN); }   // 보통은 setLose가 이미 했다
   bgm(null); sfx('lose');
+  // 익스트랙션: 송신하지 못한 적재함은 잃는다(장전한 구슬은 차고에 그대로)
+  const lostN = cargoParts();
+  if (RUN.cargo) RUN.cargo = { cores:{}, circs:{}, scrap:0 };
   // 쓰러짐 무전(대본 6.3): 1층 = 윤, 2~4층 = 코테크, 5층 = OMNIS·클라드. 심층부는 무전 없이
   const fall = RUN.abyss ? [] : FALL_TALK[RUN.s === 0 ? 0 : RUN.s >= 4 ? 2 : 1];
   showChoice({
     mode:'result', title:'신호가 끊겼다',
     say:fall,
-    sub:`${stageName(RUN.s)} ${n.r + 1}번째 구역, ${G.cfg.name}에게 당했다. 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개를 모았다. 이번 침투 부품 +${RUN.pts || 0} (가진 부품 ${META.pts})`,
+    sub:`${stageName(RUN.s)} ${n.r + 1}번째 구역, ${G.cfg.name}에게 당했다. 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개를 모았다. 이번 침투 설계도 +${RUN.pts || 0} (가진 설계도 ${META.pts})` + (lostN ? `. 송신하지 못한 부품 ${lostN}개를 잃었다` : ''),
     cards:[], buttons:[
       // 쓰러진 곳이 심연이면 다시 심연으로(버튼이 인자 없이 부르므로 감싼다)
       { label:RUN.abyss ? '다시 심층부로' : '새 침투', primary:true, onClick:() => startNewRun(RUN.abyss) },
