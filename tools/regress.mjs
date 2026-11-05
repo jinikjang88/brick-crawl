@@ -328,6 +328,15 @@ function seeded(mathSeed, seed = 777){
   const u = boot(store);
   ok('작업 08-3 슬롯 5칸 장전이 저장 뒤에도 남는다', u.META().g.load.length === 5 && u.loadRun().deck.length === 5);
 }
+{ // 지도: 층마다 충전소·브로커는 정확히 하나씩, 첫 줄은 전투(2026-11-06 소유자 결정)
+  const t = boot(); let okAll = true;
+  for (let seed = 1; seed <= 200; seed++) for (const abyss of [false, true]){
+    const m = t.genMap(seed % 5, abyss, seed * 7919), cells = m.flat();
+    const cnt = k => cells.filter(n => n.t === k).length;
+    if (cnt('rest') !== 1 || cnt('shop') !== 1 || m[0].some(n => n.t !== 'battle')) okAll = false;
+  }
+  ok('지도: 층마다 충전소 1·브로커 1', okAll);
+}
 { // 작업 08-4 등급별 순위표: 기록에 보안 등급을 실어 보낸다(심층부는 등급 없음 → null)
   const sent = [];
   const net = (path, body) => { if (path === 'record') sent.push(body); return { status:200, data:{ ok:true } }; };

@@ -28,7 +28,7 @@ function genMap(s, abyss, seed){
   const allMons = ROSTER.flatMap(x => x.mons), allElite = ROSTER.flatMap(x => x.elite);
   const battleMon = r => abyss ? pickOne(allMons, 'map') : s === 0 && r === 0 ? 'slime'
     : s > 0 && rand('map') < PREV_MIX ? pickOne(prev.mons, 'map') : pickOne(ro.mons, 'map');
-  // 길을 먼저 잇고 칸 종류를 정한다: 이어진 앞 칸이 휴식이면 휴식, 상점이면 상점이 다시 나오지 않게(연속 휴식·상점 금지)
+  // 길을 먼저 잇고 칸 종류를 정한다
   const rows = [];
   for (let r = 0; r < 4; r++){
     const row = [];
@@ -40,12 +40,14 @@ function genMap(s, abyss, seed){
     if (n.l > 0 && rand('map') < .4) n.to.push(n.l - 1);
     if (n.l < LANES - 1 && rand('map') < .4) n.to.push(n.l + 1);
   }
+  // 충전소·브로커는 층마다 하나씩만(2026-11-06 소유자 결정): 회복·구매 기회가 귀해져 어느 길로 갈지가 무거워진다.
+  // 충전소는 예전 가중치처럼 보스 앞 줄에 더 자주 둔다. 첫 줄(r 0)은 늘 전투
+  const late = rows.slice(1).flat();
+  const restAt = pickW(Object.fromEntries(late.map((n, i) => [i, n.r === 3 ? 34 : 18])), 'map');
+  const shopAt = pickW(Object.fromEntries(late.map((n, i) => [i, 1]).filter(([i]) => i !== +restAt)), 'map');
+  late[restAt].t = 'rest'; late[shopAt].t = 'shop';
   for (let r = 0; r < 4; r++) for (const n of rows[r]){
-    if (r > 0){
-      const w = { battle:45, elite:r === 1 ? 10 : 16, shop:17, rest:r === 3 ? 34 : 18 };
-      for (const p of rows[r - 1]) if (p.to.includes(n.l) && (p.t === 'rest' || p.t === 'shop')) delete w[p.t];
-      n.t = pickW(w, 'map');
-    }
+    if (r > 0 && n.t === 'battle') n.t = pickW({ battle:45, elite:r === 1 ? 10 : 16 }, 'map');
     n.mon = n.t === 'elite' ? pickOne(abyss ? allElite : ro.elite, 'map') : n.t === 'battle' ? battleMon(r) : null;
   }
   for (const n of rows[3]) n.to = [BOSS_L];
