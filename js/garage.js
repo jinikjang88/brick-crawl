@@ -140,9 +140,12 @@ function autoGarage(inRun){
   const g = META.g, slots = loadSlots(inRun);
   const coreOrder = ['comet', 'split', 'heavy', 'bomb', 'drill', 'magnet', 'basic'];
   for (const k of coreOrder) while (g.cores[k] > 0){ bump(g.cores, k, -1); g.orbs.push(orbMake(k)); }
-  // 센 코어를 먼저 장전한다
+  // 센 코어를 먼저 장전하되, 같은 코어는 하나씩만(기체마다 약점이 달라 여러 갈래를 들고 가는 편이 낫다). 칸이 남으면 겹쳐도 채운다
   const rank = o => coreOrder.indexOf(orbKind(o));
-  g.load = g.orbs.map((o, i) => i).sort((a, b) => rank(g.orbs[a]) - rank(g.orbs[b])).slice(0, slots);
+  const order = g.orbs.map((o, i) => i).sort((a, b) => rank(g.orbs[a]) - rank(g.orbs[b]));
+  const seen = new Set(), first = [], rest = [];
+  for (const i of order){ const k = orbKind(g.orbs[i]); (seen.has(k) ? rest : first).push(i); seen.add(k); }
+  g.load = first.concat(rest).slice(0, slots);
   for (const i of g.load){
     const core = orbKind(g.orbs[i]);
     let cs = orbCircs(g.orbs[i]);

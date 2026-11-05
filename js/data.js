@@ -5,19 +5,52 @@
 // 공격은 배율 없이 {t:'atk', n}: n턴 연속으로 매 턴 공격력만큼 때린다.
 // 배율(×2.5 등)을 두면 화면의 ⚔ 숫자와 실제 피해가 어긋나 읽히지 않아서, 피해는 항상 ⚔ 숫자 그대로다
 const MON = {
-  slime: { name:'나노 슬러지', spr:'sludge', hp:6, atk:1, def:0, sweep:.9,
+  // trait = 특성 하나(TRAITS), weak = 약점(코어·회로 id). 약점이 든 구슬이 천장을 치면 이번 전투 동안 특성이 꺼지고 그 타격은 피해 +1
+  slime: { name:'나노 슬러지', spr:'sludge', hp:6, atk:1, def:0, sweep:.9, trait:'regen', weak:['venom'],
     pattern:[{t:'atk',n:2},{t:'wait'}],
     row:{ d:.55, hard:0, stat:.5, w:{ atk:1 } } },
-  bat: { name:'경비 드론', spr:'drone', hp:8, atk:1, def:0, sweep:1.0,
+  bat: { name:'경비 드론', spr:'drone', hp:8, atk:1, def:0, sweep:1.0, trait:'evade', weak:['split'],
     pattern:[{t:'atk',n:3},{t:'wait'}],
     row:{ d:.6, hard:.2, stat:.4, w:{ atk:1, def:1 } } },
-  golem: { name:'방벽 가디언', spr:'guardian', hp:9, atk:1, def:2, sweep:1.15,
+  golem: { name:'방벽 가디언', spr:'guardian', hp:9, atk:1, def:2, sweep:1.15, trait:'armor', weak:['rust', 'drill'],
     pattern:[{t:'atk',n:2},{t:'guard',v:2}],
     row:{ d:.6, hard:.25, stat:.4, w:{ atk:2, def:1 } } },
-  shroom: { name:'오염 살포기', spr:'disperser', hp:9, atk:1, def:1, sweep:1.3,
+  shroom: { name:'오염 살포기', spr:'disperser', hp:9, atk:1, def:1, sweep:1.3, trait:'miasma', weak:['thorn'],
     // 독 행동의 v를 비워 두면 독 양 = 몬스터 ⚔ 공격력: 머리 위 숫자 그대로 독이 쌓이고, 층이 깊어질수록 함께 세진다
     pattern:[{t:'atk',n:2},{t:'poison'},{t:'atk',n:2},{t:'spore'}],
     row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 }, poison:.2 } },
+  // ── 2~5층 새 기체(작업 08 2단계, 대본의 층 묘사에서). 그림은 ASSET_PROMPTS에 프롬프트를 더하고, 그 전엔 비슷한 기존 그림을 쓴다
+  compiler: { name:'컴파일 드론', spr:'drone', hp:8, atk:1, def:0, sweep:1.1, trait:'spawn', weak:['bomb'],
+    pattern:[{t:'atk',n:2},{t:'wait'}],
+    row:{ d:.6, hard:.25, stat:.4, w:{ atk:1, def:1 } } },
+  holo: { name:'홀로그램 잔상', spr:'drone', hp:7, atk:1, def:0, sweep:1.2, trait:'phantom', weak:['split'],
+    pattern:[{t:'atk',n:3},{t:'wait'}],
+    row:{ d:.58, hard:.2, stat:.4, w:{ atk:1, def:1 } } },
+  stone: { name:'방어석', spr:'guardian', hp:10, atk:1, def:1, sweep:1.1, trait:'quarry', weak:['hammer'],
+    pattern:[{t:'atk',n:2},{t:'summon'}],
+    row:{ d:.62, hard:.35, stat:.35, w:{ atk:1, def:1 } } },
+  keeper: { name:'기록 수호기', spr:'guardian', hp:9, atk:1, def:2, sweep:1.15, trait:'fortify', weak:['rust', 'venom'],
+    pattern:[{t:'atk',n:2},{t:'guard',v:2}],
+    row:{ d:.6, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 } } },
+  hardener: { name:'경화 살포기', spr:'disperser', hp:9, atk:1, def:1, sweep:1.25, trait:'harden', weak:['weaken'],
+    pattern:[{t:'atk',n:2},{t:'poison'},{t:'atk',n:2}],
+    row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 }, poison:.15 } },
+  royal: { name:'근위 센티넬', spr:'sentinel', hp:10, atk:1, def:1, sweep:1.2, trait:'barrage', weak:['disarm', 'stun'],
+    pattern:[{t:'atk',n:3},{t:'guard',v:2}],
+    row:{ d:.62, hard:.35, stat:.35, w:{ atk:1, def:1 } } },
+  // 정예 전용(정예 배율이 붙는다)
+  arm: { name:'코테크 작업 팔', spr:'guardian', hp:10, atk:1, def:1, sweep:1.2, trait:'spawn', weak:['bomb', 'hammer'],
+    pattern:[{t:'atk',n:2},{t:'summon'}],
+    row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1 } } },
+  observer: { name:'거울 관측기', spr:'drone', hp:9, atk:1, def:0, sweep:1.25, trait:'reflect', weak:['mirror'],
+    pattern:[{t:'atk',n:3},{t:'wait'}],
+    row:{ d:.6, hard:.25, stat:.4, w:{ atk:1, def:1 } } },
+  tower: { name:'서고 감시기', spr:'guardian', hp:11, atk:1, def:2, sweep:1.2, trait:'armor', weak:['rust', 'drill'],
+    pattern:[{t:'atk',n:2},{t:'guard',v:3},{t:'summon'}],
+    row:{ d:.62, hard:.35, stat:.35, w:{ atk:1, def:1, heal:1 } } },
+  lens: { name:'위성 렌즈', spr:'drone', hp:10, atk:1, def:1, sweep:1.3, trait:'evade', weak:['split'],
+    pattern:[{t:'atk',n:3},{t:'wait'}],
+    row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1 } } },
   // 체력 20 → 14(2026-10-07): 일반 전투 구슬 보상을 없애 1층 보스 전 덱이 얇아졌다. 시뮬레이터 300회 1층 돌파 18% → 32%
   // def 1 → 0(2026-11-05, 작업 08): 첫 계정은 번개 구슬 하나로 시작해(EMP 구슬이 빠졌다) 보스 방어도에 피해가 다 막혔다.
   // 시뮬레이터 새 계정 60회: def 1 = 1층 돌파 15%, def 0 = 22%(목표 20~30%). 층마다 오르는 방어도(SCALE.def)는 그대로
@@ -40,6 +73,29 @@ const MON = {
     pattern3:[{t:'atk',n:3},{t:'summon'}],
     row:{ d:.64, hard:.4, stat:.35, w:{ atk:1, def:1, heal:1 }, poison:.3 } },
 };
+// ── 기체 특성(작업 08 2단계). icon = 머리 위 도트 아이콘(설명서 없이 읽히게). 약점을 찌르면 이번 전투 동안 꺼진다
+const TRAITS = {
+  regen:  { icon:'heart',   desc:'매 턴 체력 +1(1층에서는 3턴에 한 번)' },
+  evade:  { icon:'evade',   desc:'2턴에 한 번 발사의 첫 천장 타격을 피한다(1층에서는 3턴에 한 번)' },
+  armor:  { icon:'shield',  desc:'수비할 때 방어도 +2 더' },
+  miasma: { icon:'skull',   desc:'데이터 벽에 독 벽돌이 더 섞인다' },
+  spawn:  { icon:'brick',   desc:'2턴마다 맨 위 줄에 단단한 벽돌 1개' },
+  phantom:{ icon:'ghost',   desc:'발사의 두 번째·네 번째 천장 타격은 허상을 친다' },
+  quarry: { icon:'brick',   desc:'불러낸 돌 벽돌 체력 +2' },
+  fortify:{ icon:'heart',   desc:'수비할 때 체력 +2' },
+  harden: { icon:'up',      desc:'공격이 맞을 때마다 조준선이 10% 빨라진다(최대 50%)' },
+  barrage:{ icon:'sword',   desc:'연속 공격의 첫 타 피해 +1' },
+  reflect:{ icon:'reflect', desc:'발사의 첫 천장 타격마다 릭에게 피해 1' },
+};
+// 층별 등장(작업 08 4절). 앞 층 일반 기체가 PREV_MIX 확률로 섞인다(낯익은 적과 새 적이 함께). 심층부는 전부 섞인다
+const ROSTER = [
+  { mons:['slime', 'bat'],       elite:['golem'] },
+  { mons:['golem', 'compiler'],  elite:['arm'] },
+  { mons:['shroom', 'holo'],     elite:['observer'] },
+  { mons:['stone', 'keeper'],    elite:['tower'] },
+  { mons:['hardener', 'royal'],  elite:['lens'] },
+];
+const PREV_MIX = .25;
 // 본편 1~4층별 보스 이름·에셋 매핑(안 A 완전 분리)
 const FLOOR_BOSS = [
   { name:'센티넬 하이브-01', spr:'sentinel' },
@@ -186,6 +242,16 @@ const DROP_CIRC = {
   bat:   [['chain', 20], ['weaken', 12]],
   golem: [['guard', 25], ['mirror', 8]],
   shroom:[['venom', 25], ['toxin', 8]],
+  compiler:[['thorn', 20], ['wreck', 10]],
+  holo:    [['weaken', 20], ['stun', 10]],
+  stone:   [['hammer', 25], ['wreck', 10]],
+  keeper:  [['rust', 20], ['guard', 15]],
+  hardener:[['toxin', 15], ['stun', 12]],
+  royal:   [['disarm', 20], ['mirror', 12]],
+  arm:     [['hammer', 20], ['thorn', 15]],
+  observer:[['mirror', 20], ['chain', 10]],
+  tower:   [['rust', 20], ['guard', 15]],
+  lens:    [['chain', 20], ['weaken', 12]],
 };
 const DROP = {
   scrap:{ battle:[2, 4], elite:[5, 8], boss:[10, 10] },

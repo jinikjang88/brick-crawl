@@ -20,9 +20,12 @@ const LANES = 5, BOSS_L = 2;
 const NODE_NAME = { battle:'전투', elite:'정예', rest:'충전소', shop:'브로커', boss:'보스' };
 function genMap(s, abyss, seed){
   RNG.map = seedOf(seed, 'map', s, abyss ? 1 : 0);
-  // 심연은 첫 칸부터 아무 몬스터나 나온다(본편처럼 슬라임으로 몸을 풀 틈을 주지 않는다)
-  const pools = abyss ? [['slime','bat','golem'], ['bat','golem','shroom'], ['golem','shroom','bat'], ['shroom','golem','bat']]
-    : [['slime'], ['bat','golem'], ['golem','shroom'], ['shroom','golem','bat']];
+  // 층별 등장 구성(ROSTER, 작업 08 2단계). 앞 층 기체가 PREV_MIX 확률로 섞인다.
+  // 심층부는 모든 층 기체가 섞여 첫 칸부터 아무 기체나 나온다. 본편 1층 첫 칸은 나노 슬러지로 몸을 푼다
+  const ro = ROSTER[Math.min(s, ROSTER.length - 1)], prev = ROSTER[Math.max(0, Math.min(s, ROSTER.length - 1) - 1)];
+  const allMons = ROSTER.flatMap(x => x.mons), allElite = ROSTER.flatMap(x => x.elite);
+  const battleMon = r => abyss ? pickOne(allMons, 'map') : s === 0 && r === 0 ? 'slime'
+    : s > 0 && rand('map') < PREV_MIX ? pickOne(prev.mons, 'map') : pickOne(ro.mons, 'map');
   // 길을 먼저 잇고 칸 종류를 정한다: 이어진 앞 칸이 휴식이면 휴식, 상점이면 상점이 다시 나오지 않게(연속 휴식·상점 금지)
   const rows = [];
   for (let r = 0; r < 4; r++){
@@ -41,7 +44,7 @@ function genMap(s, abyss, seed){
       for (const p of rows[r - 1]) if (p.to.includes(n.l) && (p.t === 'rest' || p.t === 'shop')) delete w[p.t];
       n.t = pickW(w, 'map');
     }
-    n.mon = n.t === 'elite' ? pickOne(['bat','golem','shroom'], 'map') : n.t === 'battle' ? pickOne(pools[r], 'map') : null;
+    n.mon = n.t === 'elite' ? pickOne(abyss ? allElite : ro.elite, 'map') : n.t === 'battle' ? battleMon(r) : null;
   }
   for (const n of rows[3]) n.to = [BOSS_L];
   rows.push([{ r:4, l:BOSS_L, t:'boss', mon:!abyss && s === FINAL_S ? 'lord' : 'boss', to:[] }]);

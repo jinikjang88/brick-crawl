@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollRelics,burst,spawnRow,showShop,resetAim,rollDrops,addCargo,sendCargo,showGarage,pickSlot,autoGarage,orbValid,orbHeat,'
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollRelics,burst,spawnRow,showShop,resetAim,rollDrops,addCargo,sendCargo,showGarage,pickSlot,autoGarage,orbValid,orbHeat,isWeak,traitOn,endPlayerTurn,ROSTER,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   // 이야기 대화창(showTalk)도 같은 모양({ mode:'story', title, buttons })으로 받아 검사를 하나로 쓴다
   + 'catchChoice:()=>{ const got = [], orig = showChoice, ot = showTalk; showChoice = o => { got.push(o); orig(o); };'
@@ -261,6 +261,30 @@ function seeded(mathSeed, seed = 777){
   const t = boot(store); click('mNew');
   ok('작업 08 메타 이전: 기록·모듈·트로피 유지, 차고 기본값, v4 키 삭제', t.META().best === 12 && t.META().tree.a1 === 1 && t.META().badges.rich === 1
     && t.META().g.orbs.join() === 'basic' && !('brickquest:meta:v4' in store) && META_KEY in store);
+}
+{ // 작업 08 2단계: 층별 등장 구성. 3층 지도의 일반 기체는 3층 또는 앞 층(2층) 기체, 정예는 3층 정예만
+  const t = boot(); click('mNew');
+  const mons = new Set(), elites = new Set();
+  for (let sd = 1; sd <= 20; sd++) for (const row of t.genMap(2, false, sd)) for (const n of row){ if (n.t === 'battle') mons.add(n.mon); if (n.t === 'elite') elites.add(n.mon); }
+  const ok3 = [...t.ROSTER[2].mons, ...t.ROSTER[1].mons];
+  ok('작업 08-2 3층 등장: 3층·2층 기체만, 둘 다 나온다', [...mons].every(m => ok3.includes(m)) && t.ROSTER[2].mons.every(m => mons.has(m)) && t.ROSTER[1].mons.some(m => mons.has(m)));
+  ok('작업 08-2 3층 정예: 거울 관측기만', [...elites].join() === t.ROSTER[2].elite.join());
+  const first = t.genMap(0, false, 7)[0].filter(n => n.t === 'battle').map(n => n.mon);
+  ok('작업 08-2 1층 첫 칸은 나노 슬러지', first.length > 0 && first.every(m => m === 'slime'));
+}
+{ // 약점·장갑: 방벽 가디언은 수비 때 방어도 +2 더, 분해 회로·관통 코어가 약점. 약점에 찔리면(꺼지면) 그대로
+  const t = boot(); click('mNew'); t.RUN.s = 1;
+  t.newBattle({ r:0, l:0, t:'battle', mon:'golem' }); const G = t.G;
+  ok('작업 08-2 약점 판정', t.isWeak('basic/rust') && t.isWeak('drill') && !t.isWeak('basic') && !t.isWeak('bomb/venom'));
+  const guardAt = G.cfg.pattern.findIndex(x => x.t === 'guard');
+  const guard = () => { G.m.def = 0; G.m.pi = guardAt; G.m.ai = 0; G.phase = 'enemy'; G.eStep = 0; G.timer = 0; t.enemyUpdate(0.01); return G.m.def; };
+  const on = guard(); G.traitOff = true; const off = guard();
+  ok('작업 08-2 장갑: 수비 +2 → +4, 약점에 찔리면 +2', on === G.cfg.pattern[guardAt].v + 2 && off === G.cfg.pattern[guardAt].v);
+}
+{ // 재생: 2층 이상에서는 매 턴 체력 +1, 1층에서는 3턴에 한 번
+  const t = boot(); click('mNew');
+  const regen = (s, turn) => { t.RUN.s = s; t.newBattle({ r:0, l:0, t:'battle', mon:'slime' }); const G = t.G; G.m.hp = 2; G.turn = turn; G.phase = 'fire'; t.endPlayerTurn(); return G.m.hp; };
+  ok('작업 08-2 재생: 2층 매 턴, 1층 3턴에 한 번', regen(1, 1) === 3 && regen(0, 1) === 2 && regen(0, 3) === 3);
 }
 { // 전체 진행도 초기화(2026-10-16): 옛 원정·메타(v2·v3)는 읽지 않고 지운다. 프로필(닉네임·id)은 남고 못 보낸 옛 기록만 비운다
   const old = { v:3, deck:['bomb+5'], map:goodRun.map, hp:24, maxHp:24 };
