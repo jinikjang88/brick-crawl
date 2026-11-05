@@ -309,6 +309,11 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .subBtn small{display:block;font-size:12px;font-weight:600;color:var(--ink2)}
 .subBtn:hover{border-color:var(--ink)}
 .subBtn:active{transform:translateY(1px)}
+/* 순위표 등급 탭: 지금 고른 탭은 내 줄(.board li.me)처럼 뒤집어 보인다. 좁은 화면에서는 두 줄로 접힌다 */
+.rankTabs{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;width:100%;max-width:var(--content)}
+.rankTabs:empty{display:none}
+.rankTabs .subBtn{flex:0 0 auto;min-width:44px;min-height:44px;padding:4px 10px}
+.subBtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 @media (prefers-reduced-motion: reduce){ .btn.hero,.btn.hero::before,.btn.hero::after{animation:none} .btn.hero::after{display:none} }
 
 /* ── 배지 화면 */

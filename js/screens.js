@@ -165,13 +165,13 @@ function showMain(){
   ab.disabled = !abyssOpen(); ab.dataset.arm = '';
   ab.textContent = abyssOpen() ? '심층부로' : '심층부 · OMNIS를 멈추면 열린다';
   if (abyssOpen() && META.abyssBest){ const sm = document.createElement('small'); sm.textContent = `최고 ${progLabel(MAIN_CELLS + META.abyssBest)}`; ab.append(sm); }
-  $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 구역이 없다' : '첫 침투를 시작해 보자')
+  $('mRecord').textContent = `릭 Lv${META.lv}` + (META.lv < RICK_LV_MAX ? ` (${META.xp}/${rickNeed(META.lv)})` : '') + ' · ' + (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 구역이 없다' : '첫 침투를 시작해 보자')
     + (META.runs ? ` · 침투 ${META.runs}회` : '') + (META.clears ? ` · 하늘 개방 ${META.clears}회` : '');
   $('mTree').textContent = '모듈';
   const tp = document.createElement('small'); tp.textContent = `설계도 ${META.pts}`; $('mTree').append(tp);
   // 차고: 조립한 구슬 수와 장전 칸
   $('mGarage').textContent = '차고';
-  const gp = document.createElement('small'); gp.textContent = `구슬 ${META.g.orbs.length} · 장전 ${META.g.load.length}/${DECK_MAX}`; $('mGarage').append(gp);
+  const gp = document.createElement('small'); gp.textContent = `구슬 ${META.g.orbs.length} · 장전 ${META.g.load.length}/${baseSlots()}`; $('mGarage').append(gp);
   // 도감: 구슬·유물·배지를 한 화면에서 모은다. 버튼에는 모은 총수만
   $('mBadge').textContent = '아카이브';
   const total = [...CORES, ...CIRCS].length + Object.keys(RELICS).length + BADGES.length;
@@ -257,7 +257,7 @@ $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); else if (mode === 'map') showMap(); else if (mode === 'pause') themeDirty = true; }); } catch(e){}
 let startRadio = false;
 function startNewRun(abyss){
-  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => Object.keys(orbFeats(o)).forEach(k => markSeen('orb', k))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
+  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => Object.keys(orbFeats(o)).filter(k => hasKey(ORBS, k)).forEach(k => markSeen('orb', k))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
   // 첫 원정에는 이야기의 시작을 먼저 보여 준다(한 번만). 이미 본 계정은 첫 지도에서 접속 시작 무전을 한 줄
   startRadio = !abyss && !!META.story.intro;
   storyOnce('intro', () => showMap());
@@ -285,6 +285,8 @@ function endRun(r){ recordRun(r); }
 // ── 랭킹: 밀린 기록을 먼저 올리고 받아 온다. 서버가 없거나 실패하면 조용히 비워 둔다(게임은 오프라인으로도 돈다)
 let BOARD = null;
 let boardSeq = 0;
+// 순위표 화면의 탭: null = 전체, 0~ASC_MAX = 그 보안 등급. 터미널의 작은 순위표는 늘 전체
+let rankTab = null, RANK_BOARD = null, rankSeq = 0;
 async function refreshBoard(){
   const seq = ++boardSeq;
   await flushRecords();
@@ -304,19 +306,56 @@ function boardRow(rank, name, best, me){
   return li;
 }
 function renderBoard(){
-  const mini = $('mBoard'), list = $('rankList');
-  mini.textContent = ''; list.textContent = '';
+  const mini = $('mBoard');
+  mini.textContent = '';
   $('mRank').hidden = !BOARD;
-  if (!BOARD){ $('rankSub').textContent = '순위표를 불러오지 못했다'; return; }
-  const me = BOARD.me, top = BOARD.top || [];
+  if (BOARD){
+    const me = BOARD.me, top = BOARD.top || [];
+    const isMe = t => me && t.name === me.name;
+    top.slice(0, 3).forEach((t, i) => mini.append(boardRow(i + 1, t.name, t.best, isMe(t))));
+    // 내가 3위 밖이면 맨 아래에 내 줄을 붙인다
+    if (me && me.rank > 3) mini.append(boardRow(me.rank, me.name, me.best, true));
+  }
+  renderRankList();
+}
+function renderRankList(){
+  const list = $('rankList'), B = rankTab === null ? BOARD : RANK_BOARD;
+  list.textContent = '';
+  renderRankTabs();
+  if (!B){ $('rankSub').textContent = '순위표를 불러오지 못했다'; return; }
+  const me = B.me, top = B.top || [];
   const isMe = t => me && t.name === me.name;
-  top.slice(0, 3).forEach((t, i) => mini.append(boardRow(i + 1, t.name, t.best, isMe(t))));
-  // 내가 3위 밖이면 맨 아래에 내 줄을 붙인다
-  if (me && me.rank > 3) mini.append(boardRow(me.rank, me.name, me.best, true));
   top.forEach((t, i) => list.append(boardRow(i + 1, t.name, t.best, isMe(t))));
   if (me && me.rank > top.length) list.append(boardRow(me.rank, me.name, me.best, true));
-  $('rankSub').textContent = !top.length ? '아직 기록이 없다. 첫 번째가 되어 보자'
-    : me && me.rank ? `${BOARD.total}명 중 ${me.rank}위` : `기록 ${BOARD.total}명 · 침투를 끝내면 이름이 오른다`;
+  const head = rankTab === null ? '' : `보안 등급 ${rankTab} · `;
+  $('rankSub').textContent = head + (!top.length ? '아직 기록이 없다. 첫 번째가 되어 보자'
+    : me && me.rank ? `${B.total}명 중 ${me.rank}위` : `기록 ${B.total}명 · 침투를 끝내면 이름이 오른다`);
+}
+// 탭: 전체 + 보안 등급 0~6. 영구 성장 때문에 오래 한 사람이 전체 순위에서 유리해져서, 같은 등급끼리 겨루는 순위를 따로 둔다
+function renderRankTabs(){
+  const box = $('rankTabs');
+  if (box.childElementCount !== ASC_MAX + 2){
+    box.textContent = '';
+    for (let g = -1; g <= ASC_MAX; g++){
+      const b = document.createElement('button');
+      b.className = 'subBtn'; b.dataset.g = g;
+      b.textContent = g < 0 ? '전체' : g;
+      b.setAttribute('aria-label', g < 0 ? '전체 순위' : `보안 등급 ${g} 순위`);
+      b.onclick = () => pickRankTab(g < 0 ? null : g);
+      box.append(b);
+    }
+  }
+  for (const b of box.children) b.setAttribute('aria-pressed', String(+b.dataset.g === (rankTab === null ? -1 : rankTab)));
+}
+async function pickRankTab(g){
+  if (g === rankTab) return;
+  rankTab = g; RANK_BOARD = null; sfx('pick');
+  if (g === null) return renderRankList();
+  $('rankList').textContent = ''; renderRankTabs(); $('rankSub').textContent = `보안 등급 ${g} · 불러오는 중`;
+  const seq = ++rankSeq, b = await loadBoard(g);
+  if (seq !== rankSeq || rankTab !== g) return;   // 그사이 다른 탭을 눌렀다
+  RANK_BOARD = b;
+  renderRankList();
 }
 // ── 스킬 트리: 노드를 누르면 아래에 설명과 "찍기"가 뜬다(잘못 눌러 포인트를 쓰지 않게 두 단계)
 let treeBack = null, treePick = null;
@@ -413,6 +452,14 @@ function showBadges(){
     box.append(bookRow(icon, own ? o.name : '???', (o.part === 'core' ? '코어 · ' : '회로 · ') + RARITY[o.rar].name,
       own ? o.desc + (o.lore ? ' — ' + o.lore : '') : o.part === 'core' ? '정예·보스가 떨어뜨린다' : '기체가 떨어뜨리거나 정비소에서 판다', own));
   }
+  // 공명(작업 08 3단계): 찾은 것은 조합까지, 못 찾은 것은 코어만 보여 준다("이 코어로 뭔가 된다"는 목표)
+  box.append(bookHead('공명'));
+  for (const r of RESONANCE){
+    const own = !!META.res[r.id];
+    box.append(bookRow(own ? orbPortrait(r.core, 'bIc') : badgeIcon(UNKNOWN, false), own ? r.name : '???',
+      own ? `${ORBS[r.core].short} + ${r.circs.map(c => ORBS[c].short).join(' + ')}` : `${ORBS[r.core].name} + ?`,
+      own ? r.desc : '차고에서 맞는 회로를 끼우면 드러난다', own));
+  }
   box.append(bookHead('칩'));
   for (const k of relics.slice().sort((a, b) => RELICS[a].t - RELICS[b].t)){
     const r = RELICS[k], own = !!META.seen.relic[k];
@@ -446,7 +493,7 @@ function showBadges(){
 }
 $('mBadge').onclick = showBadges;
 $('badgeBack').onclick = () => { if (mode === 'badge') showMain(); };
-$('mRank').onclick = () => { show('ovRank'); $('rankBack').focus(); refreshBoard(); };
+$('mRank').onclick = () => { rankTab = null; RANK_BOARD = null; show('ovRank'); $('rankBack').focus(); refreshBoard(); };
 $('rankBack').onclick = () => { show('ovMain'); $('mRank').focus(); };
 function resumeRun(){
   setRealm(RUN.abyss);
@@ -607,7 +654,9 @@ function startBattle(n, firstBoss){
 }
 function battleEnd(win){
   const n = G.node;
+  creditOrbXp(G.hitsBy);
   if (!win) return runOver();
+  gainRickXp(n.t);
   // 고난 6: 군주는 껍데기다. 승리 회복 없이 남은 체력 그대로 근원과 이어 싸운다(저장해 두어 새로고침해도 근원부터)
   if (G.cfg.final && !G.cfg.king && ascOn(6)){ RUN.hp = G.p.hp; RUN.king = true; saveRun(); return storyOnce('root', () => startBattle(G.node)); }
   RUN.hp = Math.min(RUN.maxHp, G.p.hp + 2 * rel('medkit') + (tree('d3') ? 2 : 0));

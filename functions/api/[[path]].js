@@ -1,8 +1,9 @@
 // 기록 API (Cloudflare Pages Functions). D1 바인딩 이름: DB
 //   POST /api/player  { id, name }           닉네임 등록. 이름이 이미 쓰이면 409
 //   POST /api/start   { id, rid }            원정 시작 표. 서버가 받은 시각을 남겨 기록의 최소 소요 시간을 따진다
-//   POST /api/record  { id, rid, progress, epoch }  원정 하나의 최종 도달 칸 수(epoch = 진행도 초기화 회차, 다르면 400)
-//   POST /api/board   { id }                 상위 10명 + 내 순위
+//   POST /api/record  { id, rid, progress, epoch, grade }  원정 하나의 최종 도달 칸 수(epoch = 진행도 초기화 회차, 다르면 400,
+//                                            grade = 보안 등급 0~6. 심층부·옛 버전은 없음 → 전체 순위에만 든다)
+//   POST /api/board   { id, grade }          상위 10명 + 내 순위. grade가 0~6이면 그 등급의 기록만으로 센다
 //   POST /api/delete  { id }                 내 기록 삭제: 닉네임·원정 기록·시작 표를 지운다(없는 id여도 200)
 //   POST /api/rename  { id, name }           닉네임 변경. 형식이 틀리면 400(name), 금지어 400(bad), 겹치면 409, 7일이 안 지났으면 429(nextAt)
 // 모든 요청은 속도 제한을 거친다(넘으면 429 { error:'rate' }).
@@ -31,6 +32,10 @@ const RENAME_GAP = 7 * 24 * 3600 * 1000;
 const EPOCH = 2;   // 닉네임 변경 간격: 랭킹에서 남을 사칭하거나 이름을 자주 바꿔 혼란을 주지 않게
 const MAX_PROGRESS = 200;   // 현재 세션이 끝없이 이어지지만, 사람이 실제로 닿기 힘든 값으로 상한을 둔다
 const TOP = 10;
+// 보안 등급 상한(클라이언트 ASC_MAX). 영구 성장(작업 08) 때문에 오래 한 사람이 전체 순위에서 유리해져서
+// 등급별 순위를 따로 보여 준다(2026-11-05 소유자 결정)
+const GRADE_MAX = 6;
+const gradeOf = g => Number.isInteger(g) && g >= 0 && g <= GRADE_MAX ? g : null;
 // 기록 검증: 서버가 시작 표를 받은 뒤 칸당 MIN_CELL_MS 이상 지나야 그 진행도를 그대로 랭킹에 쓴다.
 // 휴식·상점 칸은 몇 초면 끝나지만 한 세션(5칸)에 전투가 3번 이상이라, 세션당 25초는 사람이 넘기 어렵지 않다(보수적으로 잡음)
 const MIN_CELL_MS = 5000;
@@ -123,7 +128,7 @@ async function start(db, { id, rid }, now){
   return json({ ok:true });
 }
 
-async function record(db, { id, rid, progress, epoch }, now){
+async function record(db, { id, rid, progress, epoch, grade }, now){
   if (epoch !== EPOCH) return json({ error:'epoch' }, 400);
   if (typeof rid !== 'string' || !UUID.test(rid)) return json({ error:'rid' }, 400);
   if (!Number.isInteger(progress) || progress < 0 || progress > MAX_PROGRESS) return json({ error:'progress' }, 400);
@@ -142,7 +147,7 @@ async function record(db, { id, rid, progress, epoch }, now){
   // 집계는 "+1"이 아니라 runs 표에서 다시 센다. 같은 rid를 몇 번 보내도 결과가 같고(멱등),
   // 예전에 어긋난 플레이어도 다음 기록 때 바로잡힌다. MAX로 감싸 runs 표에 없는 옛 기록은 줄이지 않는다
   const [ins] = await db.batch([
-    db.prepare('INSERT OR IGNORE INTO runs (rid, player_id, progress, score, ended_at) VALUES (?, ?, ?, ?, ?)').bind(rid, id, progress, score, now),
+    db.prepare('INSERT OR IGNORE INTO runs (rid, player_id, progress, score, ended_at, grade) VALUES (?, ?, ?, ?, ?, ?)').bind(rid, id, progress, score, now, gradeOf(grade)),
     db.prepare(`UPDATE players SET
         runs = MAX(runs, (SELECT COUNT(*) FROM runs WHERE player_id = ?1)),
         best_at = CASE WHEN (SELECT MAX(score) FROM runs WHERE player_id = ?1) > best
@@ -183,7 +188,8 @@ async function rename(db, { id, name }, now){
   return json({ ok:true, name, nameAt:now });
 }
 
-async function board(db, { id }){
+async function board(db, { id, grade }){
+  if (gradeOf(grade) !== null) return gradeBoard(db, id, grade);
   const top = await db.prepare('SELECT name, best FROM players WHERE best > 0 ORDER BY best DESC, best_at ASC LIMIT ?').bind(TOP).all();
   const me = await db.prepare('SELECT name, best, best_at, runs FROM players WHERE id = ?').bind(id).first();
   let rank = null;
@@ -193,6 +199,30 @@ async function board(db, { id }){
   }
   const total = await db.prepare('SELECT COUNT(*) AS n FROM players WHERE best > 0').first();
   return json({ top:top.results, total:total.n, me:me ? { name:me.name, best:me.best, runs:me.runs, rank } : null });
+}
+
+// 등급별 순위: players.best는 등급을 가리지 않는 최고 기록이라 runs에서 그 등급의 최고 기록을 다시 센다.
+// 같은 기록이면 먼저 세운 쪽이 위(전체 순위와 같은 규칙)
+const GRADE_BEST = 'SELECT player_id, MAX(score) AS best FROM runs WHERE grade = ?1 AND score > 0 GROUP BY player_id';
+const GRADE_RANKED = `SELECT b.player_id, b.best,
+    (SELECT MIN(ended_at) FROM runs r WHERE r.player_id = b.player_id AND r.grade = ?1 AND r.score = b.best) AS at
+  FROM (${GRADE_BEST}) b`;
+async function gradeBoard(db, id, grade){
+  const top = await db.prepare(`SELECT p.name, t.best FROM (${GRADE_RANKED}) t JOIN players p ON p.id = t.player_id
+      ORDER BY t.best DESC, t.at ASC LIMIT ?2`).bind(grade, TOP).all();
+  const p = await db.prepare('SELECT name, runs FROM players WHERE id = ?').bind(id).first();
+  let me = null;
+  if (p){
+    const mine = await db.prepare(`SELECT best, at FROM (${GRADE_RANKED}) WHERE player_id = ?2`).bind(grade, id).first();
+    let rank = null;
+    if (mine){
+      const r = await db.prepare(`SELECT COUNT(*) AS n FROM (${GRADE_RANKED}) WHERE best > ?2 OR (best = ?2 AND at < ?3)`).bind(grade, mine.best, mine.at).first();
+      rank = r.n + 1;
+    }
+    me = { name:p.name, best:mine ? mine.best : 0, runs:p.runs, rank };
+  }
+  const total = await db.prepare(`SELECT COUNT(*) AS n FROM (${GRADE_BEST})`).bind(grade).first();
+  return json({ grade, top:top.results, total:total.n, me });
 }
 
 // 내 기록 삭제(개인정보 삭제 요청): 이 id의 원정 기록·시작 표·플레이어·속도 제한 행을 한 트랜잭션으로 지운다.

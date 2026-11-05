@@ -19,6 +19,9 @@ function newBattle(node){
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
     // 장갑 슬롯(작업 08): sel = 고른 슬롯, heat = 슬롯별 남은 과열 턴. orb = 지금 쏠 구슬
     sel:0, heat:[], orb:'basic',
+    // orbs = 장전에 구슬 레벨(@n)을 붙인 것(작업 08 3단계), hitsBy = 슬롯별 천장 타격 수(전투가 끝나면 구슬 경험치로)
+    // relay·gate = 이번 턴 공명 효과(교대 신호·방화문), gateUsed = 방화문은 전투마다 1번, fan = 환풍기 발사 수
+    orbs:[], hitsBy:[], relay:false, gate:false, gateUsed:false, fan:0,
     // 전투 난수 흐름: 시드·세션·칸으로 정한다. 같은 칸에 다시 들어오면(새로고침) 같은 벽돌·덱 순서·첫 조준
     // 근원은 군주와 같은 칸이라 흐름을 따로 갈라 같은 판이 되지 않게
     // (근원이 아닌 전투의 시드는 예전과 같게 둔다: 같은 원정이 같은 판으로 재현되게)
@@ -27,6 +30,8 @@ function newBattle(node){
     seal:[], sealNext:null,
   };
   G.heat = RUN.deck.map(() => 0);
+  G.orbs = RUN.deck.map((o, i) => withLv(o, lvFromXp((RUN.load && META.g.oxp[RUN.load[i]]) || 0)));
+  G.hitsBy = RUN.deck.map(() => 0);
   // 고난 1: 정예가 처음부터 분노한다
   if (cfg.elite && ascOn(1)) G.m.rage = true;
   // 근원은 cfg.seal칸, 고난 5부터는 다른 보스도 한 칸을 봉인한다
@@ -68,12 +73,12 @@ function drawOrb(){
     if (i < 0){ i = h.indexOf(Math.min(...h)); h[i] = 0; }
     G.sel = i;
   }
-  G.orb = RUN.deck[G.sel] || RUN.deck[0] || 'basic';
+  G.orb = G.orbs[G.sel] || G.orbs[0] || 'basic';
   renderOrbBar();
 }
 function pickSlot(i){
-  if (mode !== 'play' || !G || G.phase !== 'aim' || !(i in RUN.deck) || G.heat[i] > 0 || G.sel === i) return;
-  G.sel = i; G.orb = RUN.deck[i]; sfx('pick'); renderOrbBar();
+  if (mode !== 'play' || !G || G.phase !== 'aim' || !(i in G.orbs) || G.heat[i] > 0 || G.sel === i) return;
+  G.sel = i; G.orb = G.orbs[i]; sfx('pick'); renderOrbBar();
 }
 
 function resetAim(){
@@ -139,7 +144,7 @@ function hitParts(o, n = 1, ball){
   if (tree('a6')) k *= 1.5;
   if (tree('a4') && G.m.hp <= G.m.max / 2) k *= 1.5;
   // 분열은 배율까지 곱한 피해를 갈래 수로 나눈다(올림, 최소 1)
-  const div = splitWays(o);
+  const div = ball && ball.div ? ball.div : splitWays(o);
   return { base, k, div, v:Math.max(1, Math.ceil(Math.round(base * k) / div)) };
 }
 const hitDmg = (o, n = 1, ball) => hitParts(o, n, ball).v;
@@ -353,6 +358,13 @@ function moveBall(b, dt){
         if (traitOn('reflect') && b.hits === 1) hurtPlayer(1, undefined, false);
         if (miss){ pop(MX, 40, '', C.ink3, 'dots'); burst(b.x, BT + 1, C.ink3, 4); }
         else G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.f.venom !== undefined ? (b.f.venom ? 2 : 1) : 0, shot:G.shot });
+        if (b.slot !== undefined) G.hitsBy[b.slot] = (G.hitsBy[b.slot] || 0) + 1;
+        // 마지막 번개(공명): 아크가 천장을 친 자리에서 세 갈래로 갈라져 내려온다. 갈래는 보통 구슬처럼 튕기고 피해를 셋으로 나눈다
+        if (b.f.lastarc !== undefined && !b.forked){
+          b.forked = true;
+          for (const d of [-0.35, 0, 0.35]){ const a = Math.PI / 2 + d;
+            G.balls.push({ x:b.x, y:BT + 3, vx:Math.cos(a) * BALL_SPEED, vy:Math.sin(a) * BALL_SPEED, hits:0, orb:b.orb, kind:'basic', up:false, f:{}, div:3, slot:b.slot, broke:0, bombed:false, drill:0, bounces:0 }); }
+        }
         if (b.hits === 3 && rel('leech')) heal(1);
         orbCeil(b);
         G.cf.push({ x:b.x, t:0.25 });
@@ -376,7 +388,7 @@ function moveBall(b, dt){
 }
 
 // 구슬마다 천장 타격 상한: 기본 + 기본 구슬 강화 1 + 탄력 구슬. 혜성은 모든 벽돌을 뚫는 대신 한 번만 친다
-const ballCap = b => b.kind === 'comet' ? 1 : hitCap() + (b.kind === 'basic' && b.up ? 1 : 0) + (b.f.bounce !== undefined ? (b.f.bounce ? 2 : 1) : 0);
+const ballCap = b => b.kind === 'comet' ? 1 : (b.fanBonus || 0) + hitCap() + (b.kind === 'basic' && b.up ? 1 : 0) + (b.f.bounce !== undefined ? (b.f.bounce ? 2 : 1) : 0);
 function heal(v){ const p = G.p, before = p.hp; p.hp = Math.min(p.max, p.hp + v); if (p.hp > before) pop(PX, 30, '+' + (p.hp - before), C.ink, 'heart'); }
 // 천장 타격 때 구슬별 효과. 디버프는 맞는 즉시 몬스터 예고(머리 위 숫자)가 바뀌어 효과가 눈으로 보인다
 // 회로가 둘이면 효과도 둘 다 든다(예전엔 구슬 하나 = 효과 하나라 else if였다)
@@ -418,6 +430,11 @@ function fire(){
   if (rel('twin') && g.turn % 3 === 0) g.queue = g.queue.concat(g.queue);
   g.shot.weak = 0;
   const ff = orbFeats(g.orb);
+  // 공명: 교대 신호(이번 턴 첫 공격을 막는다)·방화문(이번 턴 벽이 안 내려온다, 전투마다 1번)·환풍기(세 번째 발사마다 상한 +2)
+  g.relay = ff.relay !== undefined;
+  if (ff.gate !== undefined && !g.gateUsed){ g.gate = true; g.gateUsed = true; }
+  if (ff.fan !== undefined) g.fan++;
+  g.shot.fanBonus = ff.fan !== undefined && g.fan % 3 === 0 ? 2 : 0;
   g.mirror = ff.mirror !== undefined ? (ff.mirror ? 1 : .5) : 0;
   // 과열: 쏜 슬롯은 orbHeat턴 동안 쉰다(+1은 다음 턴 시작에 바로 1 줄기 때문)
   const hh = orbHeat(g.orb); g.heat[g.sel] = hh ? hh + 1 : 0;
@@ -478,7 +495,7 @@ function update(dt){
       g.fireT = 0;
       const a = g.queue.shift();
       g.balls.push({ x:g.lx, y:FLOOR - 2, vx:Math.cos(a) * BALL_SPEED, vy:Math.sin(a) * BALL_SPEED,
-                     hits:0, orb:g.orb, kind:orbKind(g.orb), up:orbUp(g.orb), f:orbFeats(g.orb), broke:0, bombed:false,
+                     hits:0, orb:g.orb, kind:orbKind(g.orb), up:orbUp(g.orb), f:orbFeats(g.orb), slot:g.sel, fanBonus:g.shot.fanBonus, broke:0, bombed:false,
                      drill:orbKind(g.orb) === 'comet' ? 99 : orbKind(g.orb) === 'drill' ? (orbUp(g.orb) ? 5 : 3) : 0,
                      bounces:orbKind(g.orb) === 'magnet' ? (orbUp(g.orb) ? 2 : 1) : 0 });
     }
@@ -556,7 +573,12 @@ function enemyUpdate(dt){
   if (g.eStep === 1 && g.timer >= 0.2){
     g.eStep = 2;
     // 인내: 연속 공격 묶음의 첫 타만 막는다. 긴 연속 공격일수록 덜 막히니 후반 보스를 혼자 무력화하지는 못한다
-    if (g.cur.t === 'atk' && m.ai === 0 && rel('endure')){ pop(PX, 42, '0', C.ink2, 'shield'); sfx('block'); }
+    if (g.cur.t === 'atk' && g.relay){
+      g.relay = false; pop(PX, 42, '0', C.ink2, 'shield'); sfx('block');
+      const low = g.bricks.filter(b => !b.dead).sort((a, b) => b.r - a.r).slice(0, m.atk);
+      for (const b of low){ b.dead = true; onBreak(b); }
+    }
+    else if (g.cur.t === 'atk' && m.ai === 0 && rel('endure')){ pop(PX, 42, '0', C.ink2, 'shield'); sfx('block'); }
     else if (g.cur.t === 'atk'){
       const hp0 = p.hp;
       hurtPlayer(m.atk + (traitOn('barrage') && m.ai === 0 ? 1 : 0), undefined, true);
@@ -568,7 +590,7 @@ function enemyUpdate(dt){
   if (g.eStep === 2 && g.timer >= 0.6){
     g.eStep = 3;
     // 성벽은 몇 턴마다 한 번 내려온다: 구슬이 튕기는 구조라 매 턴 내려오면 길을 낼 틈이 없다
-    if (g.turn % WALL.every === 0 || g.cur.t === 'summon' || g.cur.t === 'spore'){
+    if (!g.gate && (g.turn % WALL.every === 0 || g.cur.t === 'summon' || g.cur.t === 'spore')){
       for (const b of g.bricks) b.r++;
       spawnRow(0, false); sfx('wall');
     }
@@ -614,6 +636,7 @@ function enemyUpdate(dt){
     g.phase = 'aim'; g.turn++; g.cur = null;
     if (g.sealNext){ g.seal = g.sealNext; g.sealNext = sealShift(g.seal); }
     for (let i = 0; i < g.heat.length; i++) if (g.heat[i] > 0) g.heat[i]--;
+    g.relay = false; g.gate = false;
     drawOrb(); resetAim();
   }
 }

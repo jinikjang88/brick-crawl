@@ -214,7 +214,7 @@ function renderOrbBar(){
   if (G && mode === 'play'){
     // 장갑 슬롯(작업 08): 고른 슬롯은 넓게(이름 + 피해 식), 나머지는 그림 + 과열 숫자. 누르면 그 구슬로 바꾼다
     const slots = document.createElement('div'); slots.className = 'slots';
-    RUN.deck.forEach((o, i) => {
+    G.orbs.forEach((o, i) => {
       if (i === G.sel) return;
       const b = document.createElement('button'); b.className = 'slot';
       const hot = G.heat[i] > 0;

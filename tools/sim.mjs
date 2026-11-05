@@ -145,7 +145,7 @@ for (let run = 0; run < N; run++){
   reach[Math.min(prog, 39)]++;
   { const fin = __h.st().RUN; if (BUILD && fin) buildShare.push(fin.deck.filter(wants).length / fin.deck.length); }
   runs.push({ run, completed:done, progress:prog });
-  if (CAREER){ const g = JSON.parse(careerStore['brickquest:meta:v5'] || '{}').g || { orbs:[], load:[] }; careerLog.push({ s1:prog >= 5, prog, load:g.load.map(i => g.orbs[i]).join(' ') }); }
+  if (CAREER){ const g = JSON.parse(careerStore['brickquest:meta:v5'] || '{}').g || { orbs:[], load:[] }; careerLog.push({ s1:prog >= 5, prog, lv:(JSON.parse(careerStore['brickquest:meta:v5'] || '{}').lv || 1), load:g.load.map(i => g.orbs[i]).join(' ') }); }
 }
 
 const med = a => { a = a.slice().sort((x, y) => x - y); return a[Math.floor(a.length / 2)]; };
@@ -155,7 +155,7 @@ console.log('완료한 칸 수 분포 (5 = 1세션 보스까지 완료):', reach
 if (CAREER){
   console.log('계정 이어 하기(10회씩): 1층 돌파 / 평균 진행 칸 / 마지막 장전');
   for (let k = 0; k < careerLog.length; k += 10){ const part = careerLog.slice(k, k + 10);
-    console.log(`  ${k + 1}~${k + part.length}회: ${part.filter(x => x.s1).length}/${part.length} · ${(part.reduce((a, x) => a + x.prog, 0) / part.length).toFixed(1)}칸 · [${part[part.length - 1].load}]`); }
+    console.log(`  ${k + 1}~${k + part.length}회: ${part.filter(x => x.s1).length}/${part.length} · ${(part.reduce((a, x) => a + x.prog, 0) / part.length).toFixed(1)}칸 · 릭 Lv${part[part.length - 1].lv} · [${part[part.length - 1].load}]`); }
 }
 console.log(`1세션 돌파 ${s1clear}/${N} (${(s1clear / N * 100).toFixed(0)}%)`);
 console.log('보스 격파 순간 남은 체력 중앙값', bossHp.length ? (med(bossHp) * 100).toFixed(0) + '%' : '-',
