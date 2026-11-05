@@ -36,7 +36,7 @@
   - DB 구조를 바꾸면 `db/schema.sql`과 함께 `db/migrations/000N_*.sql`을 더하고, 운영 DB에는 코드 배포 **전에** 적용한다.
   - 시뮬레이터(Node)에서는 `location`이 없어 통신이 꺼진다. 봇의 원정이 실제 랭킹에 섞이지 않게 이 조건을 유지한다.
 - **효과음과 BGM은 Web Audio로 합성한다**(`js/audio.js`). 외부 리소스 금지·`file://` 동작 조건·용량 때문이다.
-  - 예외(2026-10-28 결정): `TRACKS`에 적은 곡만 저장소 안 mp3(`assets/audio`)를 `<audio>` 요소 하나로 튼다(메인·지도 곡). Web Audio 그래프에 잇지 않는다(`file://`에서 `MediaElementSource`는 무음). 못 읽으면 같은 이름의 합성곡(`SONGS`)으로 대신한다. 곡을 더하면 배포 권리를 확인하고 `assets/audio/LICENSE.md`에 적는다.
+  - 예외(2026-10-28 결정): `TRACKS`에 적은 곡만 저장소 안 mp3(`assets/audio`)를 `<audio>` 요소 하나로 튼다(메인·지도·전투·보스 전투 곡, 2026-11-06부터 모두 같은 곡). Web Audio 그래프에 잇지 않는다(`file://`에서 `MediaElementSource`는 무음). 못 읽으면 같은 이름의 합성곡(`SONGS`)으로 대신한다. 곡을 더하면 배포 권리를 확인하고 `assets/audio/LICENSE.md`에 적는다.
   - 게임 코드는 `sfx('이름', 옵션)`·`bgm('곡')`만 부른다. 소리 정의는 `SFX`·`SONGS`에 모은다.
   - 브라우저는 첫 입력 전 소리를 막는다. `AudioContext`는 첫 탭·키에서 만든다(`unlockAudio`). 그 전의 `bgm()` 요청은 기억했다가 그때 튼다.
   - Node(시뮬레이터)에는 `AudioContext`가 없어 모든 소리 함수가 아무것도 안 한다. 소리 때문에 게임 로직이 갈라지면 안 된다.

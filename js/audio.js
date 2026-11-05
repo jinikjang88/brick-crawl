@@ -44,7 +44,8 @@ try { document.addEventListener('visibilitychange', () => { if (!actx) return; d
 // Web Audio 그래프에 잇지 않는다: file://에서는 MediaElementSource가 교차 출처로 취급돼 무음이 된다.
 // 그래서 음량은 요소의 volume으로 맞추고, 끔·탭 숨김은 pause로 처리한다(iOS는 volume을 무시하므로).
 // 요소는 하나만 만들어 src만 바꾼다: iOS는 첫 탭에서 재생한 요소만 그 뒤에도 소리를 허락한다.
-const TRACKS = { calm:'assets/audio/tuesdays-algorithm.mp3' };
+// 2026-11-06 소유자 결정: 대기 화면·전투·보스 전투를 모두 같은 곡으로. 같은 src면 다시 읽지 않아 장면이 바뀌어도 곡이 이어진다
+const TRACKS = { calm:'assets/audio/tuesdays-algorithm.mp3', battle:'assets/audio/tuesdays-algorithm.mp3', boss:'assets/audio/tuesdays-algorithm.mp3' };
 const TRACK_VOL = 0.4;   // 마스터링된 곡이라 합성 BGM(버스 0.32 × 0.8)과 귀로 비슷해지게 낮춘다
 let trackEl = null, trackOn = null, trackFade = null;
 const trackBad = {};     // 못 읽은 곡은 다시 시도하지 않고 합성곡으로 대신한다
