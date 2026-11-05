@@ -19,9 +19,11 @@ CREATE TABLE IF NOT EXISTS runs (
   player_id  TEXT NOT NULL REFERENCES players(id),
   progress   INTEGER NOT NULL,                -- 클라이언트가 보낸 도달 칸 수(원본)
   score      INTEGER,                         -- 랭킹에 반영한 값. 검증 못 한 기록은 FREE_PROGRESS(5)까지만
-  ended_at   INTEGER NOT NULL
+  ended_at   INTEGER NOT NULL,
+  grade      INTEGER                          -- 보안 등급 0~6. 심층부·옛 버전 기록은 NULL(등급별 순위에 들지 않는다)
 );
 CREATE INDEX IF NOT EXISTS runs_player ON runs (player_id);
+CREATE INDEX IF NOT EXISTS runs_grade ON runs (grade, player_id, score);
 
 -- 원정 시작 표: 서버가 원정 시작을 처음 받은 시각. 기록이 이 시각에서 칸당 최소 시간이 지나야 진행도를 그대로 인정한다
 CREATE TABLE IF NOT EXISTS starts (

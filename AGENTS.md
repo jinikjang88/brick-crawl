@@ -65,7 +65,7 @@
   | `js/rewards.js` | 보상(칩 3택1)·휴식·상점(윤의 정비소: 회로 구매·송신·차고) 화면 |
   | `js/garage.js` | 차고: 구슬 조립(코어 + 회로)·장전·분해, 부품 드롭(`rollDrops`)·적재함(`addCargo`)·송신(`sendCargo`), 시뮬레이터용 `autoGarage` |
   | `js/main.js` | 메뉴(일시정지), 입력, 메인 루프 시작 — 항상 마지막 |
-  | `functions/api/[[path]].js` | (서버) 기록 API: `player`·`start`·`record`·`board`·`rename`·`delete`, 속도 제한 |
+  | `functions/api/[[path]].js` | (서버) 기록 API: `player`·`start`·`record`·`board`(전체·보안 등급별)·`rename`·`delete`, 속도 제한 |
   | `privacy.html` | 개인정보 처리방침(독립 페이지, 게임 스크립트를 불러오지 않는다) |
   | `db/schema.sql` | (서버) D1 테이블: `players`·`runs`·`starts`·`rate` |
 - 저장에서 읽은 문자열로 데이터 표(`ORBS`·`MON`·`RELICS`…)를 찾을 때는 `hasKey(표, id)`를 쓴다(`ORBS[id]`는 `constructor` 같은 상속 키도 참이 된다). 저장된 객체를 `Object.assign`으로 통째로 덮지 말고 아는 키만 옮긴다.

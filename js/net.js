@@ -93,7 +93,8 @@ function recordRun(r){
   const p = ensureProfile();
   const rid = r.rid || uuid();
   if (p.queue.some(q => q.rid === rid)) return;
-  p.queue.push({ rid, progress:runProgress(r), at:Date.now() });
+  // 보안 등급(등급별 순위표). 심층부는 등급이 없어 전체 순위에만 든다
+  p.queue.push({ rid, progress:runProgress(r), grade:r.abyss ? null : (r.asc || 0), at:Date.now() });
   trimQueue(p.queue);
   saveProfile();
   flushRecords();
@@ -122,7 +123,7 @@ async function doFlush(){
   let reReg = false;
   while (p.queue.length && !deleting){   // 삭제 중이면 다음 기록부터 멈춘다(지울 id로 새 기록이 올라가지 않게)
     const q = p.queue[0];
-    const r = await api('record', { id:p.id, rid:q.rid, progress:q.progress, epoch:RESET_EPOCH });
+    const r = await api('record', { id:p.id, rid:q.rid, progress:q.progress, epoch:RESET_EPOCH, grade:Number.isInteger(q.grade) ? q.grade : null });
     if (retryLater(r)) return;
     if (r.status === 404 && r.data && r.data.error === 'player'){
       // 등록했다고 기억했는데 서버에 없다(DB 초기화 등). 한 번만 다시 등록해 무한 반복을 막는다
@@ -159,10 +160,10 @@ async function deleteProfile(){
   return { ok:true };
 }
 
-// ── 랭킹: 상위 10명 + 내 순위. 실패하면 null
+// ── 랭킹: 상위 10명 + 내 순위. 실패하면 null. grade(0~6)를 주면 그 보안 등급의 순위
 // id는 기록용 비밀 열쇠라 주소(쿼리)에 싣지 않고 POST 본문으로 보낸다. 주소는 로그에 남는다
-async function loadBoard(){
+async function loadBoard(grade = null){
   const p = ensureProfile();
-  const r = await api('board', { id:p.id });
+  const r = await api('board', grade === null ? { id:p.id } : { id:p.id, grade });
   return r && r.ok && r.data ? r.data : null;
 }

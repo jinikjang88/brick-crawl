@@ -321,6 +321,15 @@ function seeded(mathSeed, seed = 777){
   const run = gate => { G.bricks = [{ r:3, c:2, y:0, hp:1, type:'n', dead:false }]; G.gate = gate; G.turn = t.WALL.every; G.cur = { t:'wait' }; G.eStep = 2; G.timer = 1; G.p.hp = 24; G.m.dead = false; t.enemyUpdate(0); return G.bricks.filter(b => !b.dead && b.r === 3).length; };
   ok('작업 08-3 방화문: 벽이 내려오지 않는다', run(true) === 1 && run(false) === 0);
 }
+{ // 작업 08-4 등급별 순위표: 기록에 보안 등급을 실어 보낸다(심층부는 등급 없음 → null)
+  const sent = [];
+  const net = (path, body) => { if (path === 'record') sent.push(body); return { status:200, data:{ ok:true } }; };
+  const t = boot({}, false, net);
+  t.recordRun({ rid:'00000000-0000-4000-8000-000000000001', s:1, asc:3, pending:{ r:2 } });
+  t.recordRun({ rid:'00000000-0000-4000-8000-000000000002', s:0, abyss:true, pending:{ r:1 } });
+  await t.flushRecords();
+  ok('작업 08-4 기록에 보안 등급', sent.length === 2 && sent[0].grade === 3 && sent[1].grade === null);
+}
 { // 전체 진행도 초기화(2026-10-16): 옛 원정·메타(v2·v3)는 읽지 않고 지운다. 프로필(닉네임·id)은 남고 못 보낸 옛 기록만 비운다
   const old = { v:3, deck:['bomb+5'], map:goodRun.map, hp:24, maxHp:24 };
   const store = { 'brickquest:run:v3':JSON.stringify(old), 'brickquest:run:v2':JSON.stringify(old),
