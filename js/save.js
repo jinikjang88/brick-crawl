@@ -65,7 +65,7 @@ function fixGarage(g){
   if (orbs.length){
     out.orbs = orbs;
     out.oxp = keep.map(([, i]) => Math.floor(numOr(xs[i], 0)));
-    out.load = Array.isArray(g.load) ? [...new Set(g.load.filter(i => isInt(i, 0, orbs.length - 1)))].slice(0, DECK_MAX) : [];
+    out.load = Array.isArray(g.load) ? [...new Set(g.load.filter(i => isInt(i, 0, orbs.length - 1)))].slice(0, SLOT_MAX) : [];
     if (!out.load.length) out.load = [0];
   }
   return out;
@@ -107,7 +107,7 @@ function fixRun(r){
 
   if (!Array.isArray(r.deck)) return null;
   // deck = 이번 침투의 장전(구슬 문자열). 조립이 깨진 구슬은 뺀다
-  r.deck = r.deck.filter(orbValid).slice(0, DECK_MAX + 1);
+  r.deck = r.deck.filter(orbValid).slice(0, SLOT_MAX + 1);   // + 1 = 회전 탄창 칩
   if (!r.deck.length) return null;
   // 적재함: 못 보낸 부품. 깨졌으면 비운다(잃는 것은 이번 침투의 부품뿐)
   const cg = isObj(r.cargo) ? r.cargo : {};

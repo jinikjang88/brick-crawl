@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollRelics,burst,spawnRow,showShop,resetAim,rollDrops,addCargo,sendCargo,showGarage,pickSlot,autoGarage,orbValid,orbHeat,isWeak,traitOn,endPlayerTurn,ROSTER,lvFromXp,orbBonus,orbFeats,synthCirc,resOf,checkResonance,gainRickXp,baseSlots,rickNeed,'
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollRelics,burst,spawnRow,showShop,resetAim,rollDrops,addCargo,sendCargo,showGarage,pickSlot,autoGarage,orbValid,orbHeat,isWeak,traitOn,endPlayerTurn,ROSTER,lvFromXp,orbBonus,orbFeats,synthCirc,resOf,checkResonance,gainRickXp,baseSlots,rickNeed,saveMeta,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   // 이야기 대화창(showTalk)도 같은 모양({ mode:'story', title, buttons })으로 받아 검사를 하나로 쓴다
   + 'catchChoice:()=>{ const got = [], orig = showChoice, ot = showTalk; showChoice = o => { got.push(o); orig(o); };'
@@ -320,6 +320,13 @@ function seeded(mathSeed, seed = 777){
   const t = boot(); click('mNew'); t.newBattle({ r:0, l:0, t:'battle', mon:'slime' }); const G = t.G;
   const run = gate => { G.bricks = [{ r:3, c:2, y:0, hp:1, type:'n', dead:false }]; G.gate = gate; G.turn = t.WALL.every; G.cur = { t:'wait' }; G.eStep = 2; G.timer = 1; G.p.hp = 24; G.m.dead = false; t.enemyUpdate(0); return G.bricks.filter(b => !b.dead && b.r === 3).length; };
   ok('작업 08-3 방화문: 벽이 내려오지 않는다', run(true) === 1 && run(false) === 0);
+}
+{ // 릭 12레벨(슬롯 5칸)에서 장전한 구슬 5개가 저장·불러오기 뒤에도 남는다(저장 보정이 3칸으로 자르던 버그)
+  const store = {}; const t = boot(store); const M = t.META(); M.lv = 12;
+  M.g.orbs = ['basic', 'basic', 'basic', 'basic', 'basic']; M.g.oxp = [0, 0, 0, 0, 0]; M.g.load = [0, 1, 2, 3, 4]; t.saveMeta();
+  click('mNew'); t.saveRun();
+  const u = boot(store);
+  ok('작업 08-3 슬롯 5칸 장전이 저장 뒤에도 남는다', u.META().g.load.length === 5 && u.loadRun().deck.length === 5);
 }
 { // 작업 08-4 등급별 순위표: 기록에 보안 등급을 실어 보낸다(심층부는 등급 없음 → null)
   const sent = [];
