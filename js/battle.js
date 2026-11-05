@@ -7,8 +7,8 @@ function newBattle(node){
   G = {
     node, cfg, time:0, turn:1, phase:'aim', timer:0, eStep:0, cur:null, shown:false,
     // 공격·방어는 전투마다 초기화. 기본 공격력 1(+날 세우기), 시작 방어도는 갑옷·방패술만
-    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1 + (tree('a1') ? 1 : 0) + rel('whetstone') + (rel('collector') ? Math.floor(seenCount('orb') / 5) : 0), def:defGain(3 * rel('armor') + (tree('d2') ? 2 : 0)), poison:0, flash:0 },
-    m:{ hp:cfg.hp, max:cfg.hp, atk:cfg.atk, def:cfg.def, poison:0, pi:0, ai:0, phase:1, rage:false, flash:0, lunge:0, dead:false, deadT:0 },
+    p:{ hp:RUN.hp, max:RUN.maxHp, atk:1 + (tree('a1') ? 1 : 0) + rel('whetstone') + (rel('collector') ? Math.floor(seenCount('orb') / 5) : 0), def:defGain(3 * rel('armor') + (tree('d2') ? 2 : 0)), poison:0, flash:0, lunge:0, recoil:0, skillFx:null },
+    m:{ hp:cfg.hp, max:cfg.hp, atk:cfg.atk, def:cfg.def, poison:0, pi:0, ai:0, phase:1, rage:false, flash:0, lunge:0, recoil:0, skillFx:null, dead:false, deadT:0 },
     // 배지 판정용: lost = 이번 전투에서 체력을 잃었는지, shot = 이번 발사의 기록(시작 때 몬스터 체력이 가득했는지·천장 타격 수·부순 벽돌)
     lost:false, shot:null,
     // 전투마다 횟수가 정해진 효과들: 두 번째 심장·굳은살·무장해제·기절·시간 구슬. mirror = 이번 턴 되돌릴 비율(거울 구슬), toxic = 몬스터 독이 줄지 않음(맹독)
@@ -123,6 +123,8 @@ function bossDrop(){
     if (b){ b.hp++; b.flash = 0.15; pop(OX + c * CW + CW / 2, rowY(r) - 2, '+1', C.accent); }
     else G.bricks.push({ r, c, y:BT, hp:1, type:'n', flash:0.15, dead:false });
   }
+  if (G.m.artAction !== 'attack') artPose(G.m, 'skill');
+  G.m.skillFx = { t:0.45, dur:0.45, col:C.accent, kind:'drop' };
   G.shake = Math.max(G.shake, 3); sfx('stone');
 }
 // 천장 타격 한 번의 피해 = 기사 공격력(⚔) + 구슬 보정 (+ 연쇄) → 핵심 노드 배율.
@@ -149,7 +151,12 @@ function hitParts(o, n = 1, ball){
 }
 const hitDmg = (o, n = 1, ball) => hitParts(o, n, ball).v;
 // 몬스터에게 바로 날아가는 피해(반격·가시·거울). counter = 반격 계열로 쓰러뜨렸는지(배지)
-const strike = (x, y, v) => G.projs.push({ x0:x, y0:y, x1:MX, y1:62, t:0, dur:0.3, kind:'dmg', v, counter:true });
+const strike = (x, y, v) => {
+  if (G.p && !G.balls.length && G.p.artAction !== 'hit' && G.p.artAction !== 'death'){
+    artPose(G.p, 'skill'); G.p.lunge = 0.001; G.p.skillFx = { t:0.35, dur:0.35, col:C.ink, kind:'cast' };
+  }
+  G.projs.push({ x0:x, y0:y, x1:MX, y1:62, t:0, dur:0.3, kind:'dmg', v, counter:true });
+};
 // 배지: 처음 따면 알림을 띄우고, 다시 따면 횟수만 센다
 function earnBadge(id){
   const b = BADGES.find(x => x.id === id); if (!b) return;
@@ -174,8 +181,8 @@ function hurtPlayer(v, icon, fromMonster){
     if (rel('thorns')) strike(PX + 6, 60, 1);
     if (G.mirror) strike(PX + 14, 70, Math.ceil(v * G.mirror));
   }
-  if (hit){ G.lost = true; artPose(p, 'hit'); p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
-  else { burst(PX, 66, C.ink3, 6); sfx('block'); }
+  if (hit){ G.lost = true; artPose(p, 'hit'); p.recoil = 0.001; p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
+  else { p.recoil = 0.001; p.skillFx = { t:0.3, dur:0.3, col:C.ink2, kind:'guard' }; burst(PX, 66, C.ink3, 6); sfx('block'); }
 }
 
 function pop(x, y, txt, col, icon){ G.pops.push({ x, y, txt, col, icon, t:0.9 }); }
@@ -242,7 +249,7 @@ function arrive(pr){
   const g = G;
   if (pr.kind === 'dmg'){
     if (g.m.dead) return;
-    const [ab, hit] = hurt(g.m, pr.v); g.m.flash = 0.1; artPose(g.m, 'hit');
+    const [ab, hit] = hurt(g.m, pr.v); g.m.flash = 0.1; g.m.recoil = 0.001; artPose(g.m, 'hit');
     if (tree('a4')) renderOrbBar();   // 처형 배율은 몬스터 체력 절반에서 켜지므로 HUD 식도 그때 바꾼다
     const jx = MX + (Math.random() * 16 - 8);
     if (ab) pop(jx, 44, '-' + ab, C.ink2, 'shield');
@@ -255,8 +262,8 @@ function arrive(pr){
     return;
   }
   sfx('pickup', { kind:pr.kind });
-  if (pr.kind === 'atk'){ const v = 1 + rel('harvest') + (tree('a3') ? 1 : 0) + (rel('kingsword') ? 2 : 0); g.p.atk += v; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); renderOrbBar(); }
-  else if (pr.kind === 'def'){ const v = defGain(2 + rel('harvest') + (tree('d5') ? 1 : 0)); g.p.def += v; pop(PX + 12, 88, '+' + v, C.ink, 'shield'); }
+  if (pr.kind === 'atk'){ const v = 1 + rel('harvest') + (tree('a3') ? 1 : 0) + (rel('kingsword') ? 2 : 0); g.p.atk += v; g.p.skillFx = { t:0.28, dur:0.28, col:C.ink, kind:'buff' }; pop(PX - 26, 88, '+' + v, C.ink, 'sword'); renderOrbBar(); }
+  else if (pr.kind === 'def'){ const v = defGain(2 + rel('harvest') + (tree('d5') ? 1 : 0)); g.p.def += v; g.p.skillFx = { t:0.28, dur:0.28, col:C.ink2, kind:'guard' }; pop(PX + 12, 88, '+' + v, C.ink, 'shield'); }
   else if (pr.kind === 'heal'){
     const before = g.p.hp; g.p.hp = Math.min(g.p.max, g.p.hp + 4);
     pop(PX, 30, '+' + (g.p.hp - before), C.ink, 'heart');
@@ -295,12 +302,14 @@ function checkRage(){
       if (next === 3){ const free = [...Array(COLS).keys()].filter(c => !G.seal.includes(c)); G.seal = G.seal.concat(free[rnd(free.length, 'battle')]).sort((a, b) => a - b); }
       G.sealNext = sealShift(G.seal);
     }
+    artPose(m, 'skill'); m.skillFx = { t:0.55, dur:0.55, col:C.accent, kind:'rage' }; burst(MX, 58, C.accent, 12);
     // 본편 보스는 대본의 층별 페이즈 배너와 무전, 근원은 근원 배너, 심층부는 공통 배너
     const bt = !RUN.abyss && !cfg.king && cfg.boss && BOSS_TALK[RUN.s], ph = bt && bt.phase[next];
     banner(cfg.king ? KING_PHASE[next] : ph ? ph.banner : next === 3 ? '보스가 마지막 자원을 끌어낸다' : '보스가 분노했다', '조준이 빨라진다', true); sfx('rage');
     if (ph) radio(ph.radio);
   } else if (cfg.elite && !m.rage && m.hp <= m.max / 2){
     m.rage = true; G.shake = 5;
+    artPose(m, 'skill'); m.skillFx = { t:0.55, dur:0.55, col:C.accent, kind:'rage' }; burst(MX, 58, C.accent, 12);
     banner('정예가 날뛴다', '조준이 빨라진다', true); sfx('rage');
   }
 }
@@ -394,6 +403,10 @@ function heal(v){ const p = G.p, before = p.hp; p.hp = Math.min(p.max, p.hp + v)
 // 회로가 둘이면 효과도 둘 다 든다(예전엔 구슬 하나 = 효과 하나라 else if였다)
 function orbCeil(b){
   const m = G.m, f = b.f, it = intent();
+  if (['herb', 'vamp', 'weaken', 'disarm', 'rust', 'stun', 'time', 'toxin'].some(k => f[k] !== undefined)){
+    G.p.skillFx = { t:0.35, dur:0.35, col:C.ink, kind:'cast' };
+    if (!G.p.artAction) artPose(G.p, 'skill');
+  }
   if (f.herb !== undefined && b.hits === 1) heal(f.herb ? 2 : 1);
   if (f.vamp !== undefined && (f.vamp || b.hits % 2 === 0)) heal(1);
   if (f.weaken !== undefined && G.shot.weak < (f.weaken ? 2 : 1) && it.t === 'atk' && atkLeft(it) > 1){
@@ -421,7 +434,10 @@ function fire(){
   const g = G;
   // 턴 시작 직후 0.2초는 무시: 이전 턴에 연타한 입력이 새 턴을 바로 쏘지 않게
   if (mode !== 'play' || !g || g.phase !== 'aim' || g.aimT < 0.2) return;
-  artPose(g.p, 'attack');
+  const isSkillOrb = orbKind(g.orb) !== 'basic' || orbUp(g.orb);
+  artPose(g.p, isSkillOrb ? 'skill' : 'attack');
+  g.p.lunge = 0.001;
+  if (isSkillOrb) g.p.skillFx = { t:0.42, dur:0.42, col:C.ink, kind:'cast' };
   g.phase = 'fire'; g.fireT = 1; g.fireEl = 0; g.nextLx = null;
   g.shot = { full:g.m.hp === g.m.max, landed:0, broke:0 };
   const spread = { 1:[0], 3:[-0.16, 0, 0.16], 5:[-0.32, -0.16, 0, 0.16, 0.32] }[splitN(g.orb)];
@@ -464,7 +480,11 @@ function update(dt){
   if (g.m.dead && g.m.artAction !== 'death') artPose(g.m, 'death');
   g.m.flash = Math.max(0, g.m.flash - dt); g.p.flash = Math.max(0, g.p.flash - dt);
   g.shake = Math.max(0, g.shake - dt * 20);
-  if (g.m.lunge > 0){ g.m.lunge += dt; if (g.m.lunge > 0.4) g.m.lunge = 0; }
+  for (const a of [g.p, g.m]){
+    if (a.lunge > 0){ a.lunge += dt; if (a.lunge > 0.4) a.lunge = 0; }
+    if (a.recoil > 0){ a.recoil += dt; if (a.recoil > 0.28) a.recoil = 0; }
+    if (a.skillFx){ a.skillFx.t -= dt; if (a.skillFx.t <= 0) a.skillFx = null; }
+  }
   if (g.m.dead) g.m.deadT += dt;
   for (const b of g.bricks){ b.y += (rowY(b.r) - b.y) * Math.min(1, dt * 12); if (b.flash > 0) b.flash -= dt; }
   g.bricks = g.bricks.filter(b => !b.dead);
@@ -534,7 +554,7 @@ function endPlayerTurn(){
   // 몬스터 독: 몬스터가 행동하기 직전에 방어도를 무시하고 들어간다
   if (m.poison > 0){
     const d = m.poison;
-    m.hp = Math.max(0, m.hp - d); m.flash = 0.15; artPose(m, 'hit');
+    m.hp = Math.max(0, m.hp - d); m.flash = 0.15; m.recoil = 0.001; artPose(m, 'hit');
     // 맹독 구슬·독의 왕관: 독이 줄지 않는다. 독의 왕관은 방어도도 함께 깎는다
     if (!g.toxic && !rel('plague')) m.poison--;
     if (rel('plague')) m.def = Math.max(0, m.def - d);
@@ -561,24 +581,26 @@ function enemyUpdate(dt){
     if (g.cur.t === 'guard' && m.noGuard){ m.noGuard = false; g.cur = { t:'stun' }; pop(MX, 30, '0', C.ink3, 'shield'); }
     if (g.cur.t === 'wait' && rel('breath')) heal(2);
     const it = g.cur;
-    if (it.t === 'atk' || it.t === 'poison'){ m.lunge = 0.001; artPose(m, 'attack'); }
+    if (it.t === 'atk'){ m.lunge = 0.001; artPose(m, 'attack'); }
+    else if (it.t === 'poison'){ m.lunge = 0.001; artPose(m, 'skill'); m.skillFx = { t:0.48, dur:0.48, col:C.accent, kind:'poison' }; burst(MX - 10, 58, C.accent, 8); }
     else if (it.t === 'guard'){
-      const v = it.v + (traitOn('armor') ? 2 : 0); m.def += v; pop(MX, 30, '+' + v, C.ink, 'shield');
+      const v = it.v + (traitOn('armor') ? 2 : 0); m.def += v;
+      artPose(m, 'skill'); m.skillFx = { t:0.45, dur:0.45, col:C.ink, kind:'guard' }; burst(MX, 58, C.ink2, 6); pop(MX, 30, '+' + v, C.ink, 'shield');
       if (traitOn('fortify') && m.hp < m.max){ m.hp = Math.min(m.max, m.hp + 2); pop(MX - 16, 40, '+2', C.ink, 'heart'); }
     }
-    else if (it.t === 'spore') pop(MX, 30, '', C.accent, 'brick');
-    else if (it.t === 'summon') pop(MX, 30, '', C.ink, 'brick');
+    else if (it.t === 'spore'){ artPose(m, 'skill'); m.skillFx = { t:0.48, dur:0.48, col:C.accent, kind:'spore' }; burst(MX, 52, C.accent, 10); pop(MX, 30, '', C.accent, 'brick'); }
+    else if (it.t === 'summon'){ artPose(m, 'skill'); m.skillFx = { t:0.48, dur:0.48, col:C.ink, kind:'summon' }; burst(MX, 58, C.ink, 8); pop(MX, 30, '', C.ink, 'brick'); }
     else pop(MX, 30, '', C.ink3, 'dots');
   }
   if (g.eStep === 1 && g.timer >= 0.2){
     g.eStep = 2;
     // 인내: 연속 공격 묶음의 첫 타만 막는다. 긴 연속 공격일수록 덜 막히니 후반 보스를 혼자 무력화하지는 못한다
     if (g.cur.t === 'atk' && g.relay){
-      g.relay = false; pop(PX, 42, '0', C.ink2, 'shield'); sfx('block');
+      g.relay = false; p.recoil = 0.001; p.skillFx = { t:0.3, dur:0.3, col:C.ink2, kind:'guard' }; pop(PX, 42, '0', C.ink2, 'shield'); sfx('block');
       const low = g.bricks.filter(b => !b.dead).sort((a, b) => b.r - a.r).slice(0, m.atk);
       for (const b of low){ b.dead = true; onBreak(b); }
     }
-    else if (g.cur.t === 'atk' && m.ai === 0 && rel('endure')){ pop(PX, 42, '0', C.ink2, 'shield'); sfx('block'); }
+    else if (g.cur.t === 'atk' && m.ai === 0 && rel('endure')){ p.recoil = 0.001; p.skillFx = { t:0.3, dur:0.3, col:C.ink2, kind:'guard' }; pop(PX, 42, '0', C.ink2, 'shield'); sfx('block'); }
     else if (g.cur.t === 'atk'){
       const hp0 = p.hp;
       hurtPlayer(m.atk + (traitOn('barrage') && m.ai === 0 ? 1 : 0), undefined, true);
@@ -618,7 +640,7 @@ function enemyUpdate(dt){
     // 독 틱: 방어도를 무시하고 체력에 바로 들어간 뒤 약해진다
     if (p.poison > 0){
       const d = p.poison;
-      p.hp = Math.max(0, p.hp - d); p.poison = Math.max(0, p.poison - (rel('antidote') ? 2 : 1)); p.flash = 0.18; artPose(p, 'hit');
+      p.hp = Math.max(0, p.hp - d); p.poison = Math.max(0, p.poison - (rel('antidote') ? 2 : 1)); p.flash = 0.18; p.recoil = 0.001; artPose(p, 'hit');
       burst(PX, 66, C.accent, 8); pop(PX, 30, '-' + d, C.accent, 'skull');
       g.tickT = 0.45;
     }
