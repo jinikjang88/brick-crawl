@@ -24,7 +24,7 @@ let code = srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n')
 for (const h of [HOOK_STATE, HOOK_BREAK, HOOK_CEIL, HOOK_FIRE])
   if (code.split(h).length !== 2) throw new Error('훅 삽입 실패: ' + h);
 code = 'globalThis.ST=globalThis.ST||{br:0,ch:0,sh:0};' + code
-  .replace(HOOK_STATE, HOOK_STATE + ' globalThis.__h={st:()=>({RUN,G,mode}),reachable:()=>reachable(),enterNode:n=>enterNode(n)};')
+  .replace(HOOK_STATE, HOOK_STATE + ' globalThis.__h={st:()=>({RUN,G,mode}),reachable:()=>reachable(),enterNode:n=>enterNode(n),pickSlot:i=>pickSlot(i),sendCargo:()=>sendCargo(),autoGarage:r=>autoGarage(r),orbHeat:o=>orbHeat(o)};')
   .replace(HOOK_BREAK, HOOK_BREAK.replace('br.dead = true;', 'br.dead = true; ST.br++;'))
   .replace(HOOK_CEIL, 'b.hits++; ST.ch++;')
   .replace(HOOK_FIRE, 'ST.sh++; ' + HOOK_FIRE);
@@ -53,51 +53,17 @@ function seededRandom(value){
 }
 const reach = new Array(40).fill(0), bossHp = [], finals = [];
 let kings = 0;   // 근원(성벽의 왕) 격파 수
-// SIM_BUILD: 봇이 한 가지 덱 컨셉만 모은다(조합별로 원정이 성립하는지 비교). 없으면 예전처럼 늘 첫 카드
-// 해금 구슬은 컨셉에 들어가므로 이 모드에서는 모두 풀린 계정으로 돈다
-const BUILDS = {
-  poison:{ orbs:['venom','toxin'], relics:['sting','plague','alchemy','antidote'] },
-  counter:{ orbs:['guard','mirror','thorn'], relics:['counter','thorns','armor','buckler','endure'] },
-  split:{ orbs:['split','chain','bounce'], relics:['giant','combo','leech'] },
-  bomb:{ orbs:['bomb','drill','wreck','hammer'], relics:['crusher','brace'] },
-  debuff:{ orbs:['weaken','disarm','rust','stun','time'], relics:['hourglass','endure'] },
-  heavy:{ orbs:['heavy','comet','crown'], relics:['whetstone','pact','wrath','kingsword'] },
-};
-const BUILD = BUILDS[process.env.SIM_BUILD] || null;
-const buildShare = [];   // 원정이 끝날 때 덱에서 컨셉 구슬이 차지한 비율(컨셉이 실제로 모였는지)
-if (process.env.SIM_BUILD && !BUILD) throw new Error('SIM_BUILD는 ' + Object.keys(BUILDS).join('·') + ' 중 하나');
-// 컨셉 밖 유물은 누구에게나 쓸모 있는 것부터
-const GOOD_RELICS = ['heart','combo','medkit','armor','endure','ring','hourglass','focus','warp','callus','brace'];
-const kindOf = o => o.replace(/\+\d*$/, ''), lvOf = o => { const m = o.match(/\+(\d*)$/); return m ? (+m[1] || 1) : 0; };
-const wants = o => BUILD.orbs.includes(kindOf(o));
-// 컨셉 구슬을 더 받을 수 있나: 덱에 자리가 있거나, 바꿔 낼 컨셉 밖 구슬이 있어야 한다(아니면 교체 화면에서 취소 → 다시 고르기가 끝없이 돈다)
-const canTake = RUN => RUN.deck.length < 5 + (RUN.relics.pouch ? 1 : 0) || RUN.deck.some(o => !wants(o));
-// 컨셉 봇의 고르기: 고를 카드 번호, 또는 -1(건너뛰기·취소·나가기)
-function buildPick(mode, RUN){
-  const uniq = a => [...new Set(a)];
-  if (mode === 'reward' && RUN.reward){
-    const st = RUN.reward.stock, orb = RUN.reward.kind === 'orb' || RUN.reward.kind.endsWith('-orb');
-    let i = st.findIndex(id => orb ? wants(id) && canTake(RUN) : BUILD.relics.includes(id));
-    if (i >= 0) return i;
-    if (orb) return RUN.deck.some(o => wants(o) && lvOf(o) < 5) ? st.length : -1;   // 컨셉 구슬 강화 카드, 없으면 건너뛰기
-    i = st.findIndex(id => GOOD_RELICS.includes(id)); return i >= 0 ? i : 0;
-  }
-  if (mode === 'upgrade'){
-    const ks = uniq(RUN.deck.filter(o => lvOf(o) < 5)), i = ks.findIndex(wants);
-    return i >= 0 ? i : 0;
-  }
-  if (mode === 'swap'){
-    const ks = uniq(RUN.deck); let i = ks.indexOf('basic'); if (i < 0) i = ks.findIndex(o => !wants(o));
-    return i;
-  }
-  return 0;
-}
+// SIM_BUILD(컨셉 덱 봇)는 작업 08에서 구슬 보상·덱이 없어져 뺐다. 봇은 정비소에서 송신·자동 조립한다
+const BUILD = null;
+if (process.env.SIM_BUILD) throw new Error('SIM_BUILD는 작업 08 이후 지원하지 않는다');
 let s1clear = 0;
+// SIM_CAREER=1: 같은 계정으로 이어서 침투한다(차고·보관함·모듈이 쌓인다, 작업 08). 회차별 1층 돌파를 따로 센다
+const CAREER = !!process.env.SIM_CAREER, careerStore = {}, careerLog = [];
 
 for (let run = 0; run < N; run++){
   Math.random = seededRandom(seed + run);
   const entered = new Set();
-  const els = {}, L = {}, store = {};
+  const els = {}, L = {}, store = CAREER ? careerStore : {};
   // SIM_TREE: 스킬 트리를 찍은 계정으로 돌린다(심연·엔드게임 밸런스 확인용)
   // all = 전부, main = 본편 완주 포인트(35)로 찍을 법한 조합(공격 줄기·방어 줄기·핵심 하나)
   const TREE_SET = { all:['a1','a2','a3','a4','a5','a6','d1','d2','d3','d4','d5','d6','o1','o2','o3','o4','o5','o6','e1','e2','e3','e4','e5','e6'],
@@ -106,7 +72,7 @@ for (let run = 0; run < N; run++){
   // SIM_ASC=n: 고난 n단계가 열려 있고 골라 둔 계정(본편 완주 기록 포함)
   const ASCN = +process.env.SIM_ASC || 0;
   const unlock = BUILD ? { venom:1, counter:1, demolish:1, oneshot:1, rich:1 } : {};
-  if (TREE_SET || abyss || BUILD || ASCN) store['brickquest:meta:v4'] = JSON.stringify({ best:abyss || ASCN ? 25 : 0, abyssBest:BUILD ? 15 : 0, runs:0, clears:abyss || ASCN ? 1 : 0, pts:0, badges:unlock,
+  if (!(CAREER && run > 0) && (TREE_SET || abyss || BUILD || ASCN)) store['brickquest:meta:v5'] = JSON.stringify({ best:abyss || ASCN ? 25 : 0, abyssBest:BUILD ? 15 : 0, runs:0, clears:abyss || ASCN ? 1 : 0, pts:0, badges:unlock,
     asc:ASCN, ascPick:ASCN, story:{ intro:1, end1:1 },
     tree:Object.fromEntries((TREE_SET || []).map(k => [k, 1])) });
   globalThis.document = { getElementById:id => els[id] || (els[id] = mk()), documentElement:{}, createElement:() => mk(),
@@ -127,19 +93,16 @@ for (let run = 0; run < N; run++){
     const { RUN, G, mode } = __h.st();
     if (RUN && !entered.has(RUN.s)){ entered.add(RUN.s); session(RUN.s).entered++; }
     if (mode === 'map'){ __h.enterNode(pickOne(__h.reachable())); continue; }
-    if (['reward','rest','shop','remove','upgrade','swap','gift','result','story'].includes(mode)){
+    // 이야기 대화창은 건너뛴다(대화는 오버레이 ovTalk, 버튼은 tSkip)
+    if (mode === 'story'){ $('tSkip').onclick(); continue; }
+    if (['reward','rest','shop','remove','upgrade','swap','gift','result'].includes(mode)){
       if (mode === 'result'){ done = true; break; }
       const cards = $('cCards').children.filter(c => !c.disabled), btns = $('cBtns').children.filter(c => !c.disabled);
-      // 상점: 살 수 있는 구슬을 사고 나간다. 구슬 보상이 정예·보스·상점으로 줄어 상점을 안 쓰는 봇은 실제보다 약하다
+      // 정비소: 살 수 있는 회로를 사고, 적재함을 송신하고, 차고에서 자동 조립한 뒤 나간다(작업 08)
       if (mode === 'shop'){
-        const all = $('cCards').children, i = (RUN.shop || []).findIndex(it => !it.sold && RUN.coins >= it.price
-          && (BUILD ? (it.k === 'orb' && wants(it.id) && canTake(RUN)) || (it.k === 'relic' && BUILD.relics.includes(it.id)) : it.k === 'orb'));
+        const all = $('cCards').children, i = (RUN.shop || []).findIndex(it => !it.sold && RUN.coins >= it.price && it.k === 'circ');
         if (i >= 0 && all[i] && !all[i].disabled){ all[i].onclick(); continue; }
-        btns[btns.length - 1].onclick(); continue;
-      }
-      if (BUILD && ['reward','upgrade','swap'].includes(mode)){
-        const all = $('cCards').children, i = buildPick(mode, RUN);
-        if (i >= 0 && all[i] && !all[i].disabled){ all[i].onclick(); continue; }
+        __h.sendCargo(); __h.autoGarage(true);
         btns[btns.length - 1].onclick(); continue;
       }
       if (cards.length) cards[0].onclick(); else btns[btns.length - 1].onclick();
@@ -149,6 +112,8 @@ for (let run = 0; run < N; run++){
       if (G.phase === 'aim'){
         const key = G.turn + '_' + G.node.r + '_' + RUN.s;
         if (key !== lastTurn){
+          let best = G.sel; RUN.deck.forEach((o, i) => { if (G.heat[i] === 0 && __h.orbHeat(o) > __h.orbHeat(RUN.deck[best])) best = i; });
+          __h.pickSlot(best);
           // 턴마다 목표를 정한다: 붕괴선 근처 벽돌 우선, 없으면 가장 얇은 열의 천장
           lastTurn = key; wait = -1;
           const bs = G.bricks.filter(b => !b.dead);
@@ -176,12 +141,18 @@ for (let run = 0; run < N; run++){
   reach[Math.min(prog, 39)]++;
   { const fin = __h.st().RUN; if (BUILD && fin) buildShare.push(fin.deck.filter(wants).length / fin.deck.length); }
   runs.push({ run, completed:done, progress:prog });
+  if (CAREER){ const g = JSON.parse(careerStore['brickquest:meta:v5'] || '{}').g || { orbs:[], load:[] }; careerLog.push({ s1:prog >= 5, prog, load:g.load.map(i => g.orbs[i]).join(' ') }); }
 }
 
 const med = a => { a = a.slice().sort((x, y) => x - y); return a[Math.floor(a.length / 2)]; };
 console.log(`원정 ${N}회`);
 console.log('발사당 벽돌 파괴', (ST.br / ST.sh).toFixed(2), '/ 발사당 천장 타격', (ST.ch / ST.sh).toFixed(2));
 console.log('완료한 칸 수 분포 (5 = 1세션 보스까지 완료):', reach.map((v, i) => v ? `${i}:${v}` : '').filter(Boolean).join(' '));
+if (CAREER){
+  console.log('계정 이어 하기(10회씩): 1층 돌파 / 평균 진행 칸 / 마지막 장전');
+  for (let k = 0; k < careerLog.length; k += 10){ const part = careerLog.slice(k, k + 10);
+    console.log(`  ${k + 1}~${k + part.length}회: ${part.filter(x => x.s1).length}/${part.length} · ${(part.reduce((a, x) => a + x.prog, 0) / part.length).toFixed(1)}칸 · [${part[part.length - 1].load}]`); }
+}
 console.log(`1세션 돌파 ${s1clear}/${N} (${(s1clear / N * 100).toFixed(0)}%)`);
 console.log('보스 격파 순간 남은 체력 중앙값', bossHp.length ? (med(bossHp) * 100).toFixed(0) + '%' : '-',
             `/ 30% 이하로 이긴 비율 ${bossHp.filter(x => x <= .3).length}/${bossHp.length}`);

@@ -1,12 +1,14 @@
 :root{
-  --bg:#EFE8DA; --panel:#FFFDF8; --field:#F9F6EF; --ink:#1B1A18; --ink2:#5B5750; --ink3:#A39E93; --line:#D6CDBC; --accent:#C1443C;
+  --bg:#E9ECEE; --panel:#F8F9FA; --field:#F1F3F4; --ink:#121518; --ink2:#4A5258; --ink3:#949CA2; --line:#CBD1D5; --accent:#C1443C;
+  /* 화면 뒤 갱도 그림(chasm)의 농도. 그림이 어두워 밝은 화면에서는 옅게 깔아야 탁해지지 않는다 */
+  --art:.1;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){ --bg:#1D1B18; --panel:#2B2823; --field:#23211D; --ink:#EEE9DF; --ink2:#B7B1A6; --ink3:#6F6A61; --line:#3E3A33; --accent:#D2574F; color-scheme:dark; }
+  :root:not([data-theme="light"]){ --bg:#0E1012; --panel:#181B1E; --field:#121417; --ink:#E6EAEC; --ink2:#A3ABB1; --ink3:#5A6268; --line:#2A2F34; --accent:#D2574F; --art:.4; color-scheme:dark; }
 }
-:root[data-theme="dark"]{ --bg:#1D1B18; --panel:#2B2823; --field:#23211D; --ink:#EEE9DF; --ink2:#B7B1A6; --ink3:#6F6A61; --line:#3E3A33; --accent:#D2574F; color-scheme:dark; }
+:root[data-theme="dark"]{ --bg:#0E1012; --panel:#181B1E; --field:#121417; --ink:#E6EAEC; --ink2:#A3ABB1; --ink3:#5A6268; --line:#2A2F34; --accent:#D2574F; --art:.4; color-scheme:dark; }
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;font-size:16px;line-height:1.5;-webkit-tap-highlight-color:transparent}
@@ -134,24 +136,35 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .hud{padding:4px 0}
 #cv{border:3px solid var(--ink);border-bottom-width:6px}
 .ov{inset:3px 3px 6px;background:var(--bg);padding:18px 14px}
-.ovMain{gap:10px;background:var(--field);border:6px double var(--line)}
+.ovMain{gap:10px;background:var(--field);isolation:isolate;border:12px solid transparent;border-image:url('../assets/game/ui_frame.png') 20 18 / 12px 12px}
+/* 터미널 화면: 갱도 그림 위에 주사선을 깔아 단말기 화면처럼. 주사선은 1×3 이미지 반복(그라디언트 대신) */
+.ovMain::before{content:'';position:absolute;inset:0;z-index:-2;pointer-events:none;background:url('../assets/game/chasm.png') center 30%/cover no-repeat;opacity:calc(var(--art) * 1.3)}
+.ovMain::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:url('../assets/game/scan.png') repeat;image-rendering:pixelated;background-size:1px 3px}
+/* 주인공 그림(릭): 구슬 진열 대신. 사이버펑크 그림이 이미 있는 것은 릭이라 첫 화면의 얼굴로 쓴다 */
+.heroArt{height:150px;display:flex;align-items:flex-end;justify-content:center}
+.heroArt img{height:100%;width:auto;image-rendering:auto}
+/* MP3 플레이어 액정(대본 LCD): 영문·숫자만, 고정폭 */
+.lcd{margin:0;padding:3px 10px;border:1px solid var(--line);background:var(--panel);font:600 12px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.06em;color:var(--ink2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .logoCv{width:155px;height:110px}
 .ovMain .logo{font-size:13px;letter-spacing:.5em}
 .tagline{font-size:14px;font-weight:700;margin:0 0 8px;color:var(--ink2)}
 .orbPortrait{width:48px;height:48px;image-rendering:pixelated;flex:none}
-.orbShowcase{display:flex;align-items:center;justify-content:center;gap:0;height:66px}
-.orbShowcase .orbPortrait{width:42px;height:42px;transform:translateY(5px)}
-.orbShowcase .orbPortrait:nth-child(3){width:64px;height:64px;transform:translateY(-3px)}
-.orbShowcase .orbPortrait:nth-child(2),.orbShowcase .orbPortrait:nth-child(4){width:48px;height:48px;transform:none}
 .orbBar:not(:empty){border:1px solid var(--ink3);border-bottom:3px solid var(--ink2);background:var(--panel);padding:6px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:60px}
 .orbCurrent,.orbNext{display:flex;align-items:center;gap:6px}
 .orbCurrent small{display:block;font-size:11px;letter-spacing:.1em;color:var(--ink2)}
 /* 발사!: 반전 칩으로 눈에 띄게. 붉은색은 위험 전용이라 쓰지 않는다 */
 .orbCurrent small.fired{display:inline-block;background:var(--ink);color:var(--bg);font-weight:800;padding:0 5px;letter-spacing:.05em}
 .orbCurrent b{display:block;font-size:16px}
-.orbNext{font-size:12px;flex-wrap:wrap;justify-content:flex-end}
-.orbNext .orbPortrait{width:30px;height:30px}
-.orbNext span{font-size:11px}
+/* 장갑 슬롯(작업 08): 고르지 않은 구슬. 누르면 그 구슬로 바꾼다. 과열 중이면 흐리게 + 남은 턴 숫자 */
+.slots{display:flex;gap:6px;flex:none}
+.slot{position:relative;width:44px;height:44px;padding:0;border:2px solid var(--line);border-radius:0;background:var(--field);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s}
+.slot .orbPortrait{width:30px;height:30px}
+.slot:disabled{opacity:.45;cursor:default}
+.slot i{position:absolute;right:2px;bottom:0;font-style:normal;font-size:12px;font-weight:800;line-height:1.2;color:var(--ink)}
+.slot:active:not(:disabled){transform:translateY(2px)}
+.slot:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
+@media(hover:hover){.slot:hover:not(:disabled){transform:translateY(-1px);border-color:var(--ink)}}
+@media(prefers-reduced-motion:reduce){.slot{transition:none}.slot:active:not(:disabled),.slot:hover:not(:disabled){transform:none}}
 .orbCard{display:flex;gap:10px;align-items:center;padding:10px}
 .cardBody{flex:1;min-width:0}
 .rCard{transition:background .15s}
@@ -160,8 +173,10 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .mapHead{width:100%;padding:4px 0 10px;border-bottom:1px solid var(--ink3)}
 .playHint{display:none;text-align:center;margin:0;font-size:12px;color:var(--ink2)}
 .app[data-mode="main"] .hud,.app[data-mode="main"] .orbBar,.app[data-mode="main"] .abil{display:none}
+/* 이야기 대화 중에는 전투 줄(헤더·구슬·칩)을 감춰 대화창이 화면을 다 쓴다(일시정지는 Esc·P로 열린다) */
+.app[data-mode="story"] .hud,.app[data-mode="story"] .orbBar,.app[data-mode="story"] .abil{display:none}
 .abil .none{color:var(--ink2)}
-@media(max-width:360px){.orbCurrent b{font-size:14px}.orbCurrent .orbPortrait{width:38px;height:38px}.orbNext{gap:3px}.ov{padding:12px 10px}.big{font-size:25px}}
+@media(max-width:360px){.orbCurrent b{font-size:14px}.orbCurrent .orbPortrait{width:38px;height:38px}.slots{gap:4px}.ov{padding:12px 10px}.big{font-size:25px}}
 @media(prefers-reduced-motion:reduce){.rCard{transition:none}}
 /* 일러스트 구슬(<img>)은 원본이 세밀해서 도트처럼 최근접 축소하면 오히려 깨진다 */
 img.orbPortrait{image-rendering:auto;object-fit:contain}
@@ -170,10 +185,10 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .hCoin:not(:empty)::before{content:'';width:16px;height:16px;flex:none;background:url('../assets/game/coin.png') center/contain no-repeat}
 /* 일러스트 UI 조각(assets/game/ui_*). 이미지가 고정색이라 글자·바탕색도 테마와 무관하게 고정한다.
    바탕색은 padding-box에만 깔아, 그림이 안 불러와져도 같은 대비로 읽히게 한다 */
-.btn.primary{color:#F9F6EF;background:#1B1A18;background-clip:padding-box;border-style:solid;border-width:6px 14px;border-image:url('../assets/game/ui_bar.png') 10 24 fill / 6px 14px}
-.btn.primary:hover:not(:disabled){background:#1B1A18;background-clip:padding-box;filter:brightness(1.25)}
+.btn.primary{color:#EEF2F4;background:#0E1114;background-clip:padding-box;border-style:solid;border-width:6px 14px;border-image:url('../assets/game/ui_bar.png') 10 24 fill / 6px 14px}
+.btn.primary:hover:not(:disabled){background:#0E1114;background-clip:padding-box;filter:brightness(1.25)}
 .btn.primary:active{border-width:6px 14px}
-.banner .b2{color:#1B1A18;background:#F4ECDD;background-clip:padding-box;border-style:solid;border-width:8px 22px;border-image:url('../assets/game/ui_panel.png') 16 34 fill / 8px 22px;padding:2px 6px}
+.banner .b2{color:#121518;background:#EEF1F3;background-clip:padding-box;border-style:solid;border-width:8px 22px;border-image:url('../assets/game/ui_panel.png') 16 34 fill / 8px 22px;padding:2px 6px}
 .banner.hot .b2{color:#C1443C}
 /* 지금 쏠 구슬은 액자에 넣어 "다음" 구슬과 한눈에 구분한다 */
 .orbCurrent .orbPortrait{width:62px;height:62px;border:9px solid transparent;border-image:url('../assets/game/ui_frame.png') 20 18 / 9px 8px}
@@ -182,9 +197,9 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .sceneCv{display:block;width:100%;max-width:300px;aspect-ratio:180/84;flex:none;border:3px solid var(--ink);border-bottom-width:6px}
 .sceneCv[hidden]{display:none}
 #ovChoose:has(.sceneCv:not([hidden])){justify-content:flex-start}
-/* 지도: 던전 그림을 옅게 깐 탑. 칸은 그림 메달(몬스터·모닥불·상인), 기사 말이 지금 위치에 선다 */
+/* 지도: 갱도 그림(chasm)을 옅게 깐 서버. 칸은 그림 메달(버그·충전소·브로커) */
 .ovMap{position:absolute;isolation:isolate}
-.ovMap::before{content:'';position:absolute;inset:0;z-index:-1;background:url('../assets/game/dungeon.png') center/cover no-repeat;opacity:.32}
+.ovMap::before{content:'';position:absolute;inset:0;z-index:-1;background:url('../assets/game/chasm.png') center/cover no-repeat;opacity:var(--art)}
 .mapBox svg line{stroke-linecap:round}
 .node{position:absolute;transform:translate(-50%,-50%);width:52px;height:52px;padding:0;border:3px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ink2);cursor:default;
   display:flex;align-items:center;justify-content:center;animation:nodeIn .35s var(--d,0ms) both}
@@ -209,6 +224,8 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .orbCurrent b .dmg{font-style:normal;font-size:12px;font-weight:800;margin-left:6px;padding:0 5px;border:1px solid var(--ink3);color:var(--ink2);vertical-align:2px}
 /* 스킬 트리: 십자 갈래(위 공격·아래 방어·왼쪽 구슬·오른쪽 경제). 핵심 노드는 마름모 */
 .app[data-mode="tree"] .hud,.app[data-mode="tree"] .orbBar,.app[data-mode="tree"] .abil{display:none}
+/* 차고(작업 08): 터미널에서 열면 침투 HUD가 의미 없고, 정비소에서 열어도 보관함 줄이 같은 정보를 보여 준다 */
+.app[data-mode="garage"] .hud,.app[data-mode="garage"] .orbBar,.app[data-mode="garage"] .abil{display:none}
 .ovTree{justify-content:flex-start;gap:6px}
 .treeBox{position:relative;width:100%;max-width:320px;aspect-ratio:1/1.05;flex:none;margin:6px 0}
 .treeBox svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
@@ -237,21 +254,21 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .rCard:hover:not(:disabled){background:var(--panel);background-clip:padding-box;filter:brightness(1.04)}
 /* 희귀는 붉은 테 대신 붉은 이름 + 왼쪽 붉은 표식(그림 테두리를 덮지 않게) */
 .board li{border:0;border-style:solid;border-width:5px 14px;border-image:url('../assets/game/ui_panel.png') 16 34 fill / 5px 14px;background:var(--panel);background-clip:padding-box}
-.board li.me{border-image:url('../assets/game/ui_bar.png') 10 24 fill / 5px 14px;background:#1B1A18;background-clip:padding-box;color:#F6EEDC}
-.board li.me .bs{color:#F6EEDC}
+.board li.me{border-image:url('../assets/game/ui_bar.png') 10 24 fill / 5px 14px;background:#0E1114;background-clip:padding-box;color:#E6EAEC}
+.board li.me .bs{color:#E6EAEC}
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]) .rCard,:root:not([data-theme="light"]) .treeInfo,:root:not([data-theme="light"]) .board li{border-image-source:url('../assets/game/ui_bar.png');border-image-slice:10 24 fill}
 }
 :root[data-theme="dark"] .rCard,:root[data-theme="dark"] .treeInfo,:root[data-theme="dark"] .board li{border-image-source:url('../assets/game/ui_bar.png');border-image-slice:10 24 fill}
 
-/* 선택·트리·랭킹·메뉴 화면 뒤에도 던전을 옅게 깐다(지도와 같은 공간감). 다크는 어둡게 눌러 쓴다 */
+/* 선택·트리·랭킹·메뉴 화면 뒤에도 갱도 그림을 옅게 깐다(지도와 같은 공간감). 그림이 이미 어두워 다크에서도 누르지 않는다 */
 #ovChoose,#ovTree,#ovRank,#ovPause{isolation:isolate}
 #ovChoose::before,#ovTree::before,#ovRank::before,#ovPause::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
-  background:url('../assets/game/dungeon.png') center/cover no-repeat;opacity:.22}
+  background:url('../assets/game/chasm.png') center/cover no-repeat;opacity:calc(var(--art) * .7)}
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]) .ov::before{filter:brightness(.4)}
+  :root:not([data-theme="light"]) .ov::before{filter:none}
 }
-:root[data-theme="dark"] .ov::before{filter:brightness(.4)}
+:root[data-theme="dark"] .ov::before{filter:none}
 .ovMap::before{pointer-events:none}
 /* 제목은 석판에 새긴 글자처럼 좁은 자간 + 아래 얇은 선 */
 #ovChoose .big,#ovTree .big,#ovRank .big,#ovPause .big{padding-bottom:4px;border-bottom:2px solid var(--line)}
@@ -271,13 +288,13 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
    hero는 석판 그림 + 크게 + 빛이 훑고 지나가는 띠. 붉은색은 위험 전용이라 쓰지 않고, 크기·움직임·명암으로 눈에 띄게 한다 */
 .mainBtns{max-width:280px;gap:10px}
 .btn.hero{position:relative;overflow:hidden;min-height:68px;font-size:21px;font-weight:900;letter-spacing:.06em;
-  color:#F9F6EF;background:#1B1A18;background-clip:padding-box;border-style:solid;border-width:7px 16px;border-image:url('../assets/game/ui_bar.png') 10 24 fill / 7px 16px;
+  color:#EEF2F4;background:#0E1114;background-clip:padding-box;border-style:solid;border-width:7px 16px;border-image:url('../assets/game/ui_bar.png') 10 24 fill / 7px 16px;
   animation:heroPulse 1.6s ease-in-out infinite}
 .btn.hero::before{content:'▶';display:inline-block;margin-right:.45em;font-size:.75em;vertical-align:.08em;animation:heroBlink 1s steps(2) infinite}
 /* 빛 띠: 단색 반투명 막대가 비스듬히 지나간다(그라디언트 대신) */
-.btn.hero::after{content:'';position:absolute;top:-20%;bottom:-20%;left:-40%;width:22%;background:rgba(255,253,248,.22);transform:skewX(-20deg);animation:heroShine 2.6s ease-in-out infinite;pointer-events:none}
+.btn.hero::after{content:'';position:absolute;top:-20%;bottom:-20%;left:-40%;width:22%;background:rgba(230,238,242,.18);transform:skewX(-20deg);animation:heroShine 2.6s ease-in-out infinite;pointer-events:none}
 .btn.hero small{letter-spacing:0;font-size:12px;opacity:.85}
-.btn.hero:hover:not(:disabled){background:#1B1A18;background-clip:padding-box;filter:brightness(1.25)}
+.btn.hero:hover:not(:disabled){background:#0E1114;background-clip:padding-box;filter:brightness(1.25)}
 .btn.hero:active{border-width:7px 16px;transform:translateY(2px)}
 @keyframes heroPulse{50%{transform:scale(1.03)}}
 @keyframes heroBlink{50%{opacity:.25}}
@@ -308,7 +325,7 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 /* 도감 구역 제목: 구슬·유물·배지 */
 .bHead{margin-top:10px;font-size:15px;font-weight:800;color:var(--ink);border-bottom:2px solid var(--line);padding-bottom:2px}
 #ovBadge{isolation:isolate}
-#ovBadge::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:url('../assets/game/dungeon.png') center/cover no-repeat;opacity:.22}
+#ovBadge::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:url('../assets/game/chasm.png') center/cover no-repeat;opacity:calc(var(--art) * .7)}
 #ovBadge .big{padding-bottom:4px;border-bottom:2px solid var(--line)}
 
 /* ── 알림(배지·첫 돌파 포인트): 캔버스 위 위쪽 가운데에 잠깐 */
@@ -342,7 +359,7 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 @media(max-width:340px){ .app{padding-left:4px;padding-right:4px} .ovTree{left:0;right:0} }
 
 /* ── 심연: 테마와 무관하게 화면 전체를 검붉은 어둠으로. 붉은 강조색은 그대로(위험의 의미가 더 짙어진다) */
-:root[data-realm="abyss"]{ --bg:#141113; --panel:#211B1D; --field:#191517; --ink:#ECE4DA; --ink2:#B5AAA1; --ink3:#6E625D; --line:#3B3033; --accent:#D2574F; color-scheme:dark; }
+:root[data-realm="abyss"]{ --bg:#141113; --panel:#211B1D; --field:#191517; --ink:#ECE4DA; --ink2:#B5AAA1; --ink3:#6E625D; --line:#3B3033; --accent:#D2574F; --art:.4; color-scheme:dark; }
 :root[data-realm="abyss"] .rCard,:root[data-realm="abyss"] .treeInfo,:root[data-realm="abyss"] .board li{border-image-source:url('../assets/game/ui_bar.png');border-image-slice:10 24 fill}
 :root[data-realm="abyss"] .ov::before{filter:brightness(.25) sepia(.6) hue-rotate(-30deg)}
 :root[data-realm="abyss"] .ovMap::before{opacity:.6}
@@ -452,17 +469,8 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .ov .sub,.ov .big{max-width:var(--content)}
 
 /* ── 시나리오 대화창 프로필 & 지도 무전 표시줄 */
-.cards.dlgBox{display:flex;flex-direction:column;gap:8px;width:100%;max-width:var(--content);max-height:46vh;overflow-y:auto;padding:4px 2px}
-.dlgRow{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--panel);border:2px solid var(--ink);text-align:left;word-break:keep-all}
-.dlgRow.enemy{flex-direction:row-reverse;border-color:var(--accent)}
-.dlgRow.enemy .dlgBody{text-align:right}
-.dlgRow.enemy .dlgWho{color:var(--accent)}
 .dlgPort{width:46px;height:46px;flex:none;image-rendering:pixelated;border:2px solid var(--ink);background:var(--bg)}
-.dlgRow.enemy .dlgPort{border-color:var(--accent)}
-.dlgBody{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
-.dlgWho{font-size:13px;font-weight:700;color:var(--ink);line-height:1.2}
-.dlgTxt{font-size:14px;color:var(--ink2);line-height:1.45}
-.mapRadio{display:flex;align-items:center;gap:10px;margin-top:6px;padding:6px 10px;background:var(--panel);border:2px solid var(--ink);text-align:left;cursor:pointer;max-width:var(--content);margin-left:auto;margin-right:auto}
+.mapRadio{display:flex;align-items:center;gap:10px;margin-top:6px;padding:6px 10px;background:var(--panel);border:2px solid var(--ink);text-align:left;max-width:var(--content);margin-left:auto;margin-right:auto}
 .mapRadio .dlgPort{width:40px;height:40px}
 .mapRadioBody{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .mapRadioBody b{font-size:12px;color:var(--ink);line-height:1.2}
@@ -484,3 +492,56 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
   .hName{font-size:26px}
   .hStage,.hCoin,.orbBar{font-size:16px}
 }
+.mapRadio.enemy{border-color:var(--accent)}
+.mapRadio.enemy .mapRadioBody b{color:var(--accent)}
+.mapRadio.note .mapRadioBody span{font-style:italic}
+.mapLine{display:block;font-size:13px;color:var(--ink2);font-style:italic;line-height:1.4}
+.say{display:flex;flex-direction:column;gap:6px;width:100%;max-width:var(--content)}
+.say .mapRadio{margin:0}
+
+/* ── 이야기 대화창(ovTalk): 위 = 장 제목·건너뛰기, 가운데 = 초상 둘(왼쪽 릭, 오른쪽 상대), 아래 = 대사 상자.
+   말하는 쪽만 밝고 나머지는 흐리다. 상자 어디를 눌러도 넘어간다(버튼은 키보드·읽기 프로그램용) */
+.ovTalk{isolation:isolate;justify-content:flex-start;gap:10px}
+.ovTalk::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:url('../assets/game/chasm.png') center/cover no-repeat;opacity:var(--art)}
+.ovTalk > :first-child{margin-top:0}
+.tHead{width:100%;max-width:var(--content);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tTitle{font-size:14px;font-weight:800;letter-spacing:.04em;color:var(--ink2);text-align:left;word-break:keep-all}
+.tSkip{min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:0;background:var(--panel);color:var(--ink2);font-size:13px;font-weight:800;cursor:pointer;flex:none}
+.tSkip:active{transform:translateY(2px)}
+.tStage{flex:1 1 auto;width:100%;max-width:var(--content);min-height:96px;display:flex;align-items:flex-end;justify-content:space-between;cursor:pointer}
+.tPort{width:min(40%,160px);aspect-ratio:1;object-fit:contain;image-rendering:pixelated;border:2px solid var(--line);background:var(--field);visibility:hidden;opacity:.3;filter:grayscale(1);transition:opacity .2s,filter .2s,transform .2s}
+.tPort.shown{visibility:visible}
+.tPort.on{opacity:1;filter:none;border-color:var(--ink);transform:translateY(-4px)}
+.tPort.enemy{border-color:var(--accent)}
+.tBox{position:relative;width:100%;max-width:var(--content);min-height:168px;display:flex;flex-direction:column;gap:8px;padding:18px 14px 10px;text-align:left;cursor:pointer;
+  background:var(--panel);border:2px solid var(--ink);border-bottom-width:4px}
+.tBox.enemy{border-color:var(--accent)}
+.tName{position:absolute;top:-13px;left:10px;font-size:13px;font-weight:800;line-height:22px;padding:0 10px;background:var(--ink);color:var(--bg)}
+.tBox.left .tName{left:10px}
+.tBox:not(.left) .tName{left:auto;right:10px}
+.tBox.enemy .tName{background:var(--accent);color:#fff}
+.tBox.lcd .tName{background:var(--ink2);color:var(--bg);letter-spacing:.06em}
+.tText{flex:1;margin:0;font-size:17px;line-height:1.65;color:var(--ink);word-break:keep-all;overflow-wrap:anywhere;white-space:pre-line}
+.tBox.note .tText{color:var(--ink2);font-style:italic}
+.tBox.lcd .tText{font:600 15px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.05em}
+.tFoot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tCount{font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.tNext{min-width:104px;min-height:44px}
+@media(max-width:360px){.tText{font-size:16px}.tBox{min-height:150px}}
+/* 낮은 화면(가로로 눕힌 노트북 창 등): 초상을 접어 대사 상자와 "다음"이 한 화면에 들어오게 */
+@media(max-height:480px){.tStage{display:none}.tBox{min-height:120px}}
+
+/* ── 전투 무전 띠(대본 RADIO): 판 위쪽에 잠깐. 전투를 막지 않게 입력을 통과시킨다 */
+.radio{position:absolute;left:6px;right:6px;top:6px;z-index:6;display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--panel);border:2px solid var(--ink);
+  pointer-events:none;opacity:0;transform:translateY(-6px);transition:opacity .2s,transform .2s;text-align:left}
+.radio.on{opacity:1;transform:none}
+.radio.enemy{border-color:var(--accent)}
+.radio.enemy b{color:var(--accent)}
+.radio.note span{font-style:italic}
+.rPort{width:36px;height:36px;flex:none;image-rendering:pixelated;border:1px solid var(--line)}
+.rBody{display:flex;flex-direction:column;min-width:0}
+.rBody b{font-size:12px;line-height:1.3}
+.rBody span{font-size:13px;line-height:1.35;color:var(--ink2);word-break:keep-all}
+@media(hover:hover){.tSkip:hover{border-color:var(--ink);transform:translateY(-1px)}}
+.tSkip:focus-visible,.tBox:focus-visible{outline:3px solid var(--ink2);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.tPort,.radio{transition:none}.tPort.on{transform:none}.tSkip:active{transform:none}}

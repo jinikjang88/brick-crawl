@@ -3,14 +3,14 @@
 
 // ── 메뉴(일시정지)
 // 메뉴가 없는 화면. 도감(badge)에서 Esc로 메뉴가 열리면 "원정 포기"가 메인 배경용 가짜 원정을 기록으로 올렸다
-const NO_MENU = ['main', 'pause', 'result', 'tree', 'badge'];
+const NO_MENU = ['main', 'pause', 'result', 'tree', 'badge', 'garage'];
 function openMenu(){
   if (NO_MENU.includes(mode)) return;
   // 승패가 정해진 뒤의 연출 중에는 열지 않는다(곧 결과·보상 화면으로 넘어간다)
   if (mode === 'play' && G && (G.phase === 'win' || G.phase === 'lose')) return;
   prevMode = mode; mode = 'pause';
-  $('pMainSub').textContent = prevMode === 'play' ? '접속은 저장된다 · 이번 전투는 처음부터' : '진행은 저장되어 있다';
-  $('pGiveup').textContent = '접속 포기'; $('pGiveup').dataset.arm = '';
+  $('pMainSub').textContent = prevMode === 'play' ? '침투는 저장된다 · 이번 전투는 처음부터' : '진행은 저장되어 있다';
+  $('pGiveup').textContent = '침투 포기'; $('pGiveup').dataset.arm = '';
   $('ovPause').classList.add('on'); $('pResume').focus();
 }
 // 메뉴에서 테마를 바꿨다면 돌아갈 때 지도를 다시 그린다: 지도 아이콘·길은 그릴 때의 색을 박아 둬 옛 테마 색이 남는다
@@ -26,7 +26,7 @@ $('pResume').onclick = closeMenu;
 $('pMain').onclick = () => { $('ovPause').classList.remove('on'); showMain(); };
 $('pGiveup').onclick = e => {
   const b = e.currentTarget;
-  if (!b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 접속이 끝난다'; return; }
+  if (!b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 침투가 끝난다'; return; }
   $('ovPause').classList.remove('on'); clearRun(); endRun(RUN); showMain();
 };
 document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') openMenu(); });
@@ -52,7 +52,7 @@ function renderSound(){
   });
 }
 SND_BTNS.forEach(([id, k]) => $(id).onclick = () => { unlockAudio(); setAudio(k, !AUDIO[k]); renderSound(); });
-// 테마 전환: 자동 → 밝게 → 어둡게. 캔버스·로고·지도 아이콘은 색 토큰을 읽어 그리므로 바꾼 뒤 다시 읽고 다시 그린다
+// 테마 전환: 어둡게 → 밝게 → 자동. 캔버스·로고·지도 아이콘은 색 토큰을 읽어 그리므로 바꾼 뒤 다시 읽고 다시 그린다
 const THEME_LABEL = { auto:'화면 자동', light:'화면 밝게', dark:'화면 어둡게' };
 function renderTheme(){ ['mTheme', 'pTheme'].forEach(id => { $(id).textContent = THEME_LABEL[THEME]; $(id).setAttribute('aria-label', `화면 테마: ${THEME_LABEL[THEME]}. 눌러서 바꾸기`); }); }
 ['mTheme', 'pTheme'].forEach(id => $(id).onclick = () => {
@@ -75,7 +75,11 @@ cv.addEventListener('pointerdown', e => { if (mode === 'play'){ e.preventDefault
 addEventListener('keydown', e => {
   if (PORTRAIT_LOCK && PORTRAIT_LOCK.matches) return;   // 세로 안내가 가린 동안 Esc로 전투가 다시 돌거나 Space로 쏘지 않게
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape'){ mode === 'pause' ? closeMenu() : openMenu(); return; }
+  // 장갑 슬롯 고르기: 숫자 1~5(작업 08)
+  if (mode === 'play' && /^[1-5]$/.test(e.key)){ pickSlot(+e.key - 1); return; }
   if (mode === 'play' && (e.key === ' ' || e.key === 'Enter')){ if (!e.repeat) fire(); e.preventDefault(); }
+  // 대화창: 초점이 버튼 밖(상자를 눌러 넘긴 뒤)이어도 Space·Enter로 넘긴다. 버튼 위면 버튼이 알아서 눌린다
+  if (mode === 'story' && (e.key === ' ' || e.key === 'Enter') && !(e.target && e.target.tagName === 'BUTTON')){ if (!e.repeat) talkStep(); e.preventDefault(); }
 });
 
 // ── 메인 루프

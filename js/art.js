@@ -8,7 +8,7 @@ const ART_CHARS = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel
   'knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
 const ART_ACTIONS_LIST = ['rick', 'sentinel', 'knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
 const ART_PORTRAITS = ['rick', 'rick_determined', 'lina', 'lina_warm', 'yun', 'drone', 'sentinel', 'codex_hostile', 'codex', 'gemini_hostile', 'gemini', 'claude', 'omnis', 'zero'];
-const ART_FILES = ['dungeon', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS, ...ART_ACTIONS_LIST.map(n => n + '_actions'),
+const ART_FILES = ['chasm', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS, ...ART_ACTIONS_LIST.map(n => n + '_actions'),
   ...ART_PORTRAITS.map(n => 'portrait_' + n),
   ...Object.keys(ORBS).map(k => 'orb_' + k),
   ...Object.keys(RELICS).map(k => 'relic_' + k),
@@ -81,11 +81,12 @@ function isDarkTheme(){
 }
 
 function drawBgArt(){
-  const im = artImg('dungeon'); if (!im) return false;
+  const im = artImg('chasm'); if (!im) return false;
   ctx.drawImage(im, 0, 0, W, H);
-  // 벽돌판은 조준선·숫자가 올라가는 곳이라 바닥 무늬를 눌러 대비를 확보한다
-  ctx.globalAlpha = isDarkTheme() ? .78 : .2; ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, BT);
-  ctx.globalAlpha = isDarkTheme() ? .84 : .45; ctx.fillStyle = C.field; ctx.fillRect(0, BT, W, H - BT);
+  // 벽돌판은 조준선·숫자가 올라가는 곳이라 바닥 무늬를 눌러 대비를 확보한다.
+  // 갱도 그림은 원래 어두워 다크에서는 조금만, 라이트에서는 밝은 토큰으로 많이 덮는다(어두운 그림 위 검은 조준선이 묻히지 않게)
+  ctx.globalAlpha = isDarkTheme() ? .25 : .62; ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, BT);
+  ctx.globalAlpha = isDarkTheme() ? .55 : .86; ctx.fillStyle = C.field; ctx.fillRect(0, BT, W, H - BT);
   ctx.globalAlpha = 1;
   return true;
 }

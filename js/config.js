@@ -55,9 +55,10 @@ const shuffle = (a, s) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--
 const rowY = r => BT + 4 + r * ROWH;
 function pickW(w, s){ let x = rand(s) * Object.values(w).reduce((a, b) => a + b, 0); for (const k in w){ x -= w[k]; if (x < 0) return k; } return Object.keys(w)[0]; }
 
-// 화면 테마: 자동(기기 설정)·밝게·어둡게. CSS는 html[data-theme]로 토큰을 바꾸므로, 색을 읽기 전에 먼저 붙인다
-const THEME_KEY = 'brickquest:theme:v1', THEMES = ['auto', 'light', 'dark'];
-let THEME = 'auto';
+// 화면 테마: 어둡게(기본)·밝게·자동(기기 설정). CSS는 html[data-theme]로 토큰을 바꾸므로, 색을 읽기 전에 먼저 붙인다.
+// 2026-11-04 안 B(모노크롬 사이버펑크): 처음 여는 사람은 어두운 화면부터. 이미 고른 값은 그대로 둔다(키·값 형식이 같아 v는 그대로)
+const THEME_KEY = 'brickquest:theme:v1', THEMES = ['dark', 'light', 'auto'];
+let THEME = 'dark';
 try { const t = localStorage.getItem(THEME_KEY); if (THEMES.includes(t)) THEME = t; } catch(e){}
 function applyTheme(){
   const el = document.documentElement;

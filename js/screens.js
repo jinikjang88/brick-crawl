@@ -2,7 +2,7 @@
 'use strict';
 
 // ── 화면 전환 공통
-const OVERLAYS = ['ovMain','ovRank','ovTree','ovBadge','ovMap','ovChoose','ovPause'];
+const OVERLAYS = ['ovMain','ovRank','ovTree','ovBadge','ovMap','ovChoose','ovTalk','ovPause'];
 // 심연 원정 중에는 화면 전체 색 토큰을 심연용으로 바꾼다(html[data-realm="abyss"]). 캔버스도 같은 토큰을 읽으므로 다시 읽는다
 function setRealm(abyss){
   const el = document.documentElement;
@@ -18,6 +18,8 @@ function show(id){ OVERLAYS.forEach(o => $(o).classList.toggle('on', o === id));
 function setMode(m, overlay){
   mode = m; $('app').dataset.mode = m; show(overlay); refreshHud();
   if (overlay !== 'ovChoose') setScene(null);
+  // 무전 띠는 전투 위에서만 뜬다. 보상·결과 화면으로 넘어가면 바로 거둔다
+  if (m !== 'play') radio(null);
   // 메인·결과 화면에서는 메뉴가 열리지 않으니 버튼도 감춘다(자리는 남겨 헤더가 흔들리지 않게)
   $('btnMenu').style.visibility = m === 'main' || m === 'result' || m === 'tree' || m === 'badge' ? 'hidden' : '';
 }
@@ -37,20 +39,10 @@ function showChoice(o){
   setScene(o.scene !== undefined ? o.scene : ['remove', 'upgrade'].includes(o.mode) ? SCENE : null);
   $('cTitle').textContent = o.title; $('cTitle').className = 'big';
   $('cSub').textContent = o.sub || ''; $('cSub').classList.remove('story');
+  // 무전 한두 줄(충전소·브로커·쓰러짐): 초상 + 이름 + 대사. 지문은 이름 없이
+  const say = $('cSay'); say.textContent = ''; say.hidden = !(o.say && o.say.length);
+  for (const ln of (o.say || [])) say.append(radioRow(ln));
   const box = $('cCards'); box.textContent = '';
-  box.classList.toggle('dlgBox', !!(o.lines && o.lines.length));
-  if (o.lines && o.lines.length){
-    for (const ln of o.lines){
-      const row = document.createElement('div');
-      row.className = 'dlgRow ' + (ln.side || 'left'); row.disabled = true;
-      const body = document.createElement('div'); body.className = 'dlgBody';
-      const who = document.createElement('b'); who.className = 'dlgWho'; who.textContent = ln.who;
-      const txt = document.createElement('span'); txt.className = 'dlgTxt'; txt.textContent = ln.text;
-      body.append(who, txt);
-      row.append(dlgPortrait(ln.port), body);
-      box.append(row);
-    }
-  }
   for (const c of o.cards){
     const b = document.createElement('button');
     b.className = 'rCard' + (c.rare ? ' rare' : ''); b.disabled = !!c.disabled;
@@ -76,6 +68,78 @@ function showChoice(o){
   const first = box.querySelector('button:not(:disabled)') || row.querySelector('button'); if (first) first.focus();
 }
 
+function radioRow(ln){
+  const bar = document.createElement('div'); bar.className = 'mapRadio' + (ln.who ? '' : ' note') + (ln.side === 'enemy' ? ' enemy' : '');
+  if (ln.port) bar.append(dlgPortrait(ln.port));
+  const body = document.createElement('div'); body.className = 'mapRadioBody';
+  if (ln.who){ const w = document.createElement('b'); w.textContent = ln.who; body.append(w); }
+  const tx = document.createElement('span'); tx.textContent = ln.text; body.append(tx);
+  bar.append(body);
+  return bar;
+}
+
+// ── 이야기 대화창: 한 줄씩 넘긴다(대본 FULL 장면)
+// 글자가 찍히는 중에 누르면 그 줄을 한 번에 다 보이고, 다 보인 뒤에 누르면 다음 줄로 간다(게임 대화의 익숙한 규칙)
+let TALK = null;
+const TYPE_MS = 26;
+const talkCalm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } };
+function showTalk(o){
+  TALK = { o, i:-1, h:0, typing:false };
+  $('tTitle').textContent = o.title;
+  for (const id of ['tPL', 'tPR']){ const im = $(id); im.dataset.port = ''; im.className = 'tPort ' + (id === 'tPL' ? 'l' : 'r'); }
+  setHeader('', '');
+  setMode('story', 'ovTalk');
+  talkStep();
+  $('tNext').focus();
+}
+function talkPort(id, port, on, enemy){
+  const im = $(id);
+  if (port && im.dataset.port !== port){
+    im.dataset.port = port; im.src = 'assets/game/portrait_' + port + '.png';
+    im.onerror = () => { im.dataset.port = ''; im.removeAttribute('src'); };
+  }
+  im.className = 'tPort ' + (id === 'tPL' ? 'l' : 'r') + (im.dataset.port ? ' shown' : '') + (on ? ' on' : '') + (enemy ? ' enemy' : '');
+}
+function talkStep(){
+  const T = TALK; if (!T) return;
+  if (T.typing){ clearTimeout(T.h); T.typing = false; $('tText').textContent = T.full; return; }
+  T.i++;
+  const lines = T.o.lines || [];
+  if (T.i >= lines.length) return talkDone();
+  const ln = lines[T.i], box = $('tBox'), left = ln.side === 'left';
+  const kind = ln.lcd ? 'lcd' : ln.who ? (ln.side || 'ally') : 'note';
+  box.className = 'tBox ' + kind;
+  $('tName').textContent = ln.lcd ? '아리이버' : ln.who || '';
+  $('tName').hidden = !ln.lcd && !ln.who;
+  // 말하는 쪽 초상만 밝게. 왼쪽 = 릭, 오른쪽 = 마지막으로 말한 상대. 지문·액정은 둘 다 어둡게
+  if (ln.who && !left) T.rEnemy = ln.side === 'enemy';
+  talkPort('tPL', ln.who && left ? ln.port : null, !!ln.who && left, false);
+  talkPort('tPR', ln.who && !left ? ln.port : null, !!ln.who && !left, !!T.rEnemy);
+  $('tCount').textContent = `${T.i + 1} / ${lines.length}`;
+  $('tNext').textContent = T.i === lines.length - 1 ? '계속' : '다음';
+  T.full = ln.lcd ? '▶ ' + ln.lcd.replace(/^▶\s*/, '') : ln.text;
+  const el = $('tText');
+  if (talkCalm() || typeof Image === 'undefined'){ el.textContent = T.full; return; }
+  el.textContent = ''; T.typing = true;
+  let n = 0;
+  const tick = () => {
+    if (TALK !== T || !T.typing) return;
+    n = Math.min(T.full.length, n + 1); el.textContent = T.full.slice(0, n);
+    if (n >= T.full.length){ T.typing = false; return; }
+    T.h = setTimeout(tick, TYPE_MS);
+  };
+  tick();
+}
+function talkDone(){
+  const T = TALK; if (!T) return;
+  clearTimeout(T.h); TALK = null;
+  T.o.onDone();
+}
+$('tNext').onclick = e => { if (e && e.stopPropagation) e.stopPropagation(); if (mode === 'story'){ sfx('talk'); talkStep(); } };
+$('tBox').onclick = () => { if (mode === 'story') talkStep(); };
+$('tStage').onclick = () => { if (mode === 'story') talkStep(); };
+$('tSkip').onclick = () => { if (mode === 'story') talkDone(); };
+
 // ── 메인 화면
 // 시작 버튼은 하나만 화려하게(hero): 이어할 원정이 있으면 이어하기, 없으면 새 원정. 나머지는 보조 버튼으로 낮춘다
 function showMain(){
@@ -89,31 +153,34 @@ function showMain(){
   if (saved){
     const where = saved.pending ? saved.pending : saved.pos;
     const step = (saved.abyss ? '심층부 ' : '') + (where ? `${saved.s + 1}-${where.r + 1}` : `${saved.s + 1}-출발`);
-    c.textContent = '접속 이어 가기';
+    c.textContent = '침투 이어 가기';
     const sm = document.createElement('small'); sm.textContent = `${step}, 체력 ${saved.hp}/${saved.maxHp}, 구슬 ${saved.deck.length}개`;
     c.append(sm);
   }
   c.classList.toggle('hero', !!saved);
   nw.classList.toggle('hero', !saved);
-  nw.textContent = '새 접속'; nw.dataset.arm = '';
+  nw.textContent = '새 침투'; nw.dataset.arm = '';
   // 심연은 본편을 한 번 깨야 열린다. 닫혀 있을 때도 자리를 보여 줘 "끝에 무언가 있다"는 걸 알린다
   renderAsc();
   ab.disabled = !abyssOpen(); ab.dataset.arm = '';
-  ab.textContent = abyssOpen() ? '심층부로' : '심층부 · 서버를 장악하면 열린다';
+  ab.textContent = abyssOpen() ? '심층부로' : '심층부 · OMNIS를 멈추면 열린다';
   if (abyssOpen() && META.abyssBest){ const sm = document.createElement('small'); sm.textContent = `최고 ${progLabel(MAIN_CELLS + META.abyssBest)}`; ab.append(sm); }
-  $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 구역이 없다' : '첫 접속을 시작해 보자')
-    + (META.runs ? ` · 접속 ${META.runs}회` : '') + (META.clears ? ` · 장악 ${META.clears}회` : '');
+  $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 구역이 없다' : '첫 침투를 시작해 보자')
+    + (META.runs ? ` · 침투 ${META.runs}회` : '') + (META.clears ? ` · 하늘 개방 ${META.clears}회` : '');
   $('mTree').textContent = '모듈';
-  const tp = document.createElement('small'); tp.textContent = `커밋 ${META.pts}`; $('mTree').append(tp);
+  const tp = document.createElement('small'); tp.textContent = `설계도 ${META.pts}`; $('mTree').append(tp);
+  // 차고: 조립한 구슬 수와 장전 칸
+  $('mGarage').textContent = '차고';
+  const gp = document.createElement('small'); gp.textContent = `구슬 ${META.g.orbs.length} · 장전 ${META.g.load.length}/${DECK_MAX}`; $('mGarage').append(gp);
   // 도감: 구슬·유물·배지를 한 화면에서 모은다. 버튼에는 모은 총수만
   $('mBadge').textContent = '아카이브';
-  const total = Object.keys(ORBS).length + Object.keys(RELICS).length + BADGES.length;
+  const total = [...CORES, ...CIRCS].length + Object.keys(RELICS).length + BADGES.length;
   const got = seenCount('orb') + seenCount('relic') + BADGES.filter(b => META.badges[b.id]).length;
   const bp = document.createElement('small'); bp.textContent = `${got} / ${total}`; $('mBadge').append(bp);
   ensureProfile(); $('mName').textContent = PROFILE.name; $('renameForm').hidden = true;
   drawLogo($('logoCv'));
-  const display = $('orbShowcase'); display.textContent = '';
-  ['drill','guard','basic','bomb','heavy'].forEach(k => display.append(orbPortrait(k)));
+  // MP3 플레이어 액정처럼: 터미널 곡이 돌고 있다는 것을 영문·숫자로만 보여 준다(대본의 LCD 위젯)
+  $('mLcd').textContent = AUDIO.bgm ? '▶ 00_TUESDAYS_ALGORITHM.MP3  122BPM' : '■ HOLD  NO SIGNAL';
   setHeader('', '');
   setMode('main', 'ovMain');
   bgm('calm'); renderSound();
@@ -124,7 +191,7 @@ $('mContinue').onclick = () => { const r = loadRun(); if (!r) return showMain();
 // 저장된 원정이 있으면 두 번 눌러야 덮어쓴다. 덮어쓴 원정도 끝난 원정으로 기록한다
 function confirmStart(e, abyss){
   const b = e.currentTarget, saved = loadRun();
-  if (saved && !b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 저장된 접속이 사라진다'; return; }
+  if (saved && !b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 저장된 침투가 사라진다'; return; }
   if (saved) endRun(saved);
   startNewRun(abyss);
 }
@@ -147,9 +214,9 @@ $('renameForm').onsubmit = async e => {
   $('nameSave').disabled = true; $('nameMsg').textContent = '바꾸는 중…';
   const r = await renameProfile($('nameIn').value);
   $('nameSave').disabled = false;
-  const msg = { name:'한글·영문·숫자 2~12자로 쓴다(앞뒤·연속 공백 없이)', bad:'쓸 수 없는 단어가 들어 있다', taken:'이미 누가 쓰는 디버거 이름이다', offline:'인터넷에 연결해야 바꿀 수 있다', busy:'요청이 많다. 잠시 뒤 다시 해 보자',
+  const msg = { name:'한글·영문·숫자 2~12자로 쓴다(앞뒤·연속 공백 없이)', bad:'쓸 수 없는 단어가 들어 있다', taken:'이미 누가 쓰는 순위표 이름이다', offline:'인터넷에 연결해야 바꿀 수 있다', busy:'요청이 많다. 잠시 뒤 다시 해 보자',
                 wait:`${r.nextAt ? fmtDate(r.nextAt) : '일주일 뒤'}부터 다시 바꿀 수 있다` };
-  if (r.ok){ $('mName').textContent = PROFILE.name; $('renameForm').hidden = true; sfx('badge'); toast(`디버거 이름 변경 · ${PROFILE.name}`); refreshBoard(); $('mRename').focus(); }
+  if (r.ok){ $('mName').textContent = PROFILE.name; $('renameForm').hidden = true; sfx('badge'); toast(`순위표 이름 변경 · ${PROFILE.name}`); refreshBoard(); $('mRename').focus(); }
   else $('nameMsg').textContent = msg[r.error] || msg.offline;
 };
 // ── 내 기록 삭제: 두 번 눌러야 지운다(되돌릴 수 없다). 서버에 연결돼야 지울 수 있다
@@ -188,9 +255,11 @@ $('mAsc').onclick = () => { if (mode !== 'main') return; META.ascPick = (META.as
 $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 // 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); else if (mode === 'map') showMap(); else if (mode === 'pause') themeDirty = true; }); } catch(e){}
+let startRadio = false;
 function startNewRun(abyss){
-  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => markSeen('orb', orbKind(o))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
-  // 첫 원정에는 이야기의 시작을 먼저 보여 준다(한 번만)
+  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => Object.keys(orbFeats(o)).forEach(k => markSeen('orb', k))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
+  // 첫 원정에는 이야기의 시작을 먼저 보여 준다(한 번만). 이미 본 계정은 첫 지도에서 접속 시작 무전을 한 줄
+  startRadio = !abyss && !!META.story.intro;
   storyOnce('intro', () => showMap());
 }
 // ── 이야기: 처음 한 번만 보여 주고 META.story에 남긴다(도감에서 다시 읽는다). 이미 봤으면 바로 다음으로
@@ -201,9 +270,7 @@ function storyOnce(id, next){
 }
 function showStory(id, next){
   const st = STORY[id];
-  setHeader('', '');
-  showChoice({ mode:'story', title:st.title, sub:st.text, lines:st.lines || null, scene:null, cards:[], buttons:[{ label:'계속', primary:true, onClick:next }] });
-  $('cSub').classList.add('story');
+  showTalk({ title:st.title, lines:st.lines, onDone:next });
 }
 // 스킬 트리 중 원정 시작 때 한 번 정해지는 효과
 function applyTreeStart(r){
@@ -249,7 +316,7 @@ function renderBoard(){
   top.forEach((t, i) => list.append(boardRow(i + 1, t.name, t.best, isMe(t))));
   if (me && me.rank > top.length) list.append(boardRow(me.rank, me.name, me.best, true));
   $('rankSub').textContent = !top.length ? '아직 기록이 없다. 첫 번째가 되어 보자'
-    : me && me.rank ? `${BOARD.total}명 중 ${me.rank}위` : `기록 ${BOARD.total}명 · 접속을 끝내면 이름이 오른다`;
+    : me && me.rank ? `${BOARD.total}명 중 ${me.rank}위` : `기록 ${BOARD.total}명 · 침투를 끝내면 이름이 오른다`;
 }
 // ── 스킬 트리: 노드를 누르면 아래에 설명과 "찍기"가 뜬다(잘못 눌러 포인트를 쓰지 않게 두 단계)
 let treeBack = null, treePick = null;
@@ -261,7 +328,7 @@ const TREE_TOTAL = TREE.reduce((a, n) => a + n.cost, 0);
 function showTree(back){
   treeBack = back || treeBack || showMain;
   const spent = TREE.reduce((a, n) => a + (tree(n.id) ? n.cost : 0), 0);
-  $('treeSub').textContent = `커밋 ${META.pts} · 쓴 커밋 ${spent}/${TREE_TOTAL} · 구역을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
+  $('treeSub').textContent = `설계도 ${META.pts} · 쓴 설계도 ${spent}/${TREE_TOTAL} · 구역을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
   const box = $('treeBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('aria-hidden', 'true');
@@ -296,7 +363,7 @@ function showTree(back){
     info.append(h, d);
     if (st === 'open' || st === 'poor'){
       const buy = document.createElement('button'); buy.className = 'btn primary'; buy.disabled = st === 'poor';
-      buy.textContent = st === 'poor' ? `커밋 ${n.cost} 필요` : `설치하기 (커밋 ${n.cost})`;
+      buy.textContent = st === 'poor' ? `설계도 ${n.cost} 필요` : `설치하기 (설계도 ${n.cost})`;
       buy.onclick = () => { if (mode !== 'tree' || treeState(n) !== 'open') return;
         META.pts -= n.cost; META.tree[n.id] = 1; saveMeta(); sfx('coin'); showTree(); };
       info.append(buy);
@@ -305,6 +372,7 @@ function showTree(back){
   setMode('tree', 'ovTree');
 }
 $('mTree').onclick = () => { treePick = null; showTree(showMain); };
+$('mGarage').onclick = () => showGarage(showMain, false);
 $('treeBack').onclick = () => { if (mode === 'tree') treeBack(); };
 
 // ── 배지: 메달 도트(ICON 글리프를 둥근 테 안에). 못 딴 배지는 흐린 테와 ?로, 조건은 보여 줘 목표가 되게 한다
@@ -333,16 +401,17 @@ function bookHead(text){ const li = document.createElement('li'); li.className =
 const UNKNOWN = { icon:'dots' };
 function showBadges(){
   const box = $('badgeBox'); box.textContent = '';
-  const orbs = Object.keys(ORBS), relics = Object.keys(RELICS);
+  const orbs = [...CORES, ...CIRCS], relics = Object.keys(RELICS);
   const gotB = BADGES.filter(b => META.badges[b.id]).length;
-  $('badgeSub').textContent = `구슬 ${seenCount('orb')}/${orbs.length} · 칩 ${seenCount('relic')}/${relics.length} · 트로피 ${gotB}/${BADGES.length}`;
+  $('badgeSub').textContent = `코어·회로 ${orbs.filter(k => META.seen.orb[k]).length}/${orbs.length} · 칩 ${seenCount('relic')}/${relics.length} · 트로피 ${gotB}/${BADGES.length}`;
   // 등급 순(기본 → 전설)으로 늘어놓는다: 아래로 갈수록 귀한 것
-  box.append(bookHead('구슬'));
-  for (const k of orbs.slice().sort((a, b) => ORBS[a].rar - ORBS[b].rar)){
-    const o = ORBS[k], own = !!META.seen.orb[k], open = orbOpen(k);
+  // 코어 다음 회로, 각각 등급 순(기본 → 전설): 아래로 갈수록 귀한 것
+  box.append(bookHead('코어·회로'));
+  for (const k of orbs.slice().sort((a, b) => (ORBS[a].part === ORBS[b].part ? 0 : ORBS[a].part === 'core' ? -1 : 1) || ORBS[a].rar - ORBS[b].rar)){
+    const o = ORBS[k], own = !!META.seen.orb[k];
     const icon = own ? orbPortrait(k, 'bIc') : badgeIcon(UNKNOWN, false);
-    box.append(bookRow(icon, own ? o.name : '???', RARITY[o.rar].name + (open ? '' : ' · 잠김'),
-      own ? o.desc : open ? '보상이나 브로커에게서 만날 수 있다' : lockText(o.lock), own));
+    box.append(bookRow(icon, own ? o.name : '???', (o.part === 'core' ? '코어 · ' : '회로 · ') + RARITY[o.rar].name,
+      own ? o.desc + (o.lore ? ' — ' + o.lore : '') : o.part === 'core' ? '정예·보스가 떨어뜨린다' : '기체가 떨어뜨리거나 정비소에서 판다', own));
   }
   box.append(bookHead('칩'));
   for (const k of relics.slice().sort((a, b) => RELICS[a].t - RELICS[b].t)){
@@ -352,7 +421,7 @@ function showBadges(){
   box.append(bookHead('이야기'));
   for (const id of STORY_ORDER){
     const st = STORY[id], own = !!META.story[id];
-    const pId = st.lines && st.lines[0] ? st.lines[0].port : 'rick';
+    const first = (st.lines || []).find(l => l.port), pId = first ? first.port : 'rick';
     const icon = dlgPortrait(pId); icon.className = 'bIc dlgIc';
     const row = bookRow(icon, st.title, own ? '대화 보기' : '미열람 · 눌러서 보기',
       st.text.replace(/\n+/g, ' '), true);
@@ -384,7 +453,7 @@ function resumeRun(){
   // 출발 선물 시절 저장(선물 고르기 전): 선물 없이 지도로
   if (RUN.gift){ RUN.gift = false; RUN.giftStock = null; saveRun(); }
   // 깨진 저장(문자열이 아닌 보상 단계)은 보상을 건너뛰고 지도로: 이어하기가 막히지 않게
-  const PR = ['orb', 'elite', 'boss', 'elite-orb', 'boss-orb'];
+  const PR = ['elite', 'boss'];
   if (RUN.pendingReward && !PR.includes(RUN.pendingReward)){ RUN.pendingReward = null; saveRun(); }
   if (RUN.pendingReward) return showReward(RUN.pendingReward);
   if (RUN.pending) return enterNode(nodeAt(RUN.pending.r, RUN.pending.l));
@@ -430,20 +499,18 @@ function showMap(note){
   // 본편은 "세션 2 / 5"처럼 남은 거리를, 심연은 층만 보여 준다(끝이 없다)
   $('mapTitle').textContent = RUN.abyss ? stageName(RUN.s) : `${stageName(RUN.s)} / ${SESSIONS}`;
   $('ovMap').classList.toggle('abyss', !!RUN.abyss);
-  $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  크레딧 ${RUN.coins}  큐 ${RUN.deck.length}/${deckMax()}`;
+  $('mapSub').textContent = `체력 ${RUN.hp}/${RUN.maxHp}  크레딧 ${RUN.coins}  적재함 ${cargoParts()}/${cargoMax()}`;
   // 일반 전투는 보상 화면 없이 지도로 돌아오므로, 얻은 코인을 부제 앞에 한 번 보여 준다
   if (note) $('mapSub').textContent = `${note} · ${$('mapSub').textContent}`;
   if (RUN.asc) $('mapTitle').textContent += ` · 보안 등급 ${RUN.asc}`;
   const ms = $('mapStory'); ms.textContent = '';
-  const rad = !RUN.abyss && STORY_RADIO[RUN.s];
+  // 프롤로그를 본 뒤의 접속은 첫 지도에서 접속 시작 무전(대본 6.4)을, 그 밖에는 층 무전을 띄운다
+  const fresh = startRadio && !RUN.abyss && RUN.s === 0 && !RUN.path.length;
+  const rad = fresh ? START_TALK[Math.floor(Math.random() * START_TALK.length)] : !RUN.abyss && STORY_RADIO[RUN.s];
   if (rad){
-    const bar = document.createElement('div'); bar.className = 'mapRadio';
-    const body = document.createElement('div'); body.className = 'mapRadioBody';
-    const w = document.createElement('b'); w.textContent = rad.who;
-    const tx = document.createElement('span'); tx.textContent = rad.text;
-    body.append(w, tx); bar.append(dlgPortrait(rad.port), body);
-    bar.onclick = () => { if (STORY['b' + RUN.s]){ sfx('pick'); showStory('b' + RUN.s, () => showMap()); } };
-    ms.append(bar);
+    const line = document.createElement('small'); line.className = 'mapLine'; line.textContent = STORY_FLOOR[RUN.s] || '';
+    ms.append(line, radioRow(rad));
+    startRadio = false;
   } else if (!RUN.abyss && STORY_FLOOR[RUN.s]){
     ms.textContent = STORY_FLOOR[RUN.s];
   }
@@ -489,11 +556,16 @@ function showMap(note){
 function enterNode(n){
   RUN.pending = { r:n.r, l:n.l }; saveRun();
   // 들어서는 순간 한 번만 울린다(덜어내기 취소 등으로 화면을 다시 그릴 때는 울리지 않게 여기서)
+  restSay = shopSay = null;   // 새 구역에 들어설 때마다 충전소·브로커 한 줄을 새로 고른다
   if (n.t === 'rest'){ sfx('rest'); return showRest(); }
-  if (n.t === 'shop'){ sfx('shop'); return showShop(); }
-  // 브라우저에서 본편 층 보스 방에 처음 들어갈 때 해당 층 보스 대화를 먼저 보여 준다
+  // 1층 첫 브로커는 윤의 작업실 장면(대본 C1-SHOP)부터. 시뮬레이터(Image 없음)는 이야기 없이 바로 진행한다
+  if (n.t === 'shop'){ sfx('shop');
+    if (typeof Image !== 'undefined' && !RUN.abyss && RUN.s === 0) return storyOnce('shop1', showShop);
+    return showShop(); }
+  // 브라우저에서 본편 층 보스 방에 처음 들어갈 때 해당 층 보스 대화를 먼저 보여 준다(보스 무전은 처음 = pre, 다시 = again)
   if (typeof Image !== 'undefined' && n.t === 'boss' && !RUN.abyss && !RUN.king && STORY['b' + RUN.s]){
-    return storyOnce('b' + RUN.s, () => startBattle(n));
+    const first = !META.story['b' + RUN.s];
+    return storyOnce('b' + RUN.s, () => startBattle(n, first));
   }
   startBattle(n);
 }
@@ -511,12 +583,12 @@ function completeNode(){
 }
 function finishNonBattle(){
   completeNode(); RUN.shop = null; saveRun();
-  if (RUN.lastPts) toast(`커밋 +${RUN.lastPts} · 첫 돌파`);
+  if (RUN.lastPts) toast(`설계도 +${RUN.lastPts} · 첫 돌파`);
   showMap();
 }
 
 // ── 전투 시작·종료
-function startBattle(n){
+function startBattle(n, firstBoss){
   setRealm(RUN.abyss);
   // 군주를 쓰러뜨린 뒤(고난 6)라면 같은 보스 칸에서 근원과 싸운다. 새로고침해도 근원부터 이어진다
   if (n.t === 'boss' && RUN.king) n = Object.assign({}, n, { mon:'king' });
@@ -529,6 +601,9 @@ function startBattle(n){
   banner(G.cfg.final ? '최종 보스' : n.t === 'boss' ? `${stageName(RUN.s)} 보스` : label, G.cfg.name, n.t !== 'battle');
   bgm(n.t === 'boss' ? 'boss' : RUN.abyss ? 'deep' : 'battle');
   if (n.t === 'boss') sfx('boss');
+  // 본편 보스전 무전: 첫 진입은 대본의 보스 방 직전 무전, 다시 오면 짧은 한마디
+  const bt = n.t === 'boss' && !RUN.abyss && !G.cfg.king && BOSS_TALK[RUN.s];
+  if (bt) radio(firstBoss ? bt.pre : bt.again);
 }
 function battleEnd(win){
   const n = G.node;
@@ -541,15 +616,21 @@ function battleEnd(win){
   RUN.coins += gain; RUN.lastGain = gain;
   if (RUN.coins >= 200) earnBadge('rich');
   if (n.t === 'boss' && RUN.abyss && RUN.s === 4) earnBadge('abyss5');
+  // 부품 드롭(작업 08): 결과는 원정 시드로 정해진다. 화면에 한 줄로 알린다
+  const drop = rollDrops(n), dres = addCargo(drop);
+  RUN.lastDrop = dropText(drop, dres); RUN.lastSent = null;
   if (G.cfg.final) return victory();
+  if (n.t === 'boss'){ const s = sendCargo(); RUN.lastSent = `층 보스 송신 · 부품 ${s.parts}개를 차고로 보냈다.`; }
   // 세션 돌파: 최대 체력 +4 후 절반 회복. 몬스터는 세션마다 공·방이 오르는데 기사 체력만 고정이면 후반이 벽이 된다
   if (n.t === 'boss'){ RUN.maxHp += 4; if (!ascOn(3)) RUN.hp = Math.min(RUN.maxHp, RUN.hp + 4 + Math.ceil(RUN.maxHp / 2)); }
   completeNode();
   sfx('win'); bgm(calmSong());
-  // 구슬 보상은 정예·보스(유물 다음)와 상점에서만: 매 전투마다 덱이 불면 구슬 하나하나의 무게가 가벼워진다
-  if (n.t === 'battle'){ RUN.pendingReward = null; saveRun(); if (RUN.lastPts) toast(`커밋 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 크레딧 +${gain}` + (RUN.lastPts ? ` · 커밋 +${RUN.lastPts}` : '')); return; }
+  // 일반 전투는 보상 화면 없이 지도로(드롭은 지도 부제에 한 줄). 정예·보스는 칩 3택1
+  if (n.t === 'battle'){ RUN.pendingReward = null; const dt = RUN.lastDrop; RUN.lastDrop = null; saveRun(); if (RUN.lastPts) toast(`설계도 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 크레딧 +${gain}` + (dt ? ` · ${dt}` : '') + (RUN.lastPts ? ` · 설계도 +${RUN.lastPts}` : '')); return; }
   RUN.pendingReward = n.t;
   saveRun();
+  // 1~4층 보스를 처음 쓰러뜨리면 격파 장면(대본 C*-BOSS-OUT) 뒤에 보상. 저장은 이미 보상 대기라 새로고침해도 보상은 남는다
+  if (typeof Image !== 'undefined' && n.t === 'boss' && !RUN.abyss && STORY['o' + RUN.s]) return storyOnce('o' + RUN.s, () => showReward(RUN.pendingReward));
   showReward(RUN.pendingReward);
 }
 // 최종 보스 격파 = 원정 완주. 저장을 지우고 결과를 보여 준 뒤 메인으로 돌아간다(메인에서 심연이 열린다)
@@ -563,18 +644,19 @@ function victory(){
   if (opened){ META.asc = asc + 1; META.ascPick = META.asc; }
   saveMeta();
   earnBadge('final');
-  if (RUN.deck.length <= 3) earnBadge('light');
+  if (RUN.deck.length <= 1) earnBadge('light');
+  const sent = sendCargo();
   if (king) earnBadge('root');
   // 빌드 배지: 덱 구슬의 절반 이상이 한 계열이면
   for (const [id, kinds] of Object.entries(BUILD_BADGES))
-    if (RUN.deck.filter(o => kinds.includes(orbKind(o))).length * 2 >= RUN.deck.length) earnBadge(id);
+    if (RUN.deck.filter(o => Object.keys(orbFeats(o)).some(k => kinds.includes(k))).length * 2 >= RUN.deck.length) earnBadge(id);
   clearRun(); endRun(RUN);
   sfx('win'); bgm('calm');
   const got = (RUN.badges || []).map(id => BADGES.find(b => b.id === id).name);
   const result = () => showChoice({
-    mode:'result', title:king ? '알고리즘이 멈췄다' : '서버를 장악했다',
-    sub:`${king ? '화요일의 알고리즘을' : '관리자 프로세스를'} 종료시켰다${asc ? `(보안 등급 ${asc})` : ''}. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개.`
-      + ` 이번 접속 커밋 +${RUN.pts || 0}.` + (got.length ? ` 트로피: ${got.join(', ')}.` : '')
+    mode:'result', title:king ? '완전한 아침이 왔다' : '하늘이 열렸다',
+    sub:`${king ? '아키텍트 제로를' : 'OMNIS를'} 멈췄다${asc ? `(보안 등급 ${asc})` : ''}. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개.`
+      + ` 송신 부품 ${sent.parts}개 · 고철 ${sent.scrap}. 이번 침투 설계도 +${RUN.pts || 0}.` + (got.length ? ` 트로피: ${got.join(', ')}.` : '')
       + (firstClear ? ' 터미널에 심층부로 가는 길이 열렸다.' : '')
       + (opened ? ` 이제 보안 등급 ${META.asc}(${ASC[META.asc].name})까지 고를 수 있다.` : ''),
     cards:[], buttons:[{ label:'터미널', primary:true, onClick:showMain }],
@@ -588,12 +670,18 @@ function runOver(){
   const n = G.node;
   if (!G.ended){ G.ended = true; clearRun(); endRun(RUN); }   // 보통은 setLose가 이미 했다
   bgm(null); sfx('lose');
+  // 익스트랙션: 송신하지 못한 적재함은 잃는다(장전한 구슬은 차고에 그대로)
+  const lostN = cargoParts();
+  if (RUN.cargo) RUN.cargo = { cores:{}, circs:{}, scrap:0 };
+  // 쓰러짐 무전(대본 6.3): 1층 = 윤, 2~4층 = 코테크, 5층 = OMNIS·클라드. 심층부는 무전 없이
+  const fall = RUN.abyss ? [] : FALL_TALK[RUN.s === 0 ? 0 : RUN.s >= 4 ? 2 : 1];
   showChoice({
-    mode:'result', title:'연결이 끊겼다',
-    sub:`${stageName(RUN.s)} ${n.r + 1}번째 구역, ${G.cfg.name}에게 당했다. 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개를 모았다. 이번 접속 커밋 +${RUN.pts || 0} (가진 커밋 ${META.pts})`,
+    mode:'result', title:'신호가 끊겼다',
+    say:fall,
+    sub:`${stageName(RUN.s)} ${n.r + 1}번째 구역, ${G.cfg.name}에게 당했다. 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개를 모았다. 이번 침투 설계도 +${RUN.pts || 0} (가진 설계도 ${META.pts})` + (lostN ? `. 송신하지 못한 부품 ${lostN}개를 잃었다` : ''),
     cards:[], buttons:[
       // 쓰러진 곳이 심연이면 다시 심연으로(버튼이 인자 없이 부르므로 감싼다)
-      { label:RUN.abyss ? '다시 심층부로' : '새 접속', primary:true, onClick:() => startNewRun(RUN.abyss) },
+      { label:RUN.abyss ? '다시 심층부로' : '새 침투', primary:true, onClick:() => startNewRun(RUN.abyss) },
       { label:'모듈', onClick:() => { treePick = null; showTree(showMain); } },
       { label:'터미널', onClick:showMain },
     ],
