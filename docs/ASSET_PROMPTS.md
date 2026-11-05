@@ -96,6 +96,24 @@ Use case: stylized-concept. Asset type: Brick Crawl standalone game true final b
 
 ---
 
+### 1.12 2~5층 새 기체 10종 (작업 08 2단계)
+
+지금은 비슷한 기존 그림(괄호 안)을 임시로 쓴다. 파일을 `assets/illustrated/characters/<id>.png`에 넣고 `js/data.js`의 `MON[<id>].spr`를 `<id>`로 바꾸면 된다(`js/art.js` `ART_CHARS`에도 추가).
+공통 앞부분은 1.2와 같다: `Use case: stylized-concept. Asset type: Brick Crawl standalone game character sprite illustration. Style: futuristic cyberpunk pixel-art illustration, crisp angular silhouettes, chunky pixel clusters, matte gunmetal / titanium-ivory / carbon-black palette with muted vermilion (#C1443C) danger accents, upper-left illumination. Subject: <SUBJECT> Single character only, centered full body occupying 75% of a square canvas, generous transparent padding on all sides, no text, no floor, no cast shadow, genuine transparent background.`
+
+| id (층·구분) | 화면 이름 | 특성 / 약점 | `<SUBJECT>` |
+|---|---|---|---|
+| `compiler` (2층) | 컴파일 드론 (임시: 경비 드론) | 증식 / EMP 코어 | `Cyberpunk Compiler Drone, a boxy hovering fabrication drone facing three-quarter LEFT, with a small robotic arm extruding a glowing data block, gunmetal casing and a single muted-vermilion status lamp.` |
+| `holo` (3층) | 홀로그램 잔상 (임시: 경비 드론) | 허상 / 분광 코어 | `Cyberpunk Hologram Afterimage, a translucent flickering humanoid silhouette made of horizontal scanline slices facing three-quarter LEFT, ivory light with a duplicated offset ghost outline and muted-vermilion glitch eyes.` |
+| `stone` (4층) | 방어석 (임시: 방벽 가디언) | 채석 / 항타 회로 | `Cyberpunk Barrier Monolith, a floating slab of dark concrete and titanium plates facing three-quarter LEFT, etched with archive circuit glyphs, small stone fragments orbiting it, one muted-vermilion core slit.` |
+| `keeper` (4층) | 기록 수호기 (임시: 방벽 가디언) | 보강 / 분해 회로·부식 회로 | `Cyberpunk Archive Keeper automaton, a stocky librarian robot facing three-quarter LEFT with a carbon-black chassis, ivory shield-plates shaped like book covers, and a muted-vermilion reading lens.` |
+| `hardener` (5층) | 경화 살포기 (임시: 오염 살포기) | 경화 / 감쇠 회로 | `Cyberpunk Silicon Hardener sprayer, a tall tripod nano-dust dispenser facing three-quarter LEFT, grey crystalline residue crusting its titanium nozzles, muted-vermilion hazard vents.` |
+| `royal` (5층) | 근위 센티넬 (임시: 센티넬) | 연타 / 차단기 회로·충격 회로 | `Cyberpunk Royal Guard Sentinel, a slender bipedal OMNIS honor-guard mech facing three-quarter LEFT, ivory ceremonial armor over carbon-black frame, twin arm blades, muted-vermilion visor.` |
+| `arm` (2층 정예) | 코테크 작업 팔 (임시: 방벽 가디언) | 증식 / EMP 코어·항타 회로 | `Cyberpunk Cotech Work Arm, a massive detached industrial robotic arm on cable tethers facing three-quarter LEFT, gunmetal hydraulics stacking data blocks, muted-vermilion override lamp.` |
+| `observer` (3층 정예) | 거울 관측기 (임시: 경비 드론) | 반사 / 반사 회로 | `Cyberpunk Mirror Observer drone, a spherical drone covered in angled mirror panels facing three-quarter LEFT, ivory frame, reflecting light beams, one muted-vermilion eye in the center.` |
+| `tower` (4층 정예) | 서고 감시기 (임시: 방벽 가디언) | 장갑 / 분해 회로·관통 코어 | `Cyberpunk Archive Watch Turret, a squat armored sentry turret facing three-quarter LEFT with layered titanium plates, a rotating sensor head and a muted-vermilion targeting slit.` |
+| `lens` (5층 정예) | 위성 렌즈 (임시: 경비 드론) | 회피 / 분광 코어 | `Cyberpunk Satellite Lens, a floating ring of six small lens drones around a central gunmetal core facing three-quarter LEFT, muted-vermilion focusing iris.` |
+
 ## 2. 전투 캐릭터 18프레임 액션 시트 (11종 — 6열×3행)
 
 - **원본 저장 경로**: `assets/illustrated/actions/<파일명>.png`
