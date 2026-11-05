@@ -1,6 +1,6 @@
 # 브릭 크롤: 마지막 번개 — 전체 에셋 생성 프롬프트 명세서 (안 A: 완전 분리)
 
-> 이 문서는 시나리오 **〈브릭 크롤: 마지막 번개〉(v6.0)**에 맞춰 주인공·적·층별 보스(안 A 완전 분리)·대화 프로필·구슬·강화 구슬·장비(칩)·배경·벽돌을 Gemini 이미지 생성기로 차례대로 생성하기 위한 **복사 전용 프롬프트 모음집**입니다.
+> 이 문서는 시나리오 **〈브릭 크롤: 마지막 번개〉(v6.0)**에 맞춰 주인공·적·층별 보스(안 A 완전 분리)·대화 프로필·구슬 부품(코어·회로)·구슬 레벨 테두리·공명 문양·장비(칩)·배경·벽돌을 Gemini 이미지 생성기로 차례대로 생성하기 위한 **복사 전용 프롬프트 모음집**입니다.
 
 ---
 
@@ -189,56 +189,83 @@ Use case: stylized-concept. Asset type: Brick Crawl cyberpunk dialogue portrait 
 
 ---
 
-## 4. 구슬 (Orbs 24종) & 강화 구슬 (`+1`~`+5`) 프롬프트
+## 4. 구슬 부품: 코어 7종 · 회로 15종 · 구슬 레벨 테두리 · 공명 문양 (작업 08)
 
-### 4.1 구슬 24종 공통 프롬프트 템플릿
-- **원본 저장 경로**: `assets/illustrated/items/orb_<id>.png` (`collection.png`에 있던 기본 7종도 `items/`에 개별 파일로 넣으면 `build_game_assets.py`를 통해 `96×96`으로 일괄 빌드 가능)
+작업 08(구슬 리빌딩)부터 구슬은 **코어 1 + 회로 0~3**으로 조립한다. 옛 구슬 24종·강화(+1~+5)는 없어졌다.
+- 코어 그림은 전투에서 날아가는 구슬 자체이고, 차고·아카이브의 구슬 아이콘이다.
+- 회로 그림은 차고·보관함·부품 드롭 토스트의 아이콘으로만 쓴다(전투 구슬에는 그리지 않는다). 그래서 **구(球)가 아니라 꽂는 카트리지**로 그린다.
+- 파일 이름은 옛 `orb_<id>.png`를 그대로 쓴다: 코드(`orbPortrait`·`drawOrb`)가 `orb_` + id로 찾으므로 넣기만 하면 바뀐다.
+- **원본 저장 경로**: `assets/illustrated/items/orb_<id>.png` → `python3 tools/build_game_assets.py`로 `96×96` 빌드. `build_items()`가 `collection.png` 시트(`build_sheet`)보다 나중에 돌아서, 같은 이름이면 `items/` 그림이 이긴다.
+
+### 4.1 코어 7종 (구, 전투에서 날아가는 몸체)
+
 ```text
-Use case: stylized-concept. ONE isolated cyberpunk high-tech spherical core asset: <ORB_DESCRIPTION>. Style: futuristic cyberpunk pixel-art illustration, crisp chunky pixel clusters, electric-white and titanium-ivory highlights, 1-pixel deep carbon-charcoal outlines, matte gunmetal and industrial alloy details, upper-left lighting. Single centered spherical orb within square canvas, 12% margin, actual transparent alpha background. No text, no labels, no ground shadow, no frame, no purple/green, no backdrop. Clearly readable at 48x48 and 96x96.
+Use case: stylized-concept. ONE isolated cyberpunk high-tech spherical core asset: <CORE_DESCRIPTION>. Style: futuristic cyberpunk pixel-art illustration, crisp chunky pixel clusters, electric-white and titanium-ivory highlights, 1-pixel deep carbon-charcoal outlines, matte gunmetal and industrial alloy details, upper-left lighting. Single centered spherical orb within square canvas, 12% margin, actual transparent alpha background. No text, no labels, no ground shadow, no frame, no purple/green, no backdrop. Clearly readable at 32x32 and 96x96. The sphere silhouette must stay round so it reads as a ball in flight.
 ```
 
-| 구슬 ID (`orb_<id>.png`) | 화면 이름 | 등급 | `<ORB_DESCRIPTION>` (템플릿에 삽입할 묘사) |
+| 파일 | 화면 이름 | 움직임 규칙 (그림이 말해야 할 것) | `<CORE_DESCRIPTION>` |
 |---|---|---|---|
-| `orb_basic` | **번개 구슬** | 기본 | `L-01 Lightning Core, a smooth brushed-steel and warm-ivory analog electromagnetic sphere with a recessed brushed-titanium equator seam and tiny ivory spark contacts` |
-| `orb_bomb` | **EMP 구슬** | 일반 | `EMP Capacitor Orb, a dark gunmetal sphere fitted with Sentinel's cylindrical brushed-titanium high-voltage capacitor and a glowing muted-vermilion fuse tip on top` |
-| `orb_drill` | **관통 구슬** | 일반 | `Focused Piercing Orb, an ivory and gunmetal sphere tipped with a sharp spiral brushed-titanium plasma drill cone pointing upward` |
-| `orb_guard` | **차폐 구슬** | 일반 | `Barrier Field Orb, a sturdy spherical core encased in interlocking hexagonal weathered-ivory and titanium armor plates` |
-| `orb_bounce` | **반발 구슬** | 일반 | `Repulsion Coil Orb, an ivory core wrapped in a thick shock-absorbing dark steel and brushed-titanium compression spring` |
-| `orb_herb` | **수리 구슬** | 일반 | `Nano-Repair Patch Orb, a clean warm-ivory medical sphere with a raised brushed-titanium cross emblem and sealed ampoule ring` |
-| `orb_thorn` | **파편 구슬** | 일반 | `Shrapnel Spike Orb, a dark iron sphere bristling with six sharp ivory and titanium contact spikes` |
-| `orb_weaken` | **감쇠 구슬** | 고급 | `Dampener Orb, an ivory sphere engraved with a downward-pointing broken titanium chevron and signal-jamming fins` |
-| `orb_disarm` | **차단기 구슬** | 고급 | `Circuit Breaker Orb, an ivory and gunmetal sphere featuring a severed weapon-cable emblem in brushed titanium` |
-| `orb_rust` | **분해 구슬** | 고급 | `Decompiler Format Orb, a weathered corroded iron sphere with a cracking fractured shield emblem` |
-| `orb_magnet` | **전자석 구슬** | 고급 | `Electromagnet Orb, an ivory core gripped by a U-shaped dark iron and copper-titanium horseshoe electromagnet` |
-| `orb_hammer` | **항타 구슬** | 고급 | `Pile-Driver Orb, a heavy dark steel sphere embossed with a massive industrial titanium piston hammer head` |
-| `orb_split` | **프리즘 구슬** | 희귀 | `Gemidi Prism Splitter Orb, a central titanium sphere flanked by two smaller satellite ivory lens spheres splitting apart` |
-| `orb_venom` | **부식 구슬** | 희귀 | `Corrosive Nano-Acid Orb, a dark gunmetal sphere with glowing muted-vermilion (#C1443C) hazard vents and dripping red droplets` |
-| `orb_heavy` | **텅스텐 구슬** | 희귀 | `High-Density Tungsten Core, an oversized riveted dark charcoal and heavy titanium sphere that looks visibly heavier and denser than standard orbs` |
-| `orb_chain` | **릴레이 구슬** | 희귀 | `Relay Chain Orb, an ivory electromagnetic sphere tightly bound in interlocking heavy iron link chains` |
-| `orb_stun` | **충격 구슬** | 희귀 | `Arc Shock Stun Orb, a dark sphere surrounded by three sharp ivory lightning-spark prongs around a central impact node` |
-| `orb_vamp` | **사이펀 구슬** | 희귀 | `Energy Siphon Orb, an ivory sphere with two curved titanium siphon prongs and a muted-vermilion energy core drop` |
-| `orb_toxin` | **바이러스 구슬** | 희귀 | `Viral Lockdown Orb, a dark sphere bearing a muted-vermilion (#C1443C) biohazard skull emblem and three pressurized red ampoules` |
-| `orb_mirror` | **반사 구슬** | 희귀 | `Reflective Deflector Orb, a polished mirror-bright silver-ivory sphere framed in an ornate brushed-titanium gyroscopic rim` |
-| `orb_wreck` | **철거 구슬** | 희귀 | `Demolition Wrecking Sphere, a brutalist dark steel sphere studded with heavy square rivets and a short anchor chain` |
-| `orb_comet` | **아크 구슬** | 전설 | `Overload Arc-Lightning Core (Clad's Safety Core fused), a radiant warm-ivory sphere trailing a sculpted tail of brushed-titanium and white-hot plasma arcs` |
-| `orb_time` | **리셋 구슬** | 전설 | `Chrono-Reset Orb, a transparent ivory sphere housing a precision brushed-titanium hourglass and clockwork escapement gears` |
-| `orb_crown` | **루트 구슬** | 전설 | `Root-Access Admin Orb, a prestigious ivory and dark gunmetal sphere crowned with a circuit-patterned brushed-titanium crest` |
+| `orb_basic` | **번개 코어** | 튕긴다, 천장 3번 | `L-01 Lightning Core, a smooth brushed-steel and warm-ivory electromagnetic sphere with a recessed titanium equator seam and a tiny ivory lightning-bolt contact on its face` |
+| `orb_drill` | **관통 코어** | 벽돌 3개 관통 | `Piercing Core, an ivory and gunmetal sphere with a short spiral titanium plasma drill tip emerging from its top, the drill grooves wrapping the sphere` |
+| `orb_bomb` | **EMP 코어** | 주변 8칸 폭발 | `EMP Core, a dark gunmetal sphere banded by a ring of eight small cylindrical titanium capacitors, one muted-vermilion (#C1443C) charge lamp on top` |
+| `orb_magnet` | **전자석 코어** | 바닥에서 다시 튀어 오름 | `Electromagnet Core, an ivory sphere clamped by a U-shaped dark iron horseshoe magnet with two glowing ivory pole tips at the bottom` |
+| `orb_heavy` | **텅스텐 코어** | 한 방이 무겁다 | `Tungsten Core, an oversized riveted dark charcoal sphere with thick welded titanium plates, visibly denser and heavier than the other cores` |
+| `orb_split` | **분광 코어** | 세 갈래로 갈라짐 | `Spectral Splitter Core, a titanium sphere with three faceted ivory lens segments seamed apart as if about to split into three` |
+| `orb_comet` | **아크 코어** | 모든 벽돌을 뚫음 | `Arc Core, a radiant warm-ivory sphere wrapped in a white-hot plasma arc halo and a short sculpted titanium tail, the most luminous of all cores` |
 
----
+### 4.2 회로 15종 (꽂는 카트리지)
 
-### 4.2 강화 구슬 (`+1`~`+5`) 시각 에셋 프롬프트 (5단계 오버레이 링)
+```text
+Use case: stylized-concept. ONE isolated cyberpunk plug-in circuit cartridge icon: <CIRC_DESCRIPTION>. Shape: a small rectangular titanium-and-carbon cartridge viewed slightly from above at three-quarter angle, gold-free brushed-steel edge connector pins on the bottom edge, the top face carries one bold engraved emblem that is the only symbol on it. Style: futuristic cyberpunk pixel-art illustration, crisp chunky pixel clusters, electric-white and titanium-ivory highlights, 1-pixel deep carbon-charcoal outlines, upper-left lighting. Centered within square canvas, 14% margin, actual transparent alpha background. No text, no letters, no numbers, no labels, no ground shadow, no purple/green, no backdrop. Emblem must be readable at 24x24.
+```
 
-게임에서 구슬은 `+1`부터 `+5`까지 다회 강화됩니다(`bomb+`, `bomb+2` … `bomb+5`). 24종×5단계=120장을 따로 만들면 용량이 커지므로, **어떤 구슬 위에든 겹쳐 그릴 수 있는 투명 배경 강화 오라/프레임(`orb_up_1.png` ~ `orb_up_5.png`, `96×96`) 5장**을 생성하면 24종 모든 구슬의 강화 단계가 시각적으로 구분됩니다.
+색 규칙: 붉은색(`#C1443C`)은 **기체를 해치거나 위험한 효과**(독·피해)에만 쓴다. 지키기·회복 회로는 백색·상아 발광만.
 
-- **원본 저장 경로**: `assets/illustrated/items/orb_up_1.png` ~ `orb_up_5.png`
+| 파일 | 화면 이름 | 등급 | 효과(요약) | `<CIRC_DESCRIPTION>` |
+|---|---|---|---|---|
+| `orb_venom` | **부식 회로** | 일반 | 천장마다 독 | `Corrosion circuit cartridge, emblem: a single dripping acid droplet etched in muted-vermilion (#C1443C) over a cracked plate` |
+| `orb_guard` | **차폐 회로** | 일반 | 벽돌 부수면 방어도 | `Shield circuit cartridge, emblem: an ivory hexagonal shield outline with a small spark in the center` |
+| `orb_herb` | **수리 회로** | 일반 | 첫 천장에 체력 | `Repair circuit cartridge, emblem: an ivory medical cross made of two crossing nano-patch strips` |
+| `orb_thorn` | **파편 회로** | 일반 | 벽돌 부수면 기체 피해 | `Shrapnel circuit cartridge, emblem: a burst of five sharp shards flying outward, shard tips muted-vermilion` |
+| `orb_hammer` | **항타 회로** | 일반 | 돌 벽돌에 큰 피해 | `Pile-driver circuit cartridge, emblem: an ivory piston hammer head striking a cracked stone block` |
+| `orb_vamp` | **사이펀 회로** | 고급 | 천장 2번마다 체력 | `Siphon circuit cartridge, emblem: two curved ivory siphon tubes drawing a single energy drop into a socket` |
+| `orb_wreck` | **철거 회로** | 고급 | 부순 벽돌 수만큼 피해 | `Demolition circuit cartridge, emblem: a small wrecking ball on a short chain swinging into stacked bricks` |
+| `orb_chain` | **릴레이 회로** | 고급 | 천장 타격마다 피해 누적 | `Relay circuit cartridge, emblem: three interlocking ivory chain links with an upward-stepping arrow` |
+| `orb_rust` | **분해 회로** | 고급 | 기체 방어도 0 | `Decompiler circuit cartridge, emblem: an armor plate fracturing into falling square pixel fragments` |
+| `orb_weaken` | **감쇠 회로** | 고급 | 연속 공격 -1 | `Dampener circuit cartridge, emblem: a downward-pointing broken chevron with signal-wave lines fading out` |
+| `orb_disarm` | **차단기 회로** | 고급 | 기체 ⚔ -1 | `Breaker circuit cartridge, emblem: a severed power cable with a small blade icon crossed out` |
+| `orb_toxin` | **바이러스 회로** | 희귀 | 독이 줄지 않음 | `Virus circuit cartridge, emblem: a spiky virus particle in muted-vermilion (#C1443C) inside a locked ring` |
+| `orb_mirror` | **반사 회로** | 희귀 | 공격 피해 되돌림 | `Mirror circuit cartridge, emblem: a polished angled mirror plate bouncing an incoming arrow back` |
+| `orb_stun` | **충격 회로** | 희귀 | 기체 기절 | `Shock circuit cartridge, emblem: three ivory lightning prongs converging on a single impact star` |
+| `orb_prism` | **분광 렌즈 회로** | 전설 (3층 보스 제미디) | 분광 갈래 피해를 나누지 않음 | `Spectral lens circuit cartridge, emblem: a faceted ivory prism lens refracting one beam into three equal beams, slightly more ornate titanium frame than the others` |
 
-| 단계 | 파일명 | 시각적 변화 | 프롬프트 |
+### 4.3 구슬 레벨 테두리 (`orb_lv_2.png` ~ `orb_lv_5.png`, 아직 코드 미연결)
+
+구슬 레벨(Lv2~5, 천장 타격 수로 오름)을 코어 그림 위에 겹쳐 보여 줄 투명 테두리 4장. 옛 강화 오라(`orb_up_*`)를 대신한다. 지금 게임은 이름 뒤 "Lv3" 글자로만 보여 준다.
+- **원본 저장 경로**: `assets/illustrated/items/orb_lv_2.png` ~ `orb_lv_5.png` (`96×96` 빌드)
+- 공통 끝부분: `An empty circular ring, center 65% completely transparent so a core sphere can be drawn inside. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background, no text.`
+
+| 레벨 | 효과 | 프롬프트 앞부분 |
+|---|---|---|
+| Lv2 | 위력 +1 | `Use case: stylized-concept. Game UI overlay ring for a level-2 orb: two small brushed-titanium brackets at top-right and bottom-left with one tiny warm-ivory spark.` |
+| Lv3 | 회로 칸 +1 | `Use case: stylized-concept. Game UI overlay ring for a level-3 orb: four symmetrical titanium connector prongs with small ivory arcs bridging the rim, one extra empty socket notch at the bottom.` |
+| Lv4 | 위력 +1 | `Use case: stylized-concept. Game UI overlay ring for a level-4 orb: an ornate brushed-titanium gyroscopic halo crackling with bright warm-ivory sparks around the perimeter.` |
+| Lv5 | 과열 -1 | `Use case: stylized-concept. Game UI overlay ring for a MAX level-5 orb: a complete titanium-and-ivory crest ring with radiating ivory plasma arcs and small cooling fins.` |
+
+### 4.4 공명 문양 6종 (`res_<id>.png`, 아직 코드 미연결)
+
+아카이브 "공명" 줄과 공명 발견 토스트에 쓸 문양. 지금은 코어 그림으로 대신한다.
+- **원본 저장 경로**: `assets/illustrated/items/res_<id>.png` (`96×96` 빌드)
+- 공통: `Use case: stylized-concept. ONE isolated cyberpunk emblem badge: <EMBLEM>. Circular carbon-black badge with a thin titanium rim, emblem in electric-white and ivory, futuristic cyberpunk pixel-art, 1-pixel charcoal outline, centered, 12% margin, genuine transparent background. No text, no letters, no purple/green.`
+
+| 파일 | 공명 이름 | 조합 | `<EMBLEM>` |
 |---|---|---|---|
-| **+1** | `orb_up_1.png` | 황동 보조 코일 링 1겹 | `Use case: stylized-concept. Game UI overlay frame for an upgraded orb (+1). An empty circular ring (center 65% must be completely empty transparent space so an orb can be drawn inside) made of two small brushed-titanium electromagnetic brackets at the top-right and bottom-left with a tiny warm-ivory spark. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
-| **+2** | `orb_up_2.png` | 황동 코일 링 + 양쪽 스파크 | `Use case: stylized-concept. Game UI overlay frame for a +2 upgraded orb. An empty circular ring (center 65% completely transparent) with four symmetrical brushed-titanium conductor prongs and small warm-ivory electric arcs bridging the rim. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
-| **+3** | `orb_up_3.png` | 회전 자이로 링 + 강한 백색 아크 | `Use case: stylized-concept. Game UI overlay frame for a +3 upgraded orb. An empty circular ring (center 65% completely transparent) formed by an ornate brushed-titanium gyroscopic halo crackling with bright warm-ivory lightning sparks around the perimeter. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
-| **+4** | `orb_up_4.png` | 과전류 붉은 경고 스파크 링 | `Use case: stylized-concept. Game UI overlay frame for a +4 high-voltage orb. An empty circular ring (center 65% completely transparent) of heavy brushed-titanium and dark steel coils emitting alternating warm-ivory and muted-vermilion (#C1443C) high-voltage sparks. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
-| **+5** | `orb_up_5.png` | 최대 출력 아크 코로나 (풀 프레임) | `Use case: stylized-concept. Game UI overlay frame for a MAX +5 overloaded orb. An empty circular ring (center 65% completely transparent) crowned by an elaborate brushed-titanium and ivory crest with intense radiating ivory-and-vermilion plasma arcs around the outer edge. Detailed pixel art, 1-pixel charcoal outline, genuine transparent background.` |
+| `res_relay` | **교대 신호** | EMP 코어 + 차폐 회로 | `two hands passing a glowing baton across a shield line, like a shift change signal` |
+| `res_gate` | **방화문** | 관통 코어 + 부식 회로 | `a heavy sliding fire door slammed shut, holding back falling data blocks` |
+| `res_fan` | **환풍기** | 전자석 코어 + 반사 회로 + 릴레이 회로 | `a three-blade industrial ventilation fan spinning inside a grille` |
+| `res_rootkey` | **루트 키** | 텅스텐 코어 + 차단기 회로 | `an old-fashioned key whose bit is a circuit pattern, inserted into a lock` |
+| `res_halt` | **30년 만의 정지** | 번개 코어 + 충격 회로 + 감쇠 회로 | `a cracked analog clock whose hands have stopped, a lightning bolt frozen across its face` |
+| `res_lastarc` | **마지막 번개** | 아크 코어 + 분광 렌즈 회로 | `a single lightning bolt striking upward through a ceiling and splitting into three downward forks` |
 
 ---
 
@@ -355,7 +382,7 @@ Mobile game app icon, square full-bleed composition (no rounded corners, no bord
    python3 tools/build_game_assets.py
    python3 tools/build_action_assets.py
    ```
-3. 새 캐릭터·보스·장면 파일명(`rick`, `sludge`, `drone`, `guardian`, `disperser`, `sentinel`, `codex`, `gemini`, `claude`, `omnis`, `zero`, `yun`, `heater`, `chasm`)과 대화 프로필(`portrait_*.png`), 강화 오라(`orb_up_1`~`5`)는 에셋이 준비되는 대로 `js/art.js`·`js/data.js`·`js/screens.js`·`tools/build_*.py`에 연결합니다.
+3. 새 캐릭터·보스·장면 파일명(`rick`, `sludge`, `drone`, `guardian`, `disperser`, `sentinel`, `codex`, `gemini`, `claude`, `omnis`, `zero`, `yun`, `heater`, `chasm`)과 대화 프로필(`portrait_*.png`), 구슬 레벨 테두리(`orb_lv_2`~`5`)·공명 문양(`res_*`)은 에셋이 준비되는 대로 `js/art.js`·`js/data.js`·`js/screens.js`·`tools/build_*.py`에 연결합니다.
 
 ---
 
@@ -368,7 +395,7 @@ Mobile game app icon, square full-bleed composition (no rounded corners, no bord
 | 1. 캐릭터 | `rick`·`sludge`·`drone`·`guardian`·`disperser`·`sentinel`·`gemini`·`omnis` | `codex`·`claude`·`zero` → `ART_FALLBACK`(`js/art.js`)으로 다른 보스 그림 |
 | 2. 액션 시트 | `rick`·`sentinel` | 나머지 9종(정지 그림 + 흔들림으로 표시) |
 | 3. 대화 초상 | 14종 전부(`portrait_*`) | — |
-| 4. 구슬 | 17종(`items/orb_*`, 2026-10-09 화풍) | 기본 7종(`basic`·`bomb`·`drill`·`guard`·`heavy`·`split`·`venom`, `collection.png` 출신, 황동), 강화 오라 `orb_up_1`~`5` |
+| 4. 구슬 부품 | 옛 구슬 그림을 코어·회로 아이콘으로 임시 사용(2026-10-09 중세 화풍, 일부는 `collection.png` 출신 황동) | 4절 프롬프트로 재생성: 코어 7·회로 15(회로는 구 대신 카트리지, `orb_prism` 새로), 구슬 레벨 테두리 4·공명 문양 6(코드 연결도 필요) |
 | 5. 칩 | 40종(2026-10-09 화풍) | 사이버펑크 재생성 전 |
 | 6. 배경·장면 | 배경 `chasm`·브로커 장면(윤 초상을 단말기 화면으로) — 도트 대체본 | 배경 AI 원본 `chasm`(6.1), 충전소 `heater`(→ 옛 `campfire`), 벽돌 6종(#33 상아·황동판), 앱 아이콘(기사) |
 | UI 프레임 | `ui_bar`·`ui_panel`·`ui_frame`·`scan` — HUD 판·꺾쇠·주사선(`tools/draw_cyber_assets.py`) | — |
