@@ -173,24 +173,30 @@ const ORBS = {
   weaken: { part:'circ', short:'감쇠', name:'감쇠 회로',     rar:2, desc:'천장을 치면 기체의 남은 연속 공격 -1 (발사마다 1번, 최소 1)', up:'남은 연속 공격 -1을 발사마다 2번까지' },
   disarm: { part:'circ', short:'차단기', name:'차단기 회로', rar:2, desc:'천장을 치면 이번 전투 기체 ⚔ -1 (전투마다 3번, 최소 1)', up:'기체 ⚔ -1을 전투마다 4번까지' },
   stun:   { part:'circ', short:'충격', name:'충격 회로',     rar:3, desc:'천장을 2번 치면 기체가 다음 행동을 건너뛴다(전투마다 1번)', up:'천장을 1번만 쳐도 기절(전투마다 1번)' },
-  // 공명 전용(3단계): 데이터·전투 코드는 남겨 두고 드롭·정비소·아카이브에는 내보내지 않는다
+  // 3층 보스(제미디)만 떨어뜨리는 회로. 정비소·무작위 드롭에는 나오지 않는다(drop:false). 공명 "마지막 번개"의 재료
+  prism:  { part:'circ', short:'분광 렌즈', name:'분광 렌즈 회로', rar:4, drop:false, desc:'분광 코어의 갈래 피해를 나누지 않는다', up:'분광 코어의 갈래 피해를 나누지 않는다' },
+  // 공명이 붙여 주는 효과(작업 08 2.3절): 드롭·정비소·아카이브 부품 목록에는 내보내지 않는다
   bounce: { part:'res', short:'반발', name:'반발', rar:1, desc:'이 구슬은 천장을 한 번 더 칠 수 있다', up:'이 구슬은 천장을 두 번 더 칠 수 있다' },
   time:   { part:'res', short:'리셋', name:'리셋', rar:4, desc:'천장을 치면 기체 행동이 처음으로 돌아가고 연속 공격 -2 (전투마다 1번)', up:'처음으로 되돌리기를 전투마다 2번' },
   crown:  { part:'res', short:'루트', name:'루트', rar:4, desc:'추가 피해 = 가진 크레딧 ÷ 25', up:'추가 피해 = 가진 크레딧 ÷ 15' },
 };
 const CORES = Object.keys(ORBS).filter(k => ORBS[k].part === 'core');
 const CIRCS = Object.keys(ORBS).filter(k => ORBS[k].part === 'circ');
+// 무작위 드롭·정비소에 나오는 회로(분광 렌즈처럼 보스 전용은 뺀다)
+const DROP_CIRCS = CIRCS.filter(k => ORBS[k].drop !== false);
 // 잠금은 없앴다(부품 파밍으로 얻는다). 옛 아카이브 호출이 깨지지 않게 함수는 남긴다
 const lockText = () => '';
 const orbOpen = k => hasKey(ORBS, k) && ORBS[k].part !== 'res';
 // 천장 타격 피해 = 릭 공격력(⚔) + 구슬 위력. 구슬 위력은 코어가 정한다(텅스텐·아크)
 const ORB_BONUS = { heavy:2, comet:4 };
 const ORB_BONUS_UP = { heavy:3, comet:6 };
-// 장갑 슬롯(장전 칸): 3칸에서 시작. 회전 탄창 칩 +1(침투 중), 릭 레벨 슬롯은 3단계
+// 장갑 슬롯(장전 칸): 3칸에서 시작. 릭 5레벨에 4칸, 12레벨에 5칸(작업 08 6절). 회전 탄창 칩은 침투 중 +1
 const DECK_MAX = 3;
-const deckMax = () => DECK_MAX + (rel('pouch') ? 1 : 0);
-// 구슬 저장 형식: '코어/회로/회로'. 각 조각 뒤의 '+'는 Ⅱ 등급(코어는 구슬 레벨, 3단계). 예: 'bomb/venom', 'split/chain/guard'
-const orbSegs = o => String(o).split('/');
+const baseSlots = () => DECK_MAX + (rickLv() >= 5 ? 1 : 0) + (rickLv() >= 12 ? 1 : 0);
+const deckMax = () => baseSlots() + (rel('pouch') ? 1 : 0);
+// 구슬 저장 형식: '코어/회로/회로'. 회로 뒤의 '+'는 Ⅱ 등급(합성). 예: 'bomb/venom+', 'split/chain/guard'
+// 전투에 들고 들어갈 때는 끝에 '@레벨'을 붙인다(구슬 레벨은 차고에 따로 쌓인다: META.g.oxp). 예: 'bomb/venom@3'
+const orbSegs = o => String(o).replace(/@\d+$/, '').split('/');
 const segKind = s => s.replace(/\+\d*$/, '');
 const segLv = s => { const m = /\+(\d*)$/.exec(s); return m ? (+m[1] || 1) : 0; };
 const orbKind = o => segKind(orbSegs(o)[0]);
@@ -198,43 +204,75 @@ const orbLv = o => segLv(orbSegs(o)[0]);
 const orbUp = o => orbLv(o) > 0;
 const orbCircs = o => orbSegs(o).slice(1).map(segKind);
 const orbMake = (core, circs = []) => [core, ...circs].join('/');
-// 구슬이 가진 효과 목록: { 코어·회로 종류: Ⅱ 등급인가 }. 전투 코드는 이것만 본다(같은 효과를 코어든 회로든 똑같이 처리)
+// 구슬 레벨(1~5): 그 구슬로 천장을 친 횟수로 오른다. 2: 위력 +1 / 3: 회로 칸 +1 / 4: 위력 +1 / 5: 과열 -1
+// 문턱 20/60/120/200 → 200/500/900/1400(2026-11-05): 기본 피해가 1이라 위력 +1이 피해 두 배다. 처음 값으로는 첫 침투 두 번째 전투에
+// 레벨 2가 되어 이어 하기 첫 10회 평균 진행이 4.3칸 → 22.9칸으로 뛰었다. 지금 값은 7회쯤 침투해야 레벨 2(시뮬레이터 SIM_CAREER)
+const ORB_XP = [0, 0, 200, 500, 900, 1400];
+const ORB_LV_MAX = 5;
+const orbLevel = o => { const m = /@(\d+)$/.exec(String(o)); return m ? clamp(+m[1], 1, ORB_LV_MAX) : 1; };
+const lvFromXp = xp => { let l = 1; while (l < ORB_LV_MAX && xp >= ORB_XP[l + 1]) l++; return l; };
+const withLv = (o, lv) => String(o).replace(/@\d+$/, '') + (lv > 1 ? '@' + lv : '');
+const orbSlots = (core, lv = 1) => ORBS[core].slots + (lv >= 3 ? 1 : 0);
+// ── 공명(작업 08 2.3절): 정해진 코어 + 회로 조합이면 이름 있는 구슬이 되고 효과가 하나 더 붙는다.
+// add = 효과 목록에 더해지는 효과(전투 코드가 그대로 읽는다). 회로는 "모두 들어 있으면" 된다(다른 회로가 더 있어도 된다)
+const RESONANCE = [
+  { id:'relay',  name:'교대 신호',      core:'bomb',   circs:['guard'],          add:'relay',  desc:'쏜 턴에 기체의 첫 공격을 막고, 막은 피해만큼 맨 아래 벽돌을 부순다' },
+  { id:'gate',   name:'방화문',         core:'drill',  circs:['rust'],           add:'gate',   desc:'이번 턴 데이터 벽이 내려오지 않는다(전투마다 1번)' },
+  { id:'fan',    name:'환풍기',         core:'magnet', circs:['mirror', 'chain'], add:'fan',    desc:'세 번째 발사마다 천장 타격 상한 +2' },
+  { id:'rootkey',name:'루트 키',        core:'heavy',  circs:['disarm'],         add:'crown',  desc:'추가 피해 = 가진 크레딧 ÷ 25' },
+  { id:'halt',   name:'30년 만의 정지', core:'basic',  circs:['stun', 'weaken'], add:'time',   desc:'천장을 치면 기체 행동이 처음으로 돌아가고 연속 공격 -2(전투마다 1번)' },
+  { id:'lastarc',name:'마지막 번개',    core:'comet',  circs:['prism'],          add:'lastarc',desc:'모든 벽돌을 뚫고 천장을 친 뒤 세 갈래로 갈라져 내려온다(갈래 피해 ÷3)' },
+];
+const resOf = o => { const k = orbKind(o), cs = orbCircs(o); return RESONANCE.find(r => r.core === k && r.circs.every(c => cs.includes(c))) || null; };
+// 구슬이 가진 효과 목록: { 코어·회로 종류: Ⅱ 등급인가 }. 전투 코드는 이것만 본다(같은 효과를 코어든 회로든 똑같이 처리). 공명 효과도 여기 더한다
 function orbFeats(o){
   const f = {};
   for (const s of orbSegs(o)) f[segKind(s)] = segLv(s) > 0;
+  const r = resOf(o); if (r) f[r.add] = false;
   return f;
 }
-// 저장·차고에서 읽은 구슬 문자열이 쓸 수 있는 조립인가: 코어 하나 + 회로(칸 수 이하, 중복 없음)
+// 저장·차고에서 읽은 구슬 문자열이 쓸 수 있는 조립인가: 코어 하나 + 회로(칸 수 이하, 중복 없음).
+// 레벨 3의 회로 칸 +1까지 허락한다(레벨은 차고에 따로 있어 여기서는 가장 넉넉한 칸 수로 본다)
 function orbValid(o){
   if (typeof o !== 'string') return false;
   const segs = orbSegs(o), core = segKind(segs[0]);
   if (!hasKey(ORBS, core) || ORBS[core].part !== 'core') return false;
   const cs = segs.slice(1).map(segKind);
-  if (cs.length > ORBS[core].slots || new Set(cs).size !== cs.length) return false;
+  if (cs.length > orbSlots(core, ORB_LV_MAX) || new Set(cs).size !== cs.length) return false;
   return cs.every(c => hasKey(ORBS, c) && ORBS[c].part === 'circ');
 }
-// 과열: 코어 기본값 + 끼운 회로 수. 강한 구슬일수록 오래 쉰다. 축전기 튜닝(o1)·납땜 인두(smith)가 줄인다
+// 과열: 코어 기본값 + 끼운 회로 수(구슬 레벨 5에 -1). 강한 구슬일수록 오래 쉰다. 축전기 튜닝(o1)·납땜 인두(smith)가 줄인다
 function orbHeat(o){
   const core = orbKind(o);
-  let h = ORBS[core].heat + orbCircs(o).length;
+  let h = ORBS[core].heat + orbCircs(o).length - (orbLevel(o) >= 5 ? 1 : 0);
   if (core === 'bomb' && tree('o1')) h--;
   if (h >= 2 && rel('smith')) h--;
   return Math.max(0, h);
 }
-const orbName = o => ORBS[orbKind(o)].short + ' 구슬' + (orbUp(o) ? '+' + orbLv(o) : '')
-  + (orbCircs(o).length ? ' · ' + orbCircs(o).map(c => ORBS[c].short).join('·') : '');
+const circName = s => ORBS[segKind(s)].short + (segLv(s) ? 'Ⅱ' : '');
+const orbName = o => { const r = resOf(o), lv = orbLevel(o);
+  return (r ? r.name : ORBS[orbKind(o)].short + ' 구슬') + (lv > 1 ? ' Lv' + lv : '')
+    + (orbSegs(o).length > 1 ? ' · ' + orbSegs(o).slice(1).map(circName).join('·') : ''); };
 function orbBonus(o){
-  const k = orbKind(o), up = orbUp(o), f = orbFeats(o);
-  // 루트(공명 전용): 크레딧이 곧 힘이다
+  const k = orbKind(o), up = orbUp(o), f = orbFeats(o), lv = orbLevel(o);
+  // 루트 키(공명): 크레딧이 곧 힘이다
   const root = f.crown !== undefined ? Math.floor(((RUN && RUN.coins) || 0) / (f.crown ? 15 : 25)) : 0;
-  return root + (up && ORB_BONUS_UP[k] !== undefined ? ORB_BONUS_UP[k] : ORB_BONUS[k] || 0) + Math.max(0, orbLv(o) - 1);
+  return root + (up && ORB_BONUS_UP[k] !== undefined ? ORB_BONUS_UP[k] : ORB_BONUS[k] || 0) + (lv >= 2 ? 1 : 0) + (lv >= 4 ? 1 : 0);
 }
-// 분광 코어는 갈래 수만큼 피해를 나눈다(최소 1). 파워 프레임 칩이 있으면 나누지 않는다
+// 분광 코어는 갈래 수만큼 피해를 나눈다(최소 1). 파워 프레임 칩·분광 렌즈 회로가 있으면 나누지 않는다
 const splitN = o => orbKind(o) !== 'split' ? 1 : orbUp(o) ? 5 : 3;
-const splitWays = o => rel('giant') ? 1 : splitN(o);
+const splitWays = o => rel('giant') || orbFeats(o).prism !== undefined ? 1 : splitN(o);
 const partDesc = (k, up) => up ? ORBS[k].up : ORBS[k].desc;
-const orbDesc = o => (orbBonus(o) ? `피해 ⚔+${orbBonus(o)} · ` : '')
-  + orbSegs(o).map(s => partDesc(segKind(s), segLv(s) > 0)).join(' / ') + ` · 과열 ${orbHeat(o)}`;
+const orbDesc = o => { const r = resOf(o);
+  return (orbBonus(o) ? `피해 ⚔+${orbBonus(o)} · ` : '') + (r ? `[공명] ${r.desc} / ` : '')
+    + orbSegs(o).map(s => partDesc(segKind(s), segLv(s) > 0)).join(' / ') + ` · 과열 ${orbHeat(o)}`; };
+// ── 릭 레벨(작업 08 6절): 전투 경험치 일반 1·정예 3·보스 8, 층이 깊을수록 곱한다. 레벨마다 최대 체력 +1·설계도 +1, 30레벨까지
+const RICK_LV_MAX = 30;
+const RICK_XP = { battle:1, elite:3, boss:8 };
+// 다음 레벨까지 필요한 경험치: 초반은 빨리, 뒤로 갈수록 천천히(1→2 = 30, 29→30 = 310).
+// 8 + 4×레벨일 때는 깊은 층 경험치 배수 때문에 이어 하기 30회 만에 30레벨이 됐다
+const rickNeed = lv => 20 + 10 * lv;
+const rickLv = () => (META && META.lv) || 1;
 // ── 부품 드롭(작업 08 5절). 확률은 % 정수. 결과는 원정 시드 흐름 rand('reward')로 굴린다(새로고침으로 바뀌지 않게)
 // 기체별 회로 표: 일반 전투에서 한 번 굴린다(합이 100 미만이면 나머지는 회로 없음)
 const DROP_CIRC = {
@@ -259,6 +297,8 @@ const DROP = {
   eliteCores:['drill', 'bomb', 'magnet', 'heavy'],
   // 층 보스 코어(대본에서 그 보스가 남기는 물건). OMNIS·심층부 보스는 넷 중 무작위
   bossCore:['bomb', 'drill', 'split', 'comet'],
+  // 층 보스가 코어와 함께 떨어뜨리는 회로(3층 제미디 = 분광 렌즈)
+  bossCirc:{ 2:'prism' },
 };
 // 적재함: 침투 중 얻은 코어·회로를 담는다(고철은 칸을 쓰지 않는다). 잠금 카트리지 칩 +3
 const CARGO_MAX = 10;

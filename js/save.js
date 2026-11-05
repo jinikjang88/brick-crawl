@@ -14,8 +14,10 @@ for (const k of OLD_KEYS) try { localStorage.removeItem(k); } catch(e){}
 // 필드만 늘어 예전 메타도 기본값으로 읽히므로 키 버전은 그대로다
 // g = 차고: orbs = 조립한 구슬(영구), load = 장전한 구슬 번호, cores·circs = 보관함의 낱개 부품 개수, scrap = 고철
 // 처음 시작하는 릭은 번개 구슬 하나뿐이다(소유자 결정: 나머지는 파밍해 조립한다)
-const GARAGE_BASE = () => ({ orbs:['basic'], load:[0], cores:{}, circs:{}, scrap:0 });
-const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{}, seen:{ orb:{}, relic:{} }, asc:0, ascPick:0, ascClear:{}, story:{}, g:GARAGE_BASE() });
+// oxp = 구슬마다 천장 타격 수(구슬 레벨, orbs와 같은 순서). circs 키 뒤의 '+'는 Ⅱ 회로(합성)
+const GARAGE_BASE = () => ({ orbs:['basic'], load:[0], cores:{}, circs:{}, scrap:0, oxp:[0] });
+const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{}, seen:{ orb:{}, relic:{} }, asc:0, ascPick:0, ascClear:{}, story:{}, g:GARAGE_BASE(), lv:1, xp:0, res:{} });
+// lv·xp = 릭 레벨·경험치, res = 찾은 공명(작업 08 3단계). 필드만 늘어 v5 그대로 읽힌다(없으면 기본값)
 // p칸까지 처음 돌파하며 받는 포인트 합계(본편·심연 모두 5칸째가 보스)
 const ptsUpTo = p => { let t = 0; for (let i = 1; i <= p; i++) t += i % 5 === 0 ? PTS.boss : PTS.cell; return t; };
 let META = META_BASE();
@@ -34,7 +36,10 @@ for (const k of ['best', 'abyssBest', 'runs', 'clears', 'pts', 'asc', 'ascPick']
 if (!META.tree || typeof META.tree !== 'object') META.tree = {};
 if (!META.badges || typeof META.badges !== 'object') META.badges = {};
 if (!META.seen || typeof META.seen !== 'object') META.seen = {};
-for (const k of ['ascClear', 'story']) if (!META[k] || typeof META[k] !== 'object') META[k] = {};
+for (const k of ['ascClear', 'story', 'res']) if (!META[k] || typeof META[k] !== 'object') META[k] = {};
+if (!Number.isInteger(META.lv) || META.lv < 1) META.lv = 1;
+META.lv = Math.min(META.lv, RICK_LV_MAX);
+if (typeof META.xp !== 'number' || !isFinite(META.xp) || META.xp < 0) META.xp = 0;
 // 고난 단계가 생기기 전에 이미 완주한 계정은 고난 1이 열린 상태로 옮긴다(다시 5층을 깨야 열리는 일이 없게)
 if (META.clears > 0 && META.asc < 1) META.asc = 1;
 META.asc = Math.min(Math.floor(META.asc), ASC_MAX); META.ascPick = Math.min(Math.floor(META.ascPick), META.asc);
@@ -48,12 +53,18 @@ const numOr = (x, d, lo = 0) => typeof x === 'number' && isFinite(x) && x >= lo 
 function fixGarage(g){
   const out = GARAGE_BASE();
   if (!isObj(g)) return out;
-  const cnt = (src, part) => { const o = {}; if (isObj(src)) for (const k in src) if (hasKey(ORBS, k) && ORBS[k].part === part && isInt(src[k], 1, 9999)) o[k] = src[k]; return o; };
+  // Ⅱ 회로는 'venom+'처럼 키 뒤에 '+'가 붙는다(코어는 Ⅱ가 없다)
+  const cnt = (src, part) => { const o = {}; if (isObj(src)) for (const k in src){ const b = part === 'circ' ? k.replace(/\+$/, '') : k;
+    if (hasKey(ORBS, b) && ORBS[b].part === part && isInt(src[k], 1, 9999)) o[k] = src[k]; } return o; };
   out.cores = cnt(g.cores, 'core'); out.circs = cnt(g.circs, 'circ');
   out.scrap = Math.floor(numOr(g.scrap, 0));
-  const orbs = Array.isArray(g.orbs) ? g.orbs.filter(orbValid) : [];
+  // 구슬과 경험치는 같은 순서로 옮긴다(깨진 구슬을 빼면 그 경험치도 함께 뺀다)
+  const xs = Array.isArray(g.oxp) ? g.oxp : [];
+  const keep = Array.isArray(g.orbs) ? g.orbs.map((o, i) => [o, i]).filter(([o]) => orbValid(o)) : [];
+  const orbs = keep.map(([o]) => o);
   if (orbs.length){
     out.orbs = orbs;
+    out.oxp = keep.map(([, i]) => Math.floor(numOr(xs[i], 0)));
     out.load = Array.isArray(g.load) ? [...new Set(g.load.filter(i => isInt(i, 0, orbs.length - 1)))].slice(0, DECK_MAX) : [];
     if (!out.load.length) out.load = [0];
   }
@@ -102,6 +113,8 @@ function fixRun(r){
   const cg = isObj(r.cargo) ? r.cargo : {};
   const pick = (src, part) => { const o = {}; if (isObj(src)) for (const k in src) if (hasKey(ORBS, k) && ORBS[k].part === part && isInt(src[k], 1, 999)) o[k] = src[k]; return o; };
   r.cargo = { cores:pick(cg.cores, 'core'), circs:pick(cg.circs, 'circ'), scrap:Math.floor(numOr(cg.scrap, 0)) };
+  // load = 장전 슬롯마다 차고 구슬 번호(구슬 경험치를 돌려줄 곳). 깨졌으면 차고 장전 순서로
+  r.load = Array.isArray(r.load) && r.load.length === r.deck.length && r.load.every(i => isInt(i, 0, META.g.orbs.length - 1)) ? r.load : META.g.load.slice(0, r.deck.length);
   const relics = {};
   if (isObj(r.relics)) for (const k in r.relics)
     if (hasKey(RELICS, k) && isInt(r.relics[k], 1, 99)) relics[k] = Math.min(r.relics[k], RELICS[k].max || 1);

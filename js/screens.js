@@ -165,13 +165,13 @@ function showMain(){
   ab.disabled = !abyssOpen(); ab.dataset.arm = '';
   ab.textContent = abyssOpen() ? '심층부로' : '심층부 · OMNIS를 멈추면 열린다';
   if (abyssOpen() && META.abyssBest){ const sm = document.createElement('small'); sm.textContent = `최고 ${progLabel(MAIN_CELLS + META.abyssBest)}`; ab.append(sm); }
-  $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 구역이 없다' : '첫 침투를 시작해 보자')
+  $('mRecord').textContent = `릭 Lv${META.lv}` + (META.lv < RICK_LV_MAX ? ` (${META.xp}/${rickNeed(META.lv)})` : '') + ' · ' + (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 구역이 없다' : '첫 침투를 시작해 보자')
     + (META.runs ? ` · 침투 ${META.runs}회` : '') + (META.clears ? ` · 하늘 개방 ${META.clears}회` : '');
   $('mTree').textContent = '모듈';
   const tp = document.createElement('small'); tp.textContent = `설계도 ${META.pts}`; $('mTree').append(tp);
   // 차고: 조립한 구슬 수와 장전 칸
   $('mGarage').textContent = '차고';
-  const gp = document.createElement('small'); gp.textContent = `구슬 ${META.g.orbs.length} · 장전 ${META.g.load.length}/${DECK_MAX}`; $('mGarage').append(gp);
+  const gp = document.createElement('small'); gp.textContent = `구슬 ${META.g.orbs.length} · 장전 ${META.g.load.length}/${baseSlots()}`; $('mGarage').append(gp);
   // 도감: 구슬·유물·배지를 한 화면에서 모은다. 버튼에는 모은 총수만
   $('mBadge').textContent = '아카이브';
   const total = [...CORES, ...CIRCS].length + Object.keys(RELICS).length + BADGES.length;
@@ -257,7 +257,7 @@ $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); else if (mode === 'map') showMap(); else if (mode === 'pause') themeDirty = true; }); } catch(e){}
 let startRadio = false;
 function startNewRun(abyss){
-  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => Object.keys(orbFeats(o)).forEach(k => markSeen('orb', k))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
+  RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => Object.keys(orbFeats(o)).filter(k => hasKey(ORBS, k)).forEach(k => markSeen('orb', k))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
   // 첫 원정에는 이야기의 시작을 먼저 보여 준다(한 번만). 이미 본 계정은 첫 지도에서 접속 시작 무전을 한 줄
   startRadio = !abyss && !!META.story.intro;
   storyOnce('intro', () => showMap());
@@ -412,6 +412,14 @@ function showBadges(){
     const icon = own ? orbPortrait(k, 'bIc') : badgeIcon(UNKNOWN, false);
     box.append(bookRow(icon, own ? o.name : '???', (o.part === 'core' ? '코어 · ' : '회로 · ') + RARITY[o.rar].name,
       own ? o.desc + (o.lore ? ' — ' + o.lore : '') : o.part === 'core' ? '정예·보스가 떨어뜨린다' : '기체가 떨어뜨리거나 정비소에서 판다', own));
+  }
+  // 공명(작업 08 3단계): 찾은 것은 조합까지, 못 찾은 것은 코어만 보여 준다("이 코어로 뭔가 된다"는 목표)
+  box.append(bookHead('공명'));
+  for (const r of RESONANCE){
+    const own = !!META.res[r.id];
+    box.append(bookRow(own ? orbPortrait(r.core, 'bIc') : badgeIcon(UNKNOWN, false), own ? r.name : '???',
+      own ? `${ORBS[r.core].short} + ${r.circs.map(c => ORBS[c].short).join(' + ')}` : `${ORBS[r.core].name} + ?`,
+      own ? r.desc : '차고에서 맞는 회로를 끼우면 드러난다', own));
   }
   box.append(bookHead('칩'));
   for (const k of relics.slice().sort((a, b) => RELICS[a].t - RELICS[b].t)){
@@ -607,7 +615,9 @@ function startBattle(n, firstBoss){
 }
 function battleEnd(win){
   const n = G.node;
+  creditOrbXp(G.hitsBy);
   if (!win) return runOver();
+  gainRickXp(n.t);
   // 고난 6: 군주는 껍데기다. 승리 회복 없이 남은 체력 그대로 근원과 이어 싸운다(저장해 두어 새로고침해도 근원부터)
   if (G.cfg.final && !G.cfg.king && ascOn(6)){ RUN.hp = G.p.hp; RUN.king = true; saveRun(); return storyOnce('root', () => startBattle(G.node)); }
   RUN.hp = Math.min(RUN.maxHp, G.p.hp + 2 * rel('medkit') + (tree('d3') ? 2 : 0));

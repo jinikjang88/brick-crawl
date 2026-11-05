@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollRelics,burst,spawnRow,showShop,resetAim,rollDrops,addCargo,sendCargo,showGarage,pickSlot,autoGarage,orbValid,orbHeat,isWeak,traitOn,endPlayerTurn,ROSTER,'
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollRelics,burst,spawnRow,showShop,resetAim,rollDrops,addCargo,sendCargo,showGarage,pickSlot,autoGarage,orbValid,orbHeat,isWeak,traitOn,endPlayerTurn,ROSTER,lvFromXp,orbBonus,orbFeats,synthCirc,resOf,checkResonance,gainRickXp,baseSlots,rickNeed,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   // 이야기 대화창(showTalk)도 같은 모양({ mode:'story', title, buttons })으로 받아 검사를 하나로 쓴다
   + 'catchChoice:()=>{ const got = [], orig = showChoice, ot = showTalk; showChoice = o => { got.push(o); orig(o); };'
@@ -249,7 +249,7 @@ function seeded(mathSeed, seed = 777){
 }
 { // 조립 검사: 칸 수 초과·중복·코어 아님은 쓸 수 없는 구슬
   const t = boot();
-  ok('작업 08 조립 검사', t.orbValid('split/chain/guard') && !t.orbValid('basic/venom/guard') && !t.orbValid('split/chain/chain') && !t.orbValid('venom') && !t.orbValid('constructor'));
+  ok('작업 08 조립 검사', t.orbValid('split/chain/guard') && t.orbValid('basic/venom/guard') && !t.orbValid('basic/venom/guard/herb') && !t.orbValid('split/chain/chain') && !t.orbValid('venom') && !t.orbValid('constructor'));
 }
 { // 차고가 깨져도 번개 구슬 하나로 되살아난다(침투를 시작할 수 있게)
   const t = boot({ [META_KEY]:JSON.stringify({ best:3, g:{ orbs:['nope', 7], load:[9], cores:{ toString:1, drill:'x' }, circs:null, scrap:-4 } }) });
@@ -286,6 +286,41 @@ function seeded(mathSeed, seed = 777){
   const regen = (s, turn) => { t.RUN.s = s; t.newBattle({ r:0, l:0, t:'battle', mon:'slime' }); const G = t.G; G.m.hp = 2; G.turn = turn; G.phase = 'fire'; t.endPlayerTurn(); return G.m.hp; };
   ok('작업 08-2 재생: 2층 매 턴, 1층 3턴에 한 번', regen(1, 1) === 3 && regen(0, 1) === 2 && regen(0, 3) === 3);
 }
+{ // 작업 08 3단계: 구슬 레벨(천장 타격 수) — 2: 위력 +1, 3: 회로 칸 +1, 4: 위력 +1, 5: 과열 -1
+  const t = boot();
+  ok('작업 08-3 구슬 레벨 문턱', t.lvFromXp(0) === 1 && t.lvFromXp(199) === 1 && t.lvFromXp(200) === 2 && t.lvFromXp(1400) === 5);
+  ok('작업 08-3 레벨 효과: 위력·과열', t.orbBonus('basic@2') === 1 && t.orbBonus('basic@4') === 2 && t.orbHeat('bomb/venom@5') === 1 && t.orbHeat('bomb/venom') === 2);
+}
+{ // 전투가 끝나면 천장 타격 수가 장전한 차고 구슬의 경험치가 된다(쓰러져도 남는다)
+  const store = {}; const t = boot(store); click('mNew'); t.startBattle({ r:0, l:0, t:'battle', mon:'slime' });
+  t.G.hitsBy = [25]; t.G.p.hp = 0; t.setLose(t.G); t.battleEnd(false);
+  const u = boot(store);
+  ok('작업 08-3 구슬 경험치: 쓰러져도 차고에 남는다', u.META().g.oxp[0] === 25);
+}
+{ // 회로 합성: 같은 회로 2개 + 고철 10 → Ⅱ, Ⅱ는 효과 목록에서 true
+  const t = boot(); const g = t.META().g; g.circs = { venom:2 }; g.scrap = 20;
+  const okSynth = t.synthCirc('venom');
+  ok('작업 08-3 회로 합성', okSynth && g.circs['venom+'] === 1 && !g.circs.venom && g.scrap === 0 && !t.synthCirc('venom') && t.orbFeats('basic/venom+').venom === true);
+}
+{ // 공명: 조합이 맞으면 이름과 효과가 붙고, 처음 맞추면 영구 기록
+  const t = boot(); const M = t.META();
+  ok('작업 08-3 공명 판정', t.resOf('bomb/guard').id === 'relay' && t.resOf('magnet/chain/mirror').id === 'fan' && !t.resOf('bomb/venom') && t.orbFeats('heavy/disarm').crown !== undefined);
+  t.checkResonance('drill/rust');
+  ok('작업 08-3 공명 발견 기록', M.res.gate === 1);
+}
+{ // 릭 레벨: 경험치(일반 1·정예 3·보스 8 × 층)로 오르고, 레벨마다 설계도 +1·최대 체력 +1. 5레벨에 장갑 슬롯 4칸
+  const t = boot(); const M = t.META(); click('mNew'); const R = t.RUN; R.s = 0;
+  const pts0 = M.pts, hp0 = R.maxHp;
+  M.xp = t.rickNeed(1) - 9; t.gainRickXp('boss'); const lv1 = M.lv;
+  t.gainRickXp('battle');
+  ok('작업 08-3 릭 레벨 업: 설계도·최대 체력 +1', lv1 === 1 && M.lv === 2 && M.pts === pts0 + 1 && R.maxHp === hp0 + 1);
+  M.lv = 5; ok('작업 08-3 릭 5레벨: 장갑 슬롯 4칸', t.baseSlots() === 4);
+}
+{ // 방화문(공명): 쏜 턴에는 데이터 벽이 내려오지 않는다
+  const t = boot(); click('mNew'); t.newBattle({ r:0, l:0, t:'battle', mon:'slime' }); const G = t.G;
+  const run = gate => { G.bricks = [{ r:3, c:2, y:0, hp:1, type:'n', dead:false }]; G.gate = gate; G.turn = t.WALL.every; G.cur = { t:'wait' }; G.eStep = 2; G.timer = 1; G.p.hp = 24; G.m.dead = false; t.enemyUpdate(0); return G.bricks.filter(b => !b.dead && b.r === 3).length; };
+  ok('작업 08-3 방화문: 벽이 내려오지 않는다', run(true) === 1 && run(false) === 0);
+}
 { // 전체 진행도 초기화(2026-10-16): 옛 원정·메타(v2·v3)는 읽지 않고 지운다. 프로필(닉네임·id)은 남고 못 보낸 옛 기록만 비운다
   const old = { v:3, deck:['bomb+5'], map:goodRun.map, hp:24, maxHp:24 };
   const store = { 'brickquest:run:v3':JSON.stringify(old), 'brickquest:run:v2':JSON.stringify(old),
@@ -315,6 +350,7 @@ function seeded(mathSeed, seed = 777){
   ok('고난 5: 보스전 천장 1칸 봉인', s4 === 0 && t.G.seal.length === 1);
   // 꺼진 모닥불: 보스를 잡아도 체력 그대로, 최대 체력만 +4
   for (const [a, want] of [[2, 'heal'], [3, 'none']]){
+    t.META().lv = 30;   // 최고 레벨: 레벨업(최대 체력 +1)을 빼고 보안 등급 규칙만 본다
     R.asc = a; t.newBattle(boss); R.pending = { r:4, l:2 }; R.maxHp = 30; t.G.p.hp = 10; R.relics.medkit = 0;
     t.battleEnd(true); ok(`고난 ${a}: 보스 처치 후 체력 ${want === 'heal' ? '회복' : '그대로'}`, R.maxHp === 34 && (want === 'heal' ? R.hp > 10 : R.hp === 10));
   }
