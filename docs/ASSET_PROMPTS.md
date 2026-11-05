@@ -261,7 +261,7 @@ Use case: stylized-concept. ONE isolated cyberpunk plug-in circuit cartridge ico
 | 파일 | 공명 이름 | 조합 | `<EMBLEM>` |
 |---|---|---|---|
 | `res_relay` | **교대 신호** | EMP 코어 + 차폐 회로 | `two hands passing a glowing baton across a shield line, like a shift change signal` |
-| `res_gate` | **방화문** | 관통 코어 + 부식 회로 | `a heavy sliding fire door slammed shut, holding back falling data blocks` |
+| `res_gate` | **방화문** | 관통 코어 + 분해 회로 | `a heavy sliding fire door slammed shut, holding back falling data blocks` |
 | `res_fan` | **환풍기** | 전자석 코어 + 반사 회로 + 릴레이 회로 | `a three-blade industrial ventilation fan spinning inside a grille` |
 | `res_rootkey` | **루트 키** | 텅스텐 코어 + 차단기 회로 | `an old-fashioned key whose bit is a circuit pattern, inserted into a lock` |
 | `res_halt` | **30년 만의 정지** | 번개 코어 + 충격 회로 + 감쇠 회로 | `a cracked analog clock whose hands have stopped, a lightning bolt frozen across its face` |
