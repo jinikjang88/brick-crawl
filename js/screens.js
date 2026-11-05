@@ -153,22 +153,22 @@ function showMain(){
   if (saved){
     const where = saved.pending ? saved.pending : saved.pos;
     const step = (saved.abyss ? '심층부 ' : '') + (where ? `${saved.s + 1}-${where.r + 1}` : `${saved.s + 1}-출발`);
-    c.textContent = '접속 이어 가기';
+    c.textContent = '침투 이어 가기';
     const sm = document.createElement('small'); sm.textContent = `${step}, 체력 ${saved.hp}/${saved.maxHp}, 구슬 ${saved.deck.length}개`;
     c.append(sm);
   }
   c.classList.toggle('hero', !!saved);
   nw.classList.toggle('hero', !saved);
-  nw.textContent = '새 접속'; nw.dataset.arm = '';
+  nw.textContent = '새 침투'; nw.dataset.arm = '';
   // 심연은 본편을 한 번 깨야 열린다. 닫혀 있을 때도 자리를 보여 줘 "끝에 무언가 있다"는 걸 알린다
   renderAsc();
   ab.disabled = !abyssOpen(); ab.dataset.arm = '';
-  ab.textContent = abyssOpen() ? '심층부로' : '심층부 · 서버를 장악하면 열린다';
+  ab.textContent = abyssOpen() ? '심층부로' : '심층부 · OMNIS를 멈추면 열린다';
   if (abyssOpen() && META.abyssBest){ const sm = document.createElement('small'); sm.textContent = `최고 ${progLabel(MAIN_CELLS + META.abyssBest)}`; ab.append(sm); }
-  $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 구역이 없다' : '첫 접속을 시작해 보자')
-    + (META.runs ? ` · 접속 ${META.runs}회` : '') + (META.clears ? ` · 장악 ${META.clears}회` : '');
+  $('mRecord').textContent = (META.best > 0 ? `최고 ${progLabel(META.best)} 돌파` : META.runs ? '아직 돌파한 구역이 없다' : '첫 침투를 시작해 보자')
+    + (META.runs ? ` · 침투 ${META.runs}회` : '') + (META.clears ? ` · 하늘 개방 ${META.clears}회` : '');
   $('mTree').textContent = '모듈';
-  const tp = document.createElement('small'); tp.textContent = `커밋 ${META.pts}`; $('mTree').append(tp);
+  const tp = document.createElement('small'); tp.textContent = `부품 ${META.pts}`; $('mTree').append(tp);
   // 도감: 구슬·유물·배지를 한 화면에서 모은다. 버튼에는 모은 총수만
   $('mBadge').textContent = '아카이브';
   const total = Object.keys(ORBS).length + Object.keys(RELICS).length + BADGES.length;
@@ -188,7 +188,7 @@ $('mContinue').onclick = () => { const r = loadRun(); if (!r) return showMain();
 // 저장된 원정이 있으면 두 번 눌러야 덮어쓴다. 덮어쓴 원정도 끝난 원정으로 기록한다
 function confirmStart(e, abyss){
   const b = e.currentTarget, saved = loadRun();
-  if (saved && !b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 저장된 접속이 사라진다'; return; }
+  if (saved && !b.dataset.arm){ b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 저장된 침투가 사라진다'; return; }
   if (saved) endRun(saved);
   startNewRun(abyss);
 }
@@ -313,7 +313,7 @@ function renderBoard(){
   top.forEach((t, i) => list.append(boardRow(i + 1, t.name, t.best, isMe(t))));
   if (me && me.rank > top.length) list.append(boardRow(me.rank, me.name, me.best, true));
   $('rankSub').textContent = !top.length ? '아직 기록이 없다. 첫 번째가 되어 보자'
-    : me && me.rank ? `${BOARD.total}명 중 ${me.rank}위` : `기록 ${BOARD.total}명 · 접속을 끝내면 이름이 오른다`;
+    : me && me.rank ? `${BOARD.total}명 중 ${me.rank}위` : `기록 ${BOARD.total}명 · 침투를 끝내면 이름이 오른다`;
 }
 // ── 스킬 트리: 노드를 누르면 아래에 설명과 "찍기"가 뜬다(잘못 눌러 포인트를 쓰지 않게 두 단계)
 let treeBack = null, treePick = null;
@@ -325,7 +325,7 @@ const TREE_TOTAL = TREE.reduce((a, n) => a + n.cost, 0);
 function showTree(back){
   treeBack = back || treeBack || showMain;
   const spent = TREE.reduce((a, n) => a + (tree(n.id) ? n.cost : 0), 0);
-  $('treeSub').textContent = `커밋 ${META.pts} · 쓴 커밋 ${spent}/${TREE_TOTAL} · 구역을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
+  $('treeSub').textContent = `부품 ${META.pts} · 쓴 부품 ${spent}/${TREE_TOTAL} · 구역을 처음 돌파하면 +${PTS.cell}, 보스는 +${PTS.boss}`;
   const box = $('treeBox'); box.textContent = '';
   const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('aria-hidden', 'true');
@@ -360,7 +360,7 @@ function showTree(back){
     info.append(h, d);
     if (st === 'open' || st === 'poor'){
       const buy = document.createElement('button'); buy.className = 'btn primary'; buy.disabled = st === 'poor';
-      buy.textContent = st === 'poor' ? `커밋 ${n.cost} 필요` : `설치하기 (커밋 ${n.cost})`;
+      buy.textContent = st === 'poor' ? `부품 ${n.cost} 필요` : `설치하기 (부품 ${n.cost})`;
       buy.onclick = () => { if (mode !== 'tree' || treeState(n) !== 'open') return;
         META.pts -= n.cost; META.tree[n.id] = 1; saveMeta(); sfx('coin'); showTree(); };
       info.append(buy);
@@ -578,7 +578,7 @@ function completeNode(){
 }
 function finishNonBattle(){
   completeNode(); RUN.shop = null; saveRun();
-  if (RUN.lastPts) toast(`커밋 +${RUN.lastPts} · 첫 돌파`);
+  if (RUN.lastPts) toast(`부품 +${RUN.lastPts} · 첫 돌파`);
   showMap();
 }
 
@@ -617,7 +617,7 @@ function battleEnd(win){
   completeNode();
   sfx('win'); bgm(calmSong());
   // 구슬 보상은 정예·보스(유물 다음)와 상점에서만: 매 전투마다 덱이 불면 구슬 하나하나의 무게가 가벼워진다
-  if (n.t === 'battle'){ RUN.pendingReward = null; saveRun(); if (RUN.lastPts) toast(`커밋 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 크레딧 +${gain}` + (RUN.lastPts ? ` · 커밋 +${RUN.lastPts}` : '')); return; }
+  if (n.t === 'battle'){ RUN.pendingReward = null; saveRun(); if (RUN.lastPts) toast(`부품 +${RUN.lastPts} · 첫 돌파`); showMap(`승리! 크레딧 +${gain}` + (RUN.lastPts ? ` · 부품 +${RUN.lastPts}` : '')); return; }
   RUN.pendingReward = n.t;
   saveRun();
   // 1~4층 보스를 처음 쓰러뜨리면 격파 장면(대본 C*-BOSS-OUT) 뒤에 보상. 저장은 이미 보상 대기라 새로고침해도 보상은 남는다
@@ -644,9 +644,9 @@ function victory(){
   sfx('win'); bgm('calm');
   const got = (RUN.badges || []).map(id => BADGES.find(b => b.id === id).name);
   const result = () => showChoice({
-    mode:'result', title:king ? '완전한 아침이 왔다' : '서버를 장악했다',
+    mode:'result', title:king ? '완전한 아침이 왔다' : '하늘이 열렸다',
     sub:`${king ? '아키텍트 제로를' : 'OMNIS를'} 멈췄다${asc ? `(보안 등급 ${asc})` : ''}. 남은 체력 ${G.p.hp}/${G.p.max}, 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개.`
-      + ` 이번 접속 커밋 +${RUN.pts || 0}.` + (got.length ? ` 트로피: ${got.join(', ')}.` : '')
+      + ` 이번 침투 부품 +${RUN.pts || 0}.` + (got.length ? ` 트로피: ${got.join(', ')}.` : '')
       + (firstClear ? ' 터미널에 심층부로 가는 길이 열렸다.' : '')
       + (opened ? ` 이제 보안 등급 ${META.asc}(${ASC[META.asc].name})까지 고를 수 있다.` : ''),
     cards:[], buttons:[{ label:'터미널', primary:true, onClick:showMain }],
@@ -663,12 +663,12 @@ function runOver(){
   // 쓰러짐 무전(대본 6.3): 1층 = 윤, 2~4층 = 코테크, 5층 = OMNIS·클라드. 심층부는 무전 없이
   const fall = RUN.abyss ? [] : FALL_TALK[RUN.s === 0 ? 0 : RUN.s >= 4 ? 2 : 1];
   showChoice({
-    mode:'result', title:'연결이 끊겼다',
+    mode:'result', title:'신호가 끊겼다',
     say:fall,
-    sub:`${stageName(RUN.s)} ${n.r + 1}번째 구역, ${G.cfg.name}에게 당했다. 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개를 모았다. 이번 접속 커밋 +${RUN.pts || 0} (가진 커밋 ${META.pts})`,
+    sub:`${stageName(RUN.s)} ${n.r + 1}번째 구역, ${G.cfg.name}에게 당했다. 구슬 ${RUN.deck.length}개, 칩 ${Object.keys(RUN.relics).length}개를 모았다. 이번 침투 부품 +${RUN.pts || 0} (가진 부품 ${META.pts})`,
     cards:[], buttons:[
       // 쓰러진 곳이 심연이면 다시 심연으로(버튼이 인자 없이 부르므로 감싼다)
-      { label:RUN.abyss ? '다시 심층부로' : '새 접속', primary:true, onClick:() => startNewRun(RUN.abyss) },
+      { label:RUN.abyss ? '다시 심층부로' : '새 침투', primary:true, onClick:() => startNewRun(RUN.abyss) },
       { label:'모듈', onClick:() => { treePick = null; showTree(showMain); } },
       { label:'터미널', onClick:showMain },
     ],

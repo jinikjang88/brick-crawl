@@ -399,15 +399,15 @@ function update(dt){
   // 불사조(핵심 노드): 원정마다 한 번, 체력 0이 되는 순간 30%로 일어난다. 쓰러짐 판정보다 먼저 본다
   // 두 번째 심장(전투마다) → 불사조(트리) → 불멸의 반지(원정마다) 순서로 쓴다: 싼 것부터 소모되게
   if (g.p.hp <= 0 && rel('heart') && !g.heart){
-    g.heart = true; g.p.hp = 1; g.p.poison = 0; pop(PX, 30, '1', C.ink, 'heart'); banner('백업 전원', '버텨 낸다'); sfx('heal');
+    g.heart = true; g.p.hp = 1; g.p.poison = 0; pop(PX, 30, '1', C.ink, 'heart'); banner(RELICS.heart.name, '버텨 낸다'); sfx('heal');
   }
   if (g.p.hp <= 0 && rel('ring') && !RUN.ringUsed && (!tree('e6') || RUN.revived)){
     RUN.ringUsed = true; g.p.hp = Math.ceil(g.p.max * .5); g.p.poison = 0;
-    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner('영구 라이선스', '다시 켜진다'); sfx('heal');
+    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner(RELICS.ring.name, '다시 켜진다'); sfx('heal');
   }
   if (g.p.hp <= 0 && tree('e6') && !RUN.revived){
     RUN.revived = true; g.p.hp = Math.ceil(g.p.max * .3); g.p.poison = 0;
-    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner('재부팅', '다시 켜진다'); sfx('heal');
+    burst(PX, 60, C.ink, 20); pop(PX, 30, '+' + g.p.hp, C.ink, 'heart'); banner(TREE.find(n => n.id === 'e6').name, '다시 켜진다'); sfx('heal');
   }
   if (g.p.hp <= 0 && g.p.artAction !== 'death') artPose(g.p, 'death');
   if (g.m.dead && g.m.artAction !== 'death') artPose(g.m, 'death');

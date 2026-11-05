@@ -59,7 +59,7 @@ function showReward(kind){
 }
 function renderReward(kind){
   const isOrb = isOrbReward(kind), rerollLeft = RUN.reward.reroll, rewardStock = RUN.reward.stock;
-  const pts = RUN.lastPts ? ` 커밋 +${RUN.lastPts}(첫 돌파).` : '';
+  const pts = RUN.lastPts ? ` 부품 +${RUN.lastPts}(첫 돌파).` : '';
   const head = isOrb && kind !== 'orb' ? '칩을 챙겼다.' : (kind === 'boss' ? `${stageName(RUN.s)} 돌파! 최대 체력 +4, 체력 절반 회복, 크레딧 +${RUN.lastGain || 0}.`
     : `승리! 크레딧 +${RUN.lastGain || 0}.`) + pts;
   const cards = rewardStock.map(id => isOrb
@@ -164,5 +164,5 @@ function showShop(){
   });
   // 처음 들어올 때: 살 수 있는 것이 하나도 없으면 "크레딧이 모자란다", 아니면 인사
   if (!shopSay) shopSay = pickLine(cards.every(c => c.disabled) ? SHOP_TALK.poor : SHOP_TALK.enter);
-  showChoice({ mode:'shop', scene:'shop', title:'떠돌이 브로커', sub:`크레딧 ${RUN.coins}`, say:[shopSay], cards, buttons:[{ label:'떠나기', primary:true, onClick:finishNonBattle }] });
+  showChoice({ mode:'shop', scene:'shop', title:'윤의 정비소', sub:`크레딧 ${RUN.coins}`, say:[shopSay], cards, buttons:[{ label:'떠나기', primary:true, onClick:finishNonBattle }] });
 }
