@@ -26,6 +26,31 @@ function brickAt(x, y){
   }
   return false;
 }
+function drawSkillFx(cx, fx){
+  if (!fx) return;
+  const calm = artCalm && artCalm.matches;
+  const p = clamp(1 - fx.t / fx.dur, 0, 1);
+  const a0 = ctx.globalAlpha;
+  ctx.fillStyle = fx.col || C.ink;
+  ctx.globalAlpha = a0 * (1 - p * 0.75);
+  if (fx.kind === 'guard'){
+    const w = 22 + (calm ? 0 : Math.round(p * 6)), h = 38;
+    const x = Math.round(cx - w / 2), y = 46;
+    ctx.fillRect(x + 2, y, w - 4, 1); ctx.fillRect(x + 2, y + h, w - 4, 1);
+    ctx.fillRect(x, y + 3, 1, h - 6); ctx.fillRect(x + w - 1, y + 3, 1, h - 6);
+  } else {
+    const r = calm ? 16 : 8 + p * 20, cy = 62;
+    for (let i = 0; i < 8; i++){
+      const ang = i * Math.PI / 4 + (calm ? 0 : p * 1.2);
+      ctx.fillRect(Math.round(cx + Math.cos(ang) * r) - 1, Math.round(cy + Math.sin(ang) * r * 0.7) - 1, 2, 2);
+    }
+    if (!calm){
+      ctx.fillRect(Math.round(cx - 14), Math.round(84 - p * 28), 2, 3);
+      ctx.fillRect(Math.round(cx + 12), Math.round(80 - p * 28), 2, 3);
+    }
+  }
+  ctx.globalAlpha = a0;
+}
 function draw(){
   fitCanvas();
   ctx.setTransform(RES, 0, 0, RES, 0, 0); ctx.globalAlpha = 1;
@@ -43,19 +68,23 @@ function draw(){
   const p = g.p, m = g.m;
   hpBlock(PX, p.hp, p.max, p.hp <= p.max * 0.3, p.poison);
   statRow(PX, p.atk, p.def);
-  if (!drawCharArt('rick', p.hp > 0 ? PX : PX, p.hp > 0 ? artBob('rick', g.time) : 0, { actor:p, flash:p.flash > 0 ? C.accent : null }))
-    drawSprite(SPR.knight, PX - 18, 50, 3, p.flash > 0 ? C.accent : C.ink, C.ink2, C.bg);
+  const calm = artCalm && artCalm.matches;
+  const pShift = calm ? 0 : (p.lunge > 0 ? Math.sin(Math.PI * p.lunge / 0.4) * 8 : 0) - (p.recoil > 0 ? Math.sin(Math.PI * p.recoil / 0.28) * 5 : 0);
+  if (!drawCharArt('rick', PX + (artHasActions('rick') ? 0 : pShift), p.hp > 0 ? artBob('rick', g.time) : 0, { actor:p, flash:p.flash > 0 ? C.accent : null }))
+    drawSprite(SPR.knight, PX - 18 + pShift, 50, 3, p.flash > 0 ? C.accent : C.ink, C.ink2, C.bg);
+  if (p.skillFx) drawSkillFx(PX + pShift, p.skillFx);
 
-  const angry = g.cfg.boss && m.phase === 2;
-  if (!m.dead || artImg(g.cfg.spr + '_actions') || Math.floor(m.deadT * 10) % 2 === 0){
+  const angry = g.cfg.boss && m.phase >= 2;
+  if (!m.dead || artHasActions(g.cfg.spr) || Math.floor(m.deadT * 10) % 2 === 0){
     hpBlock(MX, m.hp, m.max, false, m.poison);
     statRow(MX, m.atk, m.def);
-    const lunge = m.lunge > 0 ? -Math.sin(Math.PI * m.lunge / 0.4) * 14 : 0;
+    const lunge = calm ? 0 : (m.lunge > 0 ? -Math.sin(Math.PI * m.lunge / 0.4) * 14 : 0) + (m.recoil > 0 ? Math.sin(Math.PI * m.recoil / 0.28) * 6 : 0);
     const sink = m.dead ? Math.min(20, m.deadT * 30) : 0;
     ctx.globalAlpha = m.dead ? Math.max(0, 1 - Math.max(0, m.deadT - .74) / .36) : 1;
     const art = { actor:m, flash:m.flash > 0 ? '#FFFDF8' : null, outline:(angry || g.cfg.elite) ? C.accent : null };
-    if (!drawCharArt(g.cfg.spr, MX + lunge, m.dead ? sink : artBob(g.cfg.spr, g.time), art))
+    if (!drawCharArt(g.cfg.spr, MX + (artHasActions(g.cfg.spr) ? 0 : lunge), m.dead ? sink : artBob(g.cfg.spr, g.time), art))
       drawSprite(SPR[g.cfg.spr] || SPR.boss, MX - 24 + lunge, 38 + sink, 3, m.flash > 0 ? C.ink3 : C.ink, C.ink2, (angry || g.cfg.elite) ? C.accent : C.bg);
+    if (m.skillFx) drawSkillFx(MX + lunge, m.skillFx);
     ctx.globalAlpha = 1;
   }
   // 몬스터의 다음 행동 예고: 이것만 보고 이번 턴에 무엇을 노릴지 정한다

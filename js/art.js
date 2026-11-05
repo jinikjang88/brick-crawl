@@ -6,7 +6,7 @@
 const ART = { img:{}, tint:{} };
 const ART_CHARS = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel', 'codex', 'gemini', 'claude', 'omnis', 'zero',
   'knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
-const ART_ACTIONS_LIST = ['rick', 'sentinel', 'knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
+const ART_ACTIONS_LIST = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel', 'gemini', 'omnis', 'knight', 'slime', 'bat', 'golem', 'shroom', 'boss'];
 const ART_PORTRAITS = ['rick', 'rick_determined', 'lina', 'lina_warm', 'yun', 'drone', 'sentinel', 'codex_hostile', 'codex', 'gemini_hostile', 'gemini', 'claude', 'omnis', 'zero'];
 const ART_FILES = ['chasm', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS, ...ART_ACTIONS_LIST.map(n => n + '_actions'),
   ...ART_PORTRAITS.map(n => 'portrait_' + n),
@@ -94,14 +94,18 @@ function drawBgArt(){
 // 동작 아틀라스 배치(tools/build_action_assets.py가 다시 쓴다). 칸은 넘친 팔·무기까지 품는 정사각형이고,
 // 모든 프레임이 칸의 (ax, foot)을 발밑 기준점으로 공유한다. iw·ih는 대기 포즈 크기: 화면 상자에 맞출 배율을 여기서 구한다
 const ART_SHEET = { cell:320, ax:160, foot:314,
-  rick:{ iw:100, ih:211 }, sentinel:{ iw:270, ih:236 },
-  knight:{ iw:176, ih:209 }, slime:{ iw:217, ih:170 }, bat:{ iw:279, ih:258 }, golem:{ iw:238, ih:249 }, shroom:{ iw:213, ih:200 }, boss:{ iw:265, ih:262 } };
+  rick:{ iw:100, ih:211 }, sentinel:{ iw:242, ih:236 }, sludge:{ iw:216, ih:197 }, drone:{ iw:232, ih:178 }, guardian:{ iw:234, ih:231 }, disperser:{ iw:224, ih:196 }, gemini:{ iw:163, ih:232 }, omnis:{ iw:191, ih:236 }, knight:{ iw:176, ih:209 }, slime:{ iw:217, ih:170 }, bat:{ iw:279, ih:258 }, golem:{ iw:238, ih:249 }, shroom:{ iw:213, ih:200 }, boss:{ iw:265, ih:262 } };
 // 각 동작은 여섯 포즈. 공격의 타격 프레임을 짧게 두고 복귀에 여유를 준다.
 const ART_ACTIONS = {
   attack:{ row:0, times:[.06,.06,.05,.06,.09,.10] },
   hit:{ row:1, times:[.035,.04,.055,.05,.06,.08] },
   death:{ row:2, times:[.10,.10,.12,.12,.14,.16] },
+  skill:{ row:3, times:[.07,.08,.07,.08,.10,.10] },
 };
+function artHasActions(name){
+  if (!artImg(name) && !artImg(name + '_actions') && ART_FALLBACK[name]) name = ART_FALLBACK[name];
+  return !!artImg(name + '_actions');
+}
 function artPose(actor, action){
   if (!actor || (actor.artAction === 'death' && action !== 'death')) return;
   actor.artAction = action; actor.artElapsed = 0;
@@ -131,11 +135,12 @@ function drawCharArt(name, cx, dy, o = {}){
   if (sheet && box && meta){
     // 대기 포즈를 상자에 맞춘 배율을 모든 프레임에 쓴다. 팔·무기는 상자 밖으로 뻗고, 누운 포즈도 커지지 않는다
     const cell = ART_SHEET.cell, src = sheet.naturalWidth / 6;
+    const row = (pose.row + 1) * src <= sheet.naturalHeight ? pose.row : 0;
     const k = Math.min(box.w / meta.iw, box.h / meta.ih), size = cell * k;
     // 날던 박쥐는 사망 앞 세 포즈(0.32초) 동안 바닥으로 내려온다. 한 번에 0으로 떨어지면 첫 프레임이 순간이동해 보인다
     const lift = (box.lift || 0) * (o.actor.artAction === 'death' ? Math.max(0, 1 - o.actor.artElapsed / .32) : 1);
     const x = cx - ART_SHEET.ax * k, y = ART_FOOT - lift - ART_SHEET.foot * k + (o.actor.artAction ? 0 : dy);
-    const paint = (im, ox=0, oy=0) => ctx.drawImage(im, pose.col*src, pose.row*src, src, src, x+ox, y+oy, size, size);
+    const paint = (im, ox=0, oy=0) => ctx.drawImage(im, pose.col*src, row*src, src, src, x+ox, y+oy, size, size);
     if (o.outline){
       const tint = artTint(name + '_actions', o.outline);
       if (tint) for (const [ox,oy] of [[-1,0],[1,0],[0,-1],[0,1]]) paint(tint, ox, oy);

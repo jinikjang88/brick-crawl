@@ -9,7 +9,7 @@ const context = vm.createContext({ ORBS:{}, RELICS:{}, matchMedia:()=>media,
 vm.runInContext(fs.readFileSync(new URL('../js/art.js', import.meta.url),'utf8'), context);
 const run = code => vm.runInContext(code, context);
 run("ART.img.knight = {complete:true,naturalWidth:200,naturalHeight:256}; ART.img.knight_actions = {complete:true,naturalWidth:1920,naturalHeight:960}; globalThis.actor = {};");
-for (const action of ['attack','hit','death']){
+for (const action of ['attack','skill','hit','death']){
   run(`actor.artAction=null; artPose(actor,'${action}')`);
   const times = run(`ART_ACTIONS.${action}.times`);
   let elapsed = 0;
