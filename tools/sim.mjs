@@ -24,7 +24,7 @@ let code = srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n')
 for (const h of [HOOK_STATE, HOOK_BREAK, HOOK_CEIL, HOOK_FIRE])
   if (code.split(h).length !== 2) throw new Error('훅 삽입 실패: ' + h);
 code = 'globalThis.ST=globalThis.ST||{br:0,ch:0,sh:0};' + code
-  .replace(HOOK_STATE, HOOK_STATE + ' globalThis.__h={st:()=>({RUN,G,mode}),reachable:()=>reachable(),enterNode:n=>enterNode(n),pickSlot:i=>pickSlot(i),sendCargo:()=>sendCargo(),autoGarage:r=>autoGarage(r),orbHeat:o=>orbHeat(o)};')
+  .replace(HOOK_STATE, HOOK_STATE + ' globalThis.__h={st:()=>({RUN,G,mode}),reachable:()=>reachable(),enterNode:n=>enterNode(n),pickSlot:i=>pickSlot(i),sendCargo:()=>sendCargo(),autoGarage:r=>autoGarage(r),orbHeat:o=>orbHeat(o),traitOn:()=>traitOn(),isWeak:o=>isWeak(o)};')
   .replace(HOOK_BREAK, HOOK_BREAK.replace('br.dead = true;', 'br.dead = true; ST.br++;'))
   .replace(HOOK_CEIL, 'b.hits++; ST.ch++;')
   .replace(HOOK_FIRE, 'ST.sh++; ' + HOOK_FIRE);
@@ -112,7 +112,11 @@ for (let run = 0; run < N; run++){
       if (G.phase === 'aim'){
         const key = G.turn + '_' + G.node.r + '_' + RUN.s;
         if (key !== lastTurn){
-          let best = G.sel; RUN.deck.forEach((o, i) => { if (G.heat[i] === 0 && __h.orbHeat(o) > __h.orbHeat(RUN.deck[best])) best = i; });
+          // 특성이 켜져 있으면 약점 구슬부터(사람이 머리 위 약점 그림을 보고 고르듯), 아니면 식은 슬롯 중 과열이 가장 긴(= 센) 구슬
+          let best = G.sel;
+          const weakI = RUN.deck.findIndex((o, i) => G.heat[i] === 0 && __h.traitOn() && __h.isWeak(o));
+          if (weakI >= 0) best = weakI;
+          else RUN.deck.forEach((o, i) => { if (G.heat[i] === 0 && __h.orbHeat(o) > __h.orbHeat(RUN.deck[best])) best = i; });
           __h.pickSlot(best);
           // 턴마다 목표를 정한다: 붕괴선 근처 벽돌 우선, 없으면 가장 얇은 열의 천장
           lastTurn = key; wait = -1;

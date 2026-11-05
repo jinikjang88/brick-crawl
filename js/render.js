@@ -72,6 +72,15 @@ function draw(){
     // 보스가 이번 턴 끝에 벽돌을 떨어뜨린다: 붉은 벽돌 + 개수(위험 = 화색)
     if (bossDropsNow()){ drawIcon('brick', MX + 14, 27, C.accent); drawText(String(bossDropN()), MX + 23, 25, C.accent, 2); }
   }
+  // 기체 특성과 약점(작업 08 2단계): 예고 왼쪽에 특성 아이콘, 그 옆에 약점 구슬 그림.
+  // 약점을 찔러 특성이 꺼지면 아이콘을 흐리게 긋고 약점 그림을 지운다(글자 없이 "이걸로 치면 된다"를 보여 준다)
+  if (!m.dead && g.cfg.trait && TRAITS[g.cfg.trait]){
+    const x = MX - 34;
+    if (!g.traitOff){
+      drawIcon(TRAITS[g.cfg.trait].icon, x, 27, C.ink);
+      if (g.cfg.weak) drawOrbSprite(g.cfg.weak[0], x - 8, 30.5, 8);
+    } else { drawIcon(TRAITS[g.cfg.trait].icon, x, 27, C.ink3); ctx.fillStyle = C.ink3; ctx.fillRect(x - 1, 30, 9, 1); }
+  }
 
   // 천장: 이 선에 닿아야 몬스터를 친다
   ctx.fillStyle = C.ink; ctx.fillRect(0, BT - 2, W, 2);

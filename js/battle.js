@@ -13,6 +13,8 @@ function newBattle(node){
     lost:false, shot:null,
     // 전투마다 횟수가 정해진 효과들: 두 번째 심장·굳은살·무장해제·기절·시간 구슬. mirror = 이번 턴 되돌릴 비율(거울 구슬), toxic = 몬스터 독이 줄지 않음(맹독)
     heart:false, callus:false, disarm:0, stunUsed:false, timeUsed:0, mirror:0, toxic:false,
+    // 기체 특성(작업 08 2단계): traitOff = 약점을 찔려 이번 전투 동안 꺼졌나, harden = 경화로 빨라진 조준선 비율
+    traitOff:false, harden:0,
     bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], queue:[],
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
     // 장갑 슬롯(작업 08): sel = 고른 슬롯, heat = 슬롯별 남은 과열 턴. orb = 지금 쏠 구슬
@@ -42,7 +44,7 @@ function spawnRow(r, instant){
   const order = shuffle(cells, 'battle');
   const statCell = rand('battle') < rc.stat + (rel('mason') ? .1 : 0) ? order[0] : -1;
   // 고난 4: 독 안개. 독 벽돌이 없던 몬스터에게도 섞인다
-  const pz = Math.max(rc.poison || 0, ascOn(4) ? .25 : 0);
+  const pz = Math.max(rc.poison || 0, ascOn(4) ? .25 : 0) + (traitOn('miasma') ? .25 : 0);
   const poisonCell = pz && order.length > 1 && rand('battle') < pz ? order[1] : -1;
   for (const c of cells){
     const type = c === statCell ? pickW(rc.w, 'battle') : c === poisonCell ? 'poison' : 'n';
@@ -84,7 +86,13 @@ function resetAim(){
 const intent = () => { const pat = (G.m.phase >= 3 && G.cfg.pattern3) || (G.m.phase >= 2 && G.cfg.pattern2) || G.cfg.pattern; return pat[G.m.pi % pat.length]; };
 // 조준선 속도: 몬스터 기본 속도 × 가속(정예 분노·보스 페이즈) × 감속(집중 유물·정조준 노드)
 const aimRage = () => G.cfg.boss ? 1 + ENRAGE.phase * (G.m.phase - 1) : G.m.rage ? ENRAGE.elite : 1;
-const aimSpeed = () => G.cfg.sweep * aimRage() * Math.pow(0.85, rel('focus') + (tree('o5') ? 1 : 0));
+const aimSpeed = () => G.cfg.sweep * aimRage() * (1 + G.harden) * Math.pow(0.85, rel('focus') + (tree('o5') ? 1 : 0));
+// 기체 특성이 지금 켜져 있나(이름을 주면 그 특성인지까지)
+const traitOn = name => !!G && !!G.cfg.trait && !G.traitOff && (!name || G.cfg.trait === name);
+// 이 구슬이 기체의 약점(코어든 회로든)을 갖고 있나
+// 1층(튜토리얼 층)에서는 재생·회피가 3턴에 한 번만 든다: 번개 구슬 하나로는 약점을 찌를 수 없어서(시뮬레이터 200회: 늘 켬 9% → 3턴에 한 번 24%)
+const softFloor = () => RUN.s === 0 && !RUN.abyss;
+const isWeak = o => !!G.cfg.weak && Object.keys(orbFeats(o)).some(k => G.cfg.weak.includes(k));
 // 철벽(핵심 노드): 전투 중 얻는 방어도 ×1.5(올림)
 const defGain = v => tree('d6') ? Math.ceil(v * 1.5) : v;
 // 연속 공격에서 남은 공격 턴 수(이번 턴 포함). 머리 위 붉은 숫자가 3 → 2 → 1로 줄어든다
@@ -337,8 +345,14 @@ function moveBall(b, dt){
       else if (!G.m.dead && b.hits < ballCap(b)){
         b.hits++;
         sfx('ceil', { orb:b.kind, n:b.hits - 1 });
-        const v = hitDmg(b.orb, b.hits, b);
-        G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.f.venom !== undefined ? (b.f.venom ? 2 : 1) : 0, shot:G.shot });
+        let v = hitDmg(b.orb, b.hits, b), miss = false;
+        // 약점을 찌르면 특성이 이번 전투 동안 꺼지고 그 타격은 피해 +1. 아니면 특성이 타격을 막거나 되돌린다
+        if (traitOn() && isWeak(b.orb)){ G.traitOff = true; v += 1; pop(MX + 16, 20, '', C.ink, 'up'); sfx('badge'); }
+        else if (traitOn('evade') && G.turn % (softFloor() ? 3 : 2) === 1 && b.hits === 1 && !G.shot.evaded){ G.shot.evaded = true; miss = true; }
+        else if (traitOn('phantom') && b.hits % 2 === 0) miss = true;
+        if (traitOn('reflect') && b.hits === 1) hurtPlayer(1, undefined, false);
+        if (miss){ pop(MX, 40, '', C.ink3, 'dots'); burst(b.x, BT + 1, C.ink3, 4); }
+        else G.projs.push({ x0:b.x, y0:BT, x1:MX, y1:62, t:0, dur:0.28, kind:'dmg', v, venom:b.f.venom !== undefined ? (b.f.venom ? 2 : 1) : 0, shot:G.shot });
         if (b.hits === 3 && rel('leech')) heal(1);
         orbCeil(b);
         G.cf.push({ x:b.x, t:0.25 });
@@ -512,6 +526,8 @@ function endPlayerTurn(){
     checkRage();
     g.timer = -0.4;
   }
+  // 재생: 몬스터가 행동하기 직전에 체력 +1(약점 = 부식 회로)
+  if (traitOn('regen') && m.hp < m.max && (!softFloor() || g.turn % 3 === 0)){ m.hp++; pop(MX - 16, 30, '+1', C.ink, 'heart'); }
 }
 
 function enemyUpdate(dt){
@@ -529,7 +545,10 @@ function enemyUpdate(dt){
     if (g.cur.t === 'wait' && rel('breath')) heal(2);
     const it = g.cur;
     if (it.t === 'atk' || it.t === 'poison'){ m.lunge = 0.001; artPose(m, 'attack'); }
-    else if (it.t === 'guard'){ m.def += it.v; pop(MX, 30, '+' + it.v, C.ink, 'shield'); }
+    else if (it.t === 'guard'){
+      const v = it.v + (traitOn('armor') ? 2 : 0); m.def += v; pop(MX, 30, '+' + v, C.ink, 'shield');
+      if (traitOn('fortify') && m.hp < m.max){ m.hp = Math.min(m.max, m.hp + 2); pop(MX - 16, 40, '+2', C.ink, 'heart'); }
+    }
     else if (it.t === 'spore') pop(MX, 30, '', C.accent, 'brick');
     else if (it.t === 'summon') pop(MX, 30, '', C.ink, 'brick');
     else pop(MX, 30, '', C.ink3, 'dots');
@@ -538,7 +557,12 @@ function enemyUpdate(dt){
     g.eStep = 2;
     // 인내: 연속 공격 묶음의 첫 타만 막는다. 긴 연속 공격일수록 덜 막히니 후반 보스를 혼자 무력화하지는 못한다
     if (g.cur.t === 'atk' && m.ai === 0 && rel('endure')){ pop(PX, 42, '0', C.ink2, 'shield'); sfx('block'); }
-    else if (g.cur.t === 'atk') hurtPlayer(m.atk, undefined, true);
+    else if (g.cur.t === 'atk'){
+      const hp0 = p.hp;
+      hurtPlayer(m.atk + (traitOn('barrage') && m.ai === 0 ? 1 : 0), undefined, true);
+      // 경화: 체력이 깎이면 조준선이 10%씩 빨라진다(최대 50%, 약점 = 감쇠 회로)
+      if (traitOn('harden') && p.hp < hp0) G.harden = Math.min(.5, G.harden + .1);
+    }
     else if (g.cur.t === 'poison'){ const v = poisonAmt(g.cur); p.poison += v; burst(PX, 66, C.accent, 8); pop(PX, 30, '+' + v, C.accent, 'skull'); sfx('pickup', { kind:'poison' }); }
   }
   if (g.eStep === 2 && g.timer >= 0.6){
@@ -548,7 +572,9 @@ function enemyUpdate(dt){
       for (const b of g.bricks) b.r++;
       spawnRow(0, false); sfx('wall');
     }
-    if (g.cur.t === 'summon') replaceInRow0(3, () => ({ type:'stone', hp:3 + Math.min(2, m.phase) }));
+    if (g.cur.t === 'summon') replaceInRow0(3, () => ({ type:'stone', hp:3 + Math.min(2, m.phase) + (traitOn('quarry') ? 2 : 0) }));
+    // 증식: 2턴마다 맨 위 줄에 체력 2 벽돌 하나(약점 = EMP 코어)
+    if (traitOn('spawn') && g.turn % 2 === 0) replaceInRow0(1, () => ({ type:'n', hp:2 }));
     if (g.cur.t === 'spore') replaceInRow0(2, () => ({ type:'poison', hp:1 }));
     if (bossDropsNow()) bossDrop();
     // 성벽 파쇄기: 가장 아래 줄 벽돌 하나를 부숴 붕괴를 늦춘다
