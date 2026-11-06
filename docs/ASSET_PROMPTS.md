@@ -365,8 +365,8 @@ Mobile game app icon, square full-bleed composition (no rounded corners, no bord
 
 | 구분 | 생성·적용됨 | 아직 없음(폴백·옛 그림) |
 |---|---|---|
-| 1. 캐릭터 | `rick`·`sludge`·`drone`·`guardian`·`disperser`·`sentinel`·`gemini`·`omnis` | `codex`·`claude`·`zero` → `ART_FALLBACK`(`js/art.js`)으로 다른 보스 그림 |
-| 2. 액션 시트 | `rick`·`sentinel` | 나머지 9종(정지 그림 + 흔들림으로 표시) |
+| 1. 캐릭터 | `rick`·`sludge`·`drone`·`guardian`·`disperser`·`sentinel`·`gemini`·`omnis`·`claude` | `codex`·`zero` → `ART_FALLBACK`(`js/art.js`)으로 다른 보스 그림 |
+| 2. 액션 시트 | `rick`·`sentinel`·`sludge`·`drone`·`guardian`·`disperser`·`gemini`·`omnis`·`claude` (9종) | `codex`·`zero` (폴백 그림의 액션 시트 사용) |
 | 3. 대화 초상 | 14종 전부(`portrait_*`) | — |
 | 4. 구슬 | 17종(`items/orb_*`, 2026-10-09 화풍) | 기본 7종(`basic`·`bomb`·`drill`·`guard`·`heavy`·`split`·`venom`, `collection.png` 출신, 황동), 강화 오라 `orb_up_1`~`5` |
 | 5. 칩 | 40종(2026-10-09 화풍) | 사이버펑크 재생성 전 |

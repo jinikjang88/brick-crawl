@@ -33,7 +33,7 @@ SHEET_ORDER = [
 ]
 # 조각별 저장 크기(px). 구슬은 발사대 9px·HUD 48px 표시를 모두 감당하도록 넉넉히
 SHEET_SIZE = {'orb': (96, 96), 'brick': (22 * RES * 2, 12 * RES * 2), 'coin': (48, 48), 'spark': (64, 64), 'rubble': (64, 64)}
-CHARS = ['knight', 'slime', 'bat', 'golem', 'shroom', 'boss']
+CHARS = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel', 'gemini', 'omnis']
 CHAR_MAX = 256  # 몬스터 최대 표시 60px × RES 보다 약간 크게
 
 
