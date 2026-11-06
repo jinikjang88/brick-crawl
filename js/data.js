@@ -218,12 +218,12 @@ const orbSlots = (core, lv = 1) => ORBS[core].slots + (lv >= 3 ? 1 : 0);
 // ── 공명(작업 08 2.3절): 정해진 코어 + 회로 조합이면 이름 있는 구슬이 되고 효과가 하나 더 붙는다.
 // add = 효과 목록에 더해지는 효과(전투 코드가 그대로 읽는다). 회로는 "모두 들어 있으면" 된다(다른 회로가 더 있어도 된다)
 const RESONANCE = [
-  { id:'relay',  name:'교대 신호',      core:'bomb',   circs:['guard'],          add:'relay',  desc:'쏜 턴에 기체의 첫 공격을 막고, 막은 피해만큼 맨 아래 벽돌을 부순다' },
-  { id:'gate',   name:'방화문',         core:'drill',  circs:['rust'],           add:'gate',   desc:'이번 턴 데이터 벽이 내려오지 않는다(전투마다 1번)' },
-  { id:'fan',    name:'환풍기',         core:'magnet', circs:['mirror', 'chain'], add:'fan',    desc:'세 번째 발사마다 천장 타격 상한 +2' },
-  { id:'rootkey',name:'루트 키',        core:'heavy',  circs:['disarm'],         add:'crown',  desc:'추가 피해 = 가진 크레딧 ÷ 25' },
-  { id:'halt',   name:'30년 만의 정지', core:'basic',  circs:['stun', 'weaken'], add:'time',   desc:'천장을 치면 기체 행동이 처음으로 돌아가고 연속 공격 -2(전투마다 1번)' },
-  { id:'lastarc',name:'마지막 번개',    core:'comet',  circs:['prism'],          add:'lastarc',desc:'모든 벽돌을 뚫고 천장을 친 뒤 세 갈래로 갈라져 내려온다(갈래 피해 ÷3)' },
+  { id:'relay', cue:'벽돌이 대신 맞는다',  name:'교대 신호',      core:'bomb',   circs:['guard'],          add:'relay',  desc:'쏜 턴에 기체의 첫 공격을 막고, 막은 피해만큼 맨 아래 벽돌을 부순다' },
+  { id:'gate', cue:'데이터 벽이 멈춘다',   name:'방화문',         core:'drill',  circs:['rust'],           add:'gate',   desc:'이번 턴 데이터 벽이 내려오지 않는다(전투마다 1번)' },
+  { id:'fan', cue:'천장 타격 상한 +2',    name:'환풍기',         core:'magnet', circs:['mirror', 'chain'], add:'fan',    desc:'세 번째 발사마다 천장 타격 상한 +2' },
+  { id:'rootkey', cue:'크레딧이 힘이 된다',name:'루트 키',        core:'heavy',  circs:['disarm'],         add:'crown',  desc:'추가 피해 = 가진 크레딧 ÷ 25' },
+  { id:'halt', cue:'기체 행동이 처음으로',   name:'30년 만의 정지', core:'basic',  circs:['stun', 'weaken'], add:'time',   desc:'천장을 치면 기체 행동이 처음으로 돌아가고 연속 공격 -2(전투마다 1번)' },
+  { id:'lastarc', cue:'세 갈래로 내려친다',name:'마지막 번개',    core:'comet',  circs:['prism'],          add:'lastarc',desc:'모든 벽돌을 뚫고 천장을 친 뒤 세 갈래로 갈라져 내려온다(갈래 피해 ÷3)' },
 ];
 const resOf = o => { const k = orbKind(o), cs = orbCircs(o); return RESONANCE.find(r => r.core === k && r.circs.every(c => cs.includes(c))) || null; };
 // 구슬이 가진 효과 목록: { 코어·회로 종류: Ⅱ 등급인가 }. 전투 코드는 이것만 본다(같은 효과를 코어든 회로든 똑같이 처리). 공명 효과도 여기 더한다

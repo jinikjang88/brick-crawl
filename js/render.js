@@ -245,12 +245,12 @@ function renderOrbBar(){
     const slots = document.createElement('div'); slots.className = 'slots';
     G.orbs.forEach((o, i) => {
       if (i === G.sel) return;
-      const b = document.createElement('button'); b.className = 'slot';
+      const b = document.createElement('button'); b.className = 'slot' + (resOf(o) ? ' res' : '');
       const hot = G.heat[i] > 0;
       b.disabled = hot || G.phase !== 'aim';
       b.append(orbPortrait(orbKind(o)));
       if (hot){ const h = document.createElement('i'); h.textContent = G.heat[i]; b.append(h); }
-      b.setAttribute('aria-label', `${i + 1}번 슬롯 ${orbName(o)}${hot ? `, 과열 ${G.heat[i]}턴` : ''}`);
+      b.setAttribute('aria-label', `${i + 1}번 슬롯 ${resOf(o) ? '공명 ' : ''}${orbName(o)}${hot ? `, 과열 ${G.heat[i]}턴` : ''}`);
       b.onclick = e => { e.stopPropagation(); pickSlot(i); };
       slots.append(b);
     });
@@ -258,7 +258,7 @@ function renderOrbBar(){
     const label = document.createElement('div');
     // 쏜 순간부터 다음 턴 조준 전까지 "발사!": 누른 입력이 먹혔다는 걸 바로 보여준다
     const fired = G.phase !== 'aim';
-    const small = document.createElement('small'); small.textContent = fired ? '발사!' : `조준 · ${G.sel + 1}번`;
+    const small = document.createElement('small'); small.textContent = fired ? '발사!' : `조준 · ${G.sel + 1}번` + (resOf(G.orb) ? ' · 공명' : '');
     if (fired) small.className = 'fired';
     const name = document.createElement('b'); name.textContent = orbName(G.orb);
     // 피해 = 기사 ⚔ + 구슬 보정을 식으로 보여 준다. ⚔ 벽돌을 깨면 왼쪽 숫자가, 센 구슬을 쓰면 오른쪽 숫자가 오른다.

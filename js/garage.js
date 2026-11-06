@@ -121,7 +121,7 @@ function checkResonance(o){
   const r = resOf(o);
   if (!r || META.res[r.id]) return;
   META.res[r.id] = 1; saveMeta();
-  toast(`공명 발견 · ${r.name}`); sfx('badge');
+  toast(`공명 발견 · ${r.name}: ${r.desc}`); sfx('badge');
 }
 
 // ── 차고 화면. inRun = 정비소에서 열었는가(그때만 지금 장갑에 반영한다)

@@ -168,7 +168,8 @@ function earnBadge(id){
 function toast(msg){
   const t = $('toast'); if (!t) return;
   t.textContent = msg; t.classList.add('on');
-  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2200);
+  // 긴 문구(공명 발견 + 효과 설명)는 읽을 시간을 더 준다
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), Math.max(2200, msg.length * 80));
 }
 // 방어도는 체력 앞에 붙은 보호막: 피해를 먼저 흡수하고 흡수한 만큼 깎인다
 function hurt(t, v){ const ab = Math.min(t.def, v); t.def -= ab; t.hp = Math.max(0, t.hp - (v - ab)); return [ab, v - ab]; }
@@ -191,6 +192,11 @@ function burst(x, y, col, n){
     const a = Math.random() * Math.PI * 2, s = 25 + Math.random() * 55;
     G.parts.push({ x, y, vx:Math.cos(a) * s, vy:Math.sin(a) * s - 20, t:0.35 + Math.random() * 0.3, col });
   }
+}
+// 공명이 터지는 순간 이름을 띄운다: 숨은 조합이라 표시가 없으면 벽돌이 저절로 깨지거나 구슬이 갈라지는 버그처럼 보인다
+function resBanner(feat){
+  const r = RESONANCE.find(x => x.add === feat); if (!r) return;
+  banner('공명 · ' + r.cue, r.name); sfx('badge');   // 큰 줄(둘째)에 이름, 작은 줄에 효과
 }
 function banner(l1, l2, hot){
   const b = $('banner'); $('bn1').textContent = l1; $('bn2').textContent = l2;
@@ -370,7 +376,7 @@ function moveBall(b, dt){
         if (b.slot !== undefined) G.hitsBy[b.slot] = (G.hitsBy[b.slot] || 0) + 1;
         // 마지막 번개(공명): 아크가 천장을 친 자리에서 세 갈래로 갈라져 내려온다. 갈래는 보통 구슬처럼 튕기고 피해를 셋으로 나눈다
         if (b.f.lastarc !== undefined && !b.forked){
-          b.forked = true;
+          b.forked = true; resBanner('lastarc');
           for (const d of [-0.35, 0, 0.35]){ const a = Math.PI / 2 + d;
             G.balls.push({ x:b.x, y:BT + 3, vx:Math.cos(a) * BALL_SPEED, vy:Math.sin(a) * BALL_SPEED, hits:0, orb:b.orb, kind:'basic', up:false, f:{}, div:3, slot:b.slot, broke:0, bombed:false, drill:0, bounces:0 }); }
         }
@@ -423,7 +429,7 @@ function orbCeil(b){
     G.stunUsed = true; m.stun = true; pop(MX, 20, '', C.ink, 'dots'); sfx('block');
   }
   if (f.time !== undefined && G.timeUsed < (f.time ? 2 : 1)){
-    G.timeUsed++; m.pi = 0; m.ai = 0;
+    G.timeUsed++; m.pi = 0; m.ai = 0; resBanner('time');
     const first = intent(); if (first.t === 'atk') m.ai = Math.min(atkN(first) - 1, 2);
     pop(MX, 20, '', C.ink, 'up');
   }
@@ -451,6 +457,9 @@ function fire(){
   if (ff.gate !== undefined && !g.gateUsed){ g.gate = true; g.gateUsed = true; }
   if (ff.fan !== undefined) g.fan++;
   g.shot.fanBonus = ff.fan !== undefined && g.fan % 3 === 0 ? 2 : 0;
+  if (g.shot.fanBonus) resBanner('fan');
+  // 루트 키는 늘 켜진 덧셈이라 전투마다 처음 쏠 때 한 번만 알린다
+  if (ff.crown !== undefined && !g.crownShown){ g.crownShown = true; resBanner('crown'); }
   g.mirror = ff.mirror !== undefined ? (ff.mirror ? 1 : .5) : 0;
   // 과열: 쏜 슬롯은 orbHeat턴 동안 쉰다(+1은 다음 턴 시작에 바로 1 줄기 때문)
   const hh = orbHeat(g.orb); g.heat[g.sel] = hh ? hh + 1 : 0;
@@ -598,7 +607,13 @@ function enemyUpdate(dt){
     if (g.cur.t === 'atk' && g.relay){
       g.relay = false; p.recoil = 0.001; p.skillFx = { t:0.3, dur:0.3, col:C.ink2, kind:'guard' }; pop(PX, 42, '0', C.ink2, 'shield'); sfx('block');
       const low = g.bricks.filter(b => !b.dead).sort((a, b) => b.r - a.r).slice(0, m.atk);
-      for (const b of low){ b.dead = true; onBreak(b); }
+      for (const b of low){
+        b.dead = true; onBreak(b);
+        // 벽돌 조각이 릭 쪽으로 날아가 대신 맞는 모습(연출만)
+        const bx = OX + b.c * CW + CW / 2, by = b.y + BRH / 2;
+        G.parts.push({ x:bx, y:by, vx:(PX - bx) * 2.4, vy:(52 - by) * 2.4, t:.42, col:C.ink2, img:'rubble', size:10, rot:0, vr:6 });
+      }
+      resBanner('relay');
     }
     else if (g.cur.t === 'atk' && m.ai === 0 && rel('endure')){ p.recoil = 0.001; p.skillFx = { t:0.3, dur:0.3, col:C.ink2, kind:'guard' }; pop(PX, 42, '0', C.ink2, 'shield'); sfx('block'); }
     else if (g.cur.t === 'atk'){
@@ -612,7 +627,9 @@ function enemyUpdate(dt){
   if (g.eStep === 2 && g.timer >= 0.6){
     g.eStep = 3;
     // 성벽은 몇 턴마다 한 번 내려온다: 구슬이 튕기는 구조라 매 턴 내려오면 길을 낼 틈이 없다
-    if (!g.gate && (g.turn % WALL.every === 0 || g.cur.t === 'summon' || g.cur.t === 'spore')){
+    const wallDue = g.turn % WALL.every === 0 || g.cur.t === 'summon' || g.cur.t === 'spore';
+    if (g.gate && wallDue) resBanner('gate');
+    if (!g.gate && wallDue){
       for (const b of g.bricks) b.r++;
       spawnRow(0, false); sfx('wall');
     }

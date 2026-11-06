@@ -328,6 +328,16 @@ function seeded(mathSeed, seed = 777){
   const u = boot(store);
   ok('작업 08-3 슬롯 5칸 장전이 저장 뒤에도 남는다', u.META().g.load.length === 5 && u.loadRun().deck.length === 5);
 }
+{ // 공명이 터지면 이름 배너가 뜬다(설명 없이 벽돌이 깨져 버그처럼 보였다, 2026-11-06)
+  const t = boot(); click('mNew'); t.newBattle({ r:0, l:0, t:'battle', mon:'slime' }); const G = t.G;
+  G.bricks = [{ r:3, c:2, y:0, hp:1, type:'n', dead:false }]; G.relay = true; G.cur = { t:'atk', n:1 }; G.eStep = 1; G.timer = 1; G.p.hp = 24; G.m.dead = false;
+  document.getElementById('bn2').textContent = '';
+  t.enemyUpdate(0);
+  ok('공명 배너: 교대 신호', document.getElementById('bn2').textContent === '교대 신호' && G.p.hp === 24 && G.bricks[0].dead);
+  G.bricks = [{ r:3, c:2, y:0, hp:1, type:'n', dead:false }]; G.gate = true; G.turn = t.WALL.every; G.cur = { t:'wait' }; G.eStep = 2; G.timer = 1;
+  document.getElementById('bn2').textContent = ''; t.enemyUpdate(0);
+  ok('공명 배너: 방화문', document.getElementById('bn2').textContent === '방화문');
+}
 { // 지도: 층마다 충전소·브로커는 정확히 하나씩, 첫 줄은 전투(2026-11-06 소유자 결정)
   const t = boot(); let okAll = true;
   for (let seed = 1; seed <= 200; seed++) for (const abyss of [false, true]){
