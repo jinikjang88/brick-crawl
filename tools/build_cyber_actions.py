@@ -1530,6 +1530,171 @@ def build_sludge():
     return assemble_sheet('sludge', rig, atk, hit, death, skill)
 
 
+
+
+def build_claude():
+    """클라드(Claude/Clad) — 4층 보스: 중앙 아카이브 모놀리스(monolith) + 철학자 흉상(bust) + 4개의 부유 방패(shield_far_l, shield_near_l, shield_near_r, shield_far_r)."""
+    parts_spec = [
+        {'name': 'bust',          'poly': [(190, 50), (460, 50), (460, 445), (325, 455), (190, 445)], 'pivot': (330, 440), 'parent': 'monolith', 'blur': 16, 'weld_radius': 45},
+        {'name': 'shield_far_l',  'poly': [(0, 240), (105, 240), (105, 630), (0, 630)],               'pivot': (50, 430),  'parent': 'monolith', 'blur': 18, 'weld_radius': 60},
+        {'name': 'shield_near_l', 'poly': [(110, 220), (250, 220), (250, 500), (110, 500)],            'pivot': (180, 360), 'parent': 'monolith', 'blur': 18, 'weld_radius': 60},
+        {'name': 'shield_near_r', 'poly': [(465, 360), (628, 360), (628, 655), (465, 655)],            'pivot': (545, 500), 'parent': 'monolith', 'blur': 18, 'weld_radius': 60},
+        {'name': 'shield_far_r',  'poly': [(635, 270), (695, 270), (695, 595), (635, 595)],            'pivot': (665, 430), 'parent': 'monolith', 'blur': 18, 'weld_radius': 60},
+        {'name': 'monolith',      'poly': None, 'pivot': (350, 700), 'parent': None, 'blur': 18},
+    ]
+    chains = [
+        ['monolith'],
+        ['bust'],
+        ['shield_far_l'],
+        ['shield_near_l'],
+        ['shield_near_r'],
+        ['shield_far_r'],
+    ]
+    rig = SkinnedEnemy('claude', parts_spec, chains=chains, base_size=236, blur_radius=18)
+
+    # 0행: 공격 — 4개의 부유 방패가 본체 주변을 돌며 가속, 전방(좌측)으로 돌진하며 공명 파동 방출!
+    atk = [
+        ({'monolith': {'dx': 6, 'dy': -4}, 'bust': {'rot': 4},
+          'shield_far_l': {'joint_dx': 12, 'joint_dy': -8, 'rot': 6},
+          'shield_near_l': {'joint_dx': 16, 'joint_dy': -6, 'rot': 8},
+          'shield_near_r': {'joint_dx': 8, 'joint_dy': -10, 'rot': 4},
+          'shield_far_r': {'joint_dx': 10, 'joint_dy': -8, 'rot': 6}}, 1.0, 0.0, None),
+        ({'monolith': {'dx': 14, 'dy': -8}, 'bust': {'rot': 8},
+          'shield_far_l': {'joint_dx': 22, 'joint_dy': -16, 'rot': 12},
+          'shield_near_l': {'joint_dx': 28, 'joint_dy': -12, 'rot': 16},
+          'shield_near_r': {'joint_dx': 18, 'joint_dy': -18, 'rot': 10},
+          'shield_far_r': {'joint_dx': 20, 'joint_dy': -16, 'rot': 12}}, 1.04, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 20, GY - 120, (10, 28), C_WHITE, C_INK, 6), c)[1]),
+        ({'monolith': {'dx': -12, 'dy': 4}, 'bust': {'rot': -6},
+          'shield_far_l': {'joint_dx': -34, 'joint_dy': 6, 'rot': -12, 'sx': 1.08, 'sy': 1.08},
+          'shield_near_l': {'joint_dx': -28, 'joint_dy': 8, 'rot': -10, 'sx': 1.08, 'sy': 1.08},
+          'shield_near_r': {'joint_dx': -20, 'joint_dy': 4, 'rot': -6},
+          'shield_far_r': {'joint_dx': -16, 'joint_dy': 2, 'rot': -4}}, 1.08, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 40, GY - 120, 24, 36, C_WHITE, C_INK, 3), c)[1]),
+        ({'monolith': {'dx': -20, 'dy': 8}, 'bust': {'rot': -10},
+          'shield_far_l': {'joint_dx': -56, 'joint_dy': 10, 'rot': -20, 'sx': 1.15, 'sy': 1.15},
+          'shield_near_l': {'joint_dx': -48, 'joint_dy': 12, 'rot': -16, 'sx': 1.15, 'sy': 1.15},
+          'shield_near_r': {'joint_dx': -32, 'joint_dy': 8, 'rot': -10},
+          'shield_far_r': {'joint_dx': -24, 'joint_dy': 4, 'rot': -8}}, 1.12, 0.0,
+         lambda c, r: (
+             draw_laser_beam(ImageDraw.Draw(c), GX - 36, GY - 120, 8, GY - 120, C_RED, C_WHITE, h=22),
+             draw_pixel_ring(ImageDraw.Draw(c), GX - 80, GY - 120, 24, 48, C_RED_HI, C_INK, 3),
+             draw_pixel_burst(ImageDraw.Draw(c), 20, GY - 120, (14, 40), C_WHITE, C_INK, 8), c)[3]),
+        ({'monolith': {'dx': -8}, 'bust': {'rot': -4},
+          'shield_far_l': {'joint_dx': -24, 'joint_dy': 4, 'rot': -8},
+          'shield_near_l': {'joint_dx': -18, 'joint_dy': 4, 'rot': -6},
+          'shield_near_r': {'joint_dx': -10, 'joint_dy': 2, 'rot': -4},
+          'shield_far_r': {'joint_dx': -8, 'rot': -2}}, 1.03, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+
+    # 1행: 피격 — 기둥과 흉상이 뒤로 밀리고 방패들이 사방으로 튕기며 스파크
+    hit = [
+        ({'monolith': {'dx': 12, 'rot': 4}, 'bust': {'rot': 8, 'joint_dy': -4},
+          'shield_far_l': {'joint_dx': -14, 'joint_dy': -10, 'rot': -12},
+          'shield_near_l': {'joint_dx': 8, 'joint_dy': -14, 'rot': 10},
+          'shield_near_r': {'joint_dx': 16, 'joint_dy': 10, 'rot': 14},
+          'shield_far_r': {'joint_dx': 22, 'joint_dy': -8, 'rot': -8}}, 1.20, 0.0,
+         lambda c, r: draw_hit_spark(c, GX - 16, GY - 120, is_red=True)),
+        ({'monolith': {'dx': 20, 'rot': 6}, 'bust': {'rot': 12, 'joint_dy': -8},
+          'shield_far_l': {'joint_dx': -22, 'joint_dy': -16, 'rot': -20},
+          'shield_near_l': {'joint_dx': 14, 'joint_dy': -20, 'rot': 16},
+          'shield_near_r': {'joint_dx': 24, 'joint_dy': 16, 'rot': 20},
+          'shield_far_r': {'joint_dx': 30, 'joint_dy': -12, 'rot': -14}}, 1.10, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX, GY - 130, (10, 26), C_WHITE, C_INK, 7), c)[1]),
+        ({'monolith': {'dx': 24, 'rot': 4}, 'bust': {'rot': 8},
+          'shield_far_l': {'joint_dx': -18, 'joint_dy': -12, 'rot': -14},
+          'shield_near_l': {'joint_dx': 10, 'joint_dy': -14, 'rot': 12},
+          'shield_near_r': {'joint_dx': 18, 'joint_dy': 12, 'rot': 14},
+          'shield_far_r': {'joint_dx': 24, 'joint_dy': -8, 'rot': -10}}, 1.04, 0.0, None),
+        ({'monolith': {'dx': 14, 'rot': 2}, 'bust': {'rot': 4},
+          'shield_far_l': {'joint_dx': -10, 'joint_dy': -6, 'rot': -8},
+          'shield_near_l': {'joint_dx': 6, 'joint_dy': -8, 'rot': 6},
+          'shield_near_r': {'joint_dx': 10, 'joint_dy': 6, 'rot': 8},
+          'shield_far_r': {'joint_dx': 12, 'joint_dy': -4, 'rot': -4}}, 1.01, 0.0, None),
+        ({'monolith': {'dx': 6}, 'bust': {'rot': 2},
+          'shield_far_l': {'joint_dx': -4, 'rot': -4},
+          'shield_near_l': {'joint_dx': 2, 'rot': 2},
+          'shield_near_r': {'joint_dx': 4, 'rot': 4},
+          'shield_far_r': {'joint_dx': 4, 'rot': -2}}, 1.0, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+
+    # 2행: 사망 — 흉상이 고개를 떨구고, 방패들이 지면으로 추락하며 균열
+    death = [
+        ({'monolith': {'dx': 6, 'dy': 4}, 'bust': {'rot': 10, 'joint_dy': 8},
+          'shield_far_l': {'joint_dx': -8, 'joint_dy': 24, 'rot': 16},
+          'shield_near_l': {'joint_dx': 6, 'joint_dy': 32, 'rot': -14},
+          'shield_near_r': {'joint_dx': 12, 'joint_dy': 28, 'rot': 20},
+          'shield_far_r': {'joint_dx': 16, 'joint_dy': 20, 'rot': -18}}, 1.15, 0.10,
+         lambda c, r: draw_hit_spark(c, GX - 20, GY - 120, is_red=True)),
+        ({'monolith': {'dx': 4, 'dy': 12}, 'bust': {'rot': 22, 'joint_dy': 18},
+          'shield_far_l': {'joint_dx': -16, 'joint_dy': 64, 'rot': 32},
+          'shield_near_l': {'joint_dx': 12, 'joint_dy': 78, 'rot': -28},
+          'shield_near_r': {'joint_dx': 20, 'joint_dy': 70, 'rot': 38},
+          'shield_far_r': {'joint_dx': 26, 'joint_dy': 58, 'rot': -34}}, 0.92, 0.28,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX - 20, GY - 90, 42, 6, C_SMOKE, C_SILVER), c)[1]),
+        ({'monolith': {'dy': 20}, 'bust': {'rot': 34, 'joint_dy': 28},
+          'shield_far_l': {'joint_dx': -24, 'joint_dy': 120, 'rot': 55},
+          'shield_near_l': {'joint_dx': 18, 'joint_dy': 135, 'rot': -45},
+          'shield_near_r': {'joint_dx': 28, 'joint_dy': 128, 'rot': 60},
+          'shield_far_r': {'joint_dx': 34, 'joint_dy': 110, 'rot': -50}}, 0.82, 0.48,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 20, GY - 40, (12, 34), C_WHITE, C_INK, 8), c)[1]),
+        ({'monolith': {'dy': 28}, 'bust': {'rot': 40, 'joint_dy': 36},
+          'shield_far_l': {'joint_dx': -30, 'joint_dy': 170, 'rot': 75},
+          'shield_near_l': {'joint_dx': 22, 'joint_dy': 185, 'rot': -65},
+          'shield_near_r': {'joint_dx': 34, 'joint_dy': 178, 'rot': 80},
+          'shield_far_r': {'joint_dx': 40, 'joint_dy': 160, 'rot': -70}}, 0.72, 0.68, None),
+        ({'monolith': {'dy': 32}, 'bust': {'rot': 44, 'joint_dy': 40},
+          'shield_far_l': {'joint_dx': -34, 'joint_dy': 185, 'rot': 85},
+          'shield_near_l': {'joint_dx': 24, 'joint_dy': 195, 'rot': -75},
+          'shield_near_r': {'joint_dx': 38, 'joint_dy': 190, 'rot': 88},
+          'shield_far_r': {'joint_dx': 44, 'joint_dy': 175, 'rot': -80}}, 0.64, 0.84, None),
+        ({'monolith': {'dy': 32}, 'bust': {'rot': 44, 'joint_dy': 40},
+          'shield_far_l': {'joint_dx': -34, 'joint_dy': 185, 'rot': 85},
+          'shield_near_l': {'joint_dx': 24, 'joint_dy': 195, 'rot': -75},
+          'shield_near_r': {'joint_dx': 38, 'joint_dy': 190, 'rot': 88},
+          'shield_far_r': {'joint_dx': 44, 'joint_dy': 175, 'rot': -80}}, 0.58, 0.92, None),
+    ]
+
+    # 3행: 스킬 — 4개의 방패가 본체 앞을 둘러싸며 방화벽 배리어 결집 전개
+    skill = [
+        ({'monolith': {'dy': -4}, 'bust': {'rot': -2},
+          'shield_far_l': {'joint_dx': 16, 'joint_dy': -4, 'rot': -8},
+          'shield_near_l': {'joint_dx': -8, 'joint_dy': 6, 'rot': 6},
+          'shield_near_r': {'joint_dx': -16, 'joint_dy': 4, 'rot': -8},
+          'shield_far_r': {'joint_dx': -20, 'joint_dy': -4, 'rot': 10}}, 1.0, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 20, GY - 100, (6, 18), C_WHITE, C_INK, 5), c)[1]),
+        ({'monolith': {'dy': -8}, 'bust': {'rot': -4},
+          'shield_far_l': {'joint_dx': 32, 'joint_dy': -8, 'rot': -14, 'sx': 1.05, 'sy': 1.05},
+          'shield_near_l': {'joint_dx': -18, 'joint_dy': 12, 'rot': 12, 'sx': 1.05, 'sy': 1.05},
+          'shield_near_r': {'joint_dx': -34, 'joint_dy': 8, 'rot': -16, 'sx': 1.05, 'sy': 1.05},
+          'shield_far_r': {'joint_dx': -42, 'joint_dy': -8, 'rot': 20, 'sx': 1.05, 'sy': 1.05}}, 1.0, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 24, GY - 105, 32, 42, C_WHITE, C_INK, 3), c)[1]),
+        ({'monolith': {'dy': -12}, 'bust': {'rot': -6},
+          'shield_far_l': {'joint_dx': 45, 'joint_dy': -12, 'rot': -20, 'sx': 1.10, 'sy': 1.10},
+          'shield_near_l': {'joint_dx': -28, 'joint_dy': 18, 'rot': 18, 'sx': 1.10, 'sy': 1.10},
+          'shield_near_r': {'joint_dx': -48, 'joint_dy': 14, 'rot': -24, 'sx': 1.10, 'sy': 1.10},
+          'shield_far_r': {'joint_dx': -60, 'joint_dy': -12, 'rot': 28, 'sx': 1.10, 'sy': 1.10}}, 1.0, 0.0,
+         lambda c, r: (draw_hex_shield(ImageDraw.Draw(c), GX - 60, GY - 120, 48, color=C_WHITE, border=C_RED, fill_alpha=75), c)[1]),
+        ({'monolith': {'dy': -10}, 'bust': {'rot': -4},
+          'shield_far_l': {'joint_dx': 42, 'joint_dy': -10, 'rot': -18, 'sx': 1.12, 'sy': 1.12},
+          'shield_near_l': {'joint_dx': -26, 'joint_dy': 16, 'rot': 16, 'sx': 1.12, 'sy': 1.12},
+          'shield_near_r': {'joint_dx': -44, 'joint_dy': 12, 'rot': -20, 'sx': 1.12, 'sy': 1.12},
+          'shield_far_r': {'joint_dx': -55, 'joint_dy': -10, 'rot': 24, 'sx': 1.12, 'sy': 1.12}}, 1.0, 0.0,
+         lambda c, r: (draw_hex_shield(ImageDraw.Draw(c), GX - 64, GY - 120, 54, color=C_RED_HI, border=C_RED, fill_alpha=85),
+                       draw_pixel_burst(ImageDraw.Draw(c), GX - 64, GY - 120, (14, 38), C_WHITE, C_INK, 8), c)[2]),
+        ({'monolith': {'dy': -4}, 'bust': {'rot': -2},
+          'shield_far_l': {'joint_dx': 20, 'joint_dy': -4, 'rot': -8},
+          'shield_near_l': {'joint_dx': -10, 'joint_dy': 8, 'rot': 8},
+          'shield_near_r': {'joint_dx': -20, 'joint_dy': 6, 'rot': -10},
+          'shield_far_r': {'joint_dx': -25, 'joint_dy': -4, 'rot': 12}}, 1.0, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 28, GY - 105, 36, 46, C_WHITE, C_INK, 2), c)[1]),
+        ({}, 1.0, 0.0, None),
+    ]
+
+    return assemble_sheet('claude', rig, atk, hit, death, skill)
+
 def update_art_js(metas):
     body = ', '.join(f"{n}:{{ iw:{m['iw']}, ih:{m['ih']} }}" for n, m in metas.items())
     block = (
@@ -1552,8 +1717,7 @@ def main():
     metas['disperser'] = build_disperser()
     metas['gemini'] = build_gemini()
     metas['omnis'] = build_omnis()
-    for legacy in ['knight', 'slime', 'bat', 'golem', 'shroom', 'boss']:
-        metas[legacy] = build_legacy(legacy)
+    metas['claude'] = build_claude()
     update_art_js(metas)
 
 
