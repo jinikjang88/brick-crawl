@@ -102,7 +102,7 @@ function showShop(){
       disabled:it.sold || poor || RUN.hp >= RUN.maxHp, onPick:() => buy(() => RUN.hp = Math.min(RUN.maxHp, RUN.hp + herb)) };
   });
   // 처음 들어올 때: 살 수 있는 것이 하나도 없으면 "크레딧이 모자란다", 아니면 인사
-  if (!shopSay) shopSay = pickLine(cards.every(c => c.disabled) ? SHOP_TALK.poor : SHOP_TALK.enter);
+  if (!shopSay) shopSay = pickLine(cards.every(c => c.disabled) ? SHOP_TALK.poor : RUN.s === 0 && !RUN.abyss ? SHOP_TALK.enter : SHOP_TALK.wire);
   const n = cargoParts(), sc = RUN.cargo.scrap;
   showChoice({ mode:'shop', scene:'shop', title:'윤의 정비소', sub:`크레딧 ${RUN.coins} · 적재함 ${n}/${cargoMax()}` + (sc ? ` · 고철 ${sc}` : ''), say:[shopSay], cards, buttons:[
     { label:n || sc ? `송신하기 (부품 ${n})` : '송신하기 (빈 적재함)', disabled:!n && !sc,
