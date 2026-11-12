@@ -96,7 +96,7 @@ function drawRestScene(g, dt, calm){
     if (Math.random() < dt * 9) sceneSparks.push({ x:110 + (Math.random() - .5) * 10, y:50, v:12 + Math.random() * 10, p:Math.random() * 6, t:1.4 });
     for (const s of sceneSparks){ s.y -= s.v * dt; s.t -= dt; s.x += Math.sin(t * 4 + s.p) * dt * 6; }
     sceneSparks = sceneSparks.filter(s => s.t > 0);
-    for (const s of sceneSparks){ g.globalAlpha = Math.min(1, s.t); g.fillStyle = s.t > .7 ? '#FFF8E6' : '#C9A766'; g.fillRect(Math.round(s.x), Math.round(s.y), 1, 1); }
+    for (const s of sceneSparks){ g.globalAlpha = Math.min(1, s.t); g.fillStyle = s.t > .7 ? '#F4F7F8' : '#96A0A6'; g.fillRect(Math.round(s.x), Math.round(s.y), 1, 1); }
     g.globalAlpha = 1;
   }
 }

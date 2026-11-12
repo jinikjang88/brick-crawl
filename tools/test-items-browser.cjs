@@ -21,7 +21,8 @@ try { ({ chromium } = require('playwright')); } catch (e) {
     await page.locator('#mNew').click();
     // 첫 원정은 프롤로그(이야기)가 먼저 뜬다(작업 05)
     await page.waitForFunction(() => mode === 'story' || mode === 'map');
-    if (await page.evaluate(() => mode === 'story')) await page.locator('#cBtns button').click();
+    // 프롤로그는 대화창(showTalk)으로 뜬다. 한 줄씩 넘기는 대신 끝낸다
+    if (await page.evaluate(() => mode === 'story')) await page.evaluate(() => talkDone());
     await page.waitForFunction(() => mode === 'map');
     // 첫 줄에 상점·휴식이 섞일 수 있어 전투 칸을 고른다. 전투 중 화면 모드 이름은 'play'다
     await page.evaluate(() => enterNode(reachable().find(n => n.t === 'battle') || reachable()[0]));
@@ -40,7 +41,8 @@ try { ({ chromium } = require('playwright')); } catch (e) {
       for (const k of Object.keys(RELICS)) META.seen.relic[k] = true;
       showBadges();
     });
-    assert.equal(await page.locator('#badgeBox img').count(), 64);
+    // 부품·칩에 더해 공명·이야기 줄도 그림을 쓴다. 부품 + 칩 수보다 적으면 그림이 빠진 것이다
+    assert.ok(await page.locator('#badgeBox img').count() >= 64);
     await page.evaluate(() => {
       const before = document.createElement('div'); document.body.append(before);
       delete ART.img.relic_ring;
