@@ -257,6 +257,8 @@ function arrive(pr){
     sfx(hit ? 'mhit' : 'block', { big:hit >= 3 });
     if (pr.venom){ pr.venom += rel('sting'); g.m.poison += pr.venom; pop(MX + 20, 30, '+' + pr.venom, C.accent, 'skull'); }
     if (pr.shot) pr.shot.landed++;
+    // 타격 정지: 체력을 깎은 타격만, 센 타격일수록 조금 더 길게(막힌 타격은 멈추지 않아 손맛이 갈린다)
+    if (hit) g.stop = Math.min(HIT_STOP.max, HIT_STOP.base + hit * HIT_STOP.per);
     if (g.m.hp === 0) killMonster(pr.counter ? 'counter' : pr.shot);
     else checkRage();
     return;
@@ -272,7 +274,7 @@ function arrive(pr){
 // how: 쓰러뜨린 수단. 천장 타격이면 그 발사 기록(shot), 아니면 'poison'·'counter'
 function killMonster(how){
   // 결정타가 들어가면 남은 구슬을 즉시 치워 여운을 몬스터 쓰러짐에 집중시킨다
-  G.m.dead = true; G.balls = []; G.queue = []; G.shake = 6; sfx('kill');
+  G.m.dead = true; G.balls = []; G.queue = []; G.shake = 6; G.stop = HIT_STOP.kill; sfx('kill');
   burst(MX, 62, C.ink, 26);
   if (how === 'poison') earnBadge('venom');
   else if (how === 'counter') earnBadge('counter');

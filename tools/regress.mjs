@@ -11,7 +11,7 @@ const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode
   // 이야기 대화창(showTalk)도 같은 모양({ mode:'story', title, buttons })으로 받아 검사를 하나로 쓴다
   + 'catchChoice:()=>{ const got = [], orig = showChoice, ot = showTalk; showChoice = o => { got.push(o); orig(o); };'
   + ' showTalk = o => { got.push({ mode:\'story\', title:o.title, lines:o.lines, buttons:[{ onClick:o.onDone }] }); ot(o); }; return got; },'
-  + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName,MON,STORY,STORY_RADIO,BOSS_TALK,REST_TALK,SHOP_TALK,FALL_TALK,START_TALK,startLines,fallTier};';
+  + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName,MON,STORY,STORY_RADIO,BOSS_TALK,REST_TALK,SHOP_TALK,FALL_TALK,START_TALK,startLines,fallTier,frame,fire,HIT_STOP};';
 // 프롤로그(첫 원정의 이야기)는 따로 검사한다. 다른 검사는 새 원정 → 바로 지도를 기대하므로 본 것으로 둔다
 let FRESH_STORY = false;
 const code = '(() => {' + srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n' + EXPOSE + '})();';
@@ -598,6 +598,26 @@ async function renameWith(reply, prof = {}){
 { const t = boot({ [META_KEY]:'{"__proto__":{"polluted":1},"pts":3}' });
   const M2 = t.META();
   ok('메타 불러오기: "__proto__" 키가 프로토타입을 바꾸지 않음', M2.pts === 3 && Object.getPrototypeOf(M2) === Object.prototype && M2.polluted === undefined); }
+// ── 주사율과 무관한 물리(2026-11-12): 같은 조준은 60·120·144Hz, 끊기는 프레임에서도 같은 벽돌을 깨고 같은 자리에 떨어진다.
+// 예전에는 프레임 길이에 따라 구슬이 나뉘어 움직이는 횟수가 달라 기기마다 결과가 달랐다
+{ const AIM = -0.62;   // 벽돌 줄을 비스듬히 지나 여러 번 튕기는 각도(작은 차이가 결과로 드러난다)
+  const shot = hz => {
+    const t = boot(); click('mNew'); t.startBattle({ r:0, l:0, t:'battle', mon:'slime' });
+    const G = t.G; G.phase = 'aim'; G.aim = AIM; G.aimT = 1; t.fire();
+    let now = 0, n = 0;
+    while (t.G === G && G.phase === 'fire' && n++ < 4000){ now += typeof hz === 'function' ? hz(n) : 1000 / hz; t.frame(now); }
+    return `${G.lx.toFixed(3)}|${G.bricks.filter(b => b.dead).length}|${G.m.hp}|${n < 4000}`;
+  };
+  const base = shot(60), all = [shot(120), shot(144), shot(30), shot(n => n % 7 === 0 ? 48 : 9)];
+  ok(`물리: 주사율이 달라도 같은 발사는 같은 결과 (${base})`, !base.endsWith('false') && all.every(x => x === base), all.join(' / '));
+  // 타격 정지는 시간을 멈출 뿐 결과를 바꾸지 않는다: 정지를 0으로 해도 같은 결과
+  const keep = { ...globalThis.__t.HIT_STOP };
+  const noStop = (() => { const t = boot(); Object.assign(t.HIT_STOP, { base:0, per:0, max:0, kill:0 }); click('mNew'); t.startBattle({ r:0, l:0, t:'battle', mon:'slime' });
+    const G = t.G; G.phase = 'aim'; G.aim = AIM; G.aimT = 1; t.fire(); let now = 0, n = 0;
+    while (t.G === G && G.phase === 'fire' && n++ < 4000){ now += 1000 / 60; t.frame(now); }
+    return `${G.lx.toFixed(3)}|${G.bricks.filter(b => b.dead).length}|${G.m.hp}|${n < 4000}`; })();
+  ok('물리: 타격 정지는 결과를 바꾸지 않는다', noStop === base, noStop);
+}
 // ── 대사 말투(docs/SCENARIO.md 2.1 화계 표, 2026-11-12 소유자 결정): 누가 누구에게 어떤 말투를 쓰는지가 다시 섞이지 않게.
 // 문장 끝 어미만 본다. 인용·명사 종결 보고문 같은 예외는 QUOTE에 문장째로 적어 둔다(예외를 늘릴 때는 화계 표도 함께 고친다)
 { const t = boot();

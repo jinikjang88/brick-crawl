@@ -1,61 +1,43 @@
-# 일러스트 픽셀 에셋 — 2026-10-06
+# 그림 에셋 현황
 
-> 2026-11-04: 시나리오 v6.0과 함께 캐릭터·보스·대화 초상은 사이버펑크 화풍으로 교체됐다([`docs/ASSET_PROMPTS.md`](../ASSET_PROMPTS.md) 8절 생성 현황). 이 문서는 2026-10의 중세 던전 화풍 원본 기록이다. 벽돌·구슬·칩·앱 아이콘은 아직 이 화풍 그대로 게임에 쓰인다. 던전 배경·양피지 UI는 2026-11-04에 사이버 갱도·HUD 판으로 바뀌었다([작업 07](../tasks/07-cyberpunk-visual.md)).
+2026-11-12 기준. 화면의 모든 그림은 **모노크롬 사이버펑크**(카본 블랙·건메탈·티타늄·상아 + 위험 표시용 화 #C1443C) 한 가지 규칙을 따른다.
+옛 중세 그림(상아·황동·석재: 기사·슬라임·구슬 컬렉션·양피지 패널)은 모두 걷어 냈다.
 
-첨부한 던전 배경·구슬 컬렉션과 같은 질감으로 플레이어 1종, 기존 몬스터 5종을 디자인했다. 이 묶음은 **디자인 원본**이고, 게임에는 `tools/build_game_assets.py`로 줄인 `assets/game/`(약 1.5MB)이 쓰인다.
+## 어디서 오는가
 
-## 원본
-
-- [던전 배경](../../assets/illustrated/dungeon.png): 사용자 제공 PNG를 그대로 보존.
-- [구슬·벽돌·UI 컬렉션](../../assets/illustrated/collection.png): 사용자 제공 PNG를 그대로 보존. 불규칙한 배치이므로 균등 격자 아틀라스로 취급하지 않는다.
-- [벽돌 6종](../../assets/illustrated/bricks.png) (2026-10-26 교체): Figma AI `generate_image`(gpt-image-2.5-sunburst)로 만든 3×2 시트. collection.png 벽돌은 일반·특수 벽돌 질감이 비슷해 판에서 구분이 약했다. 특수 벽돌(공격·방어·회복)은 상아 대리석 + 큰 청동 문양, 독은 붉은 균열 + 해골로 바꿨다. 프롬프트·약관 근거는 prompts.json `bricks`. Figma AI 약관상 Output은 사용자 소유이고 상업적 사용 제한 조항이 없다.
-- [앱 아이콘](../../assets/illustrated/icon.png) (2026-10-26): Figma AI로 만든 1024px 정사각형(진주 구슬을 든 기사, 뒤로 금 간 석회암 벽. 사용자 결정으로 "구슬이 벽을 뚫는" 시안 대신 채택). `build_icons()`가 `icons/`에 1024(iOS 스토어, RGB)·512(Google Play)·192·180(apple-touch-icon)·32(favicon)를 만든다. 스토어가 모서리를 자르므로 원본은 꽉 찬 사각형이고 투명이 없다.
-- 캐릭터: 내장 imagegen으로 생성한 투명 배경 PNG. 생성 프롬프트는 [prompts.json](../../assets/illustrated/prompts.json), 크기·알파·체크섬은 [manifest.json](../../assets/illustrated/manifest.json)에 기록한다.
-
-![던전 배경](../../assets/illustrated/dungeon.png)
-![구슬 컬렉션](../../assets/illustrated/collection.png)
-
-## 캐릭터
-
-| 게임 식별자 | 역할과 디자인 | 미리보기 |
+| 종류 | 게임 파일(`assets/game`) | 만드는 법 |
 |---|---|---|
-| `knight` | 플레이어. 상아색 갑옷, 황동 문양, 진주 구슬과 방패 | <img src="../../assets/illustrated/characters/knight.png" width="200" alt="기사"> |
-| `slime` | 금속 파편을 삼킨 반투명 슬라임 | <img src="../../assets/illustrated/characters/slime.png" width="200" alt="슬라임"> |
-| `bat` | 짙은 날개와 붉은 눈으로 공격성을 표현한 박쥐 | <img src="../../assets/illustrated/characters/bat.png" width="200" alt="박쥐"> |
-| `golem` | 던전 석조 구조를 이어받은 육중한 골렘 | <img src="../../assets/illustrated/characters/golem.png" width="200" alt="골렘"> |
-| `shroom` | 붉은 독성 무늬와 뿌리 발을 가진 독버섯 | <img src="../../assets/illustrated/characters/shroom.png" width="200" alt="독버섯"> |
-| `boss` | 성당형 왕관과 철퇴를 가진 탑의 수문장 | <img src="../../assets/illustrated/characters/boss.png" width="200" alt="탑의 수문장"> |
+| 캐릭터 9종 | `rick`·`sludge`·`drone`·`guardian`·`disperser`·`sentinel`·`gemini`·`claude`·`omnis` | AI 일러스트 원본 `assets/illustrated/characters` → `tools/clean_matte.py` → `tools/build_game_assets.py` |
+| 동작 시트 9종 | `*_actions.png` | `tools/build_cyber_actions.py` ([action-frames.md](action-frames.md)) |
+| 대화 초상 14종 | `portrait_*.png` (96px) | AI 일러스트 원본 `assets/illustrated/portraits`. 제미디 2종·OMNIS·제로는 캐릭터 그림을 잘라 만든 것 |
+| 구슬 부품 26종 | `orb_*.png` (96px) | `tools/draw_item_assets.py` — 코어 7(구)·회로 16(카트리지)·공명 효과 3(배지) |
+| 칩 40종 | `relic_*.png` (96px) | `tools/draw_item_assets.py` — IC 실루엣 + 11×11 문양 |
+| 벽돌 6종 | `brick_*.png` (176×96) | `tools/draw_item_assets.py` |
+| 크레딧·불꽃·파편·히터·단말기 | `coin`·`spark`·`rubble`·`campfire`·`merchant` | `tools/draw_item_assets.py` (파일 이름은 코드가 찾는 옛 이름 그대로) |
+| 배경·HUD 판·꺾쇠·주사선 | `chasm`·`ui_bar`·`ui_panel`·`ui_frame`·`scan` | `tools/draw_cyber_assets.py` |
+| 앱 아이콘 5종 | `icons/*.png` | `tools/draw_item_assets.py` |
 
-## 적용 기준
+AI 일러스트 원본(`assets/illustrated/items/*.png`, `bricks.png`, `icon.png`, `chasm.png`)을 넣으면 `build_game_assets.py`가 같은 이름의
+도트 그림을 덮어쓴다. 그래서 `draw_*.py`를 먼저, `build_game_assets.py`를 나중에 돌린다. 프롬프트는 [`docs/ASSET_PROMPTS.md`](../ASSET_PROMPTS.md).
 
-- 밝은 상아·베이지, 짙은 먹색, 낡은 황동의 명암으로 입체감을 만든다. 붉은색은 몬스터의 위험 신호에 사용한다.
-- 투명 알파를 보존한다. 투명 영역이 검게 보이는 뷰어에서도 검정 배경이 실제로 포함된 것은 아니다.
-- 캐릭터는 각각 독립 파일이며 프레임 시트가 아니다. 정예·피격·공격·사망 프레임을 포함하지 않는다.
-- `js/sprites.js`의 절차적 도트는 지우지 않고 폴백으로 둔다(이미지 로드 전·실패·Node 시뮬레이터).
+## 한눈에 구분되는 규칙
 
-## 게임 적용 (assets/game)
+- **실루엣이 종류를 말한다**: 구 = 코어(전투에서 날아가는 몸체), 아래에 단자가 달린 카트리지 = 회로, 네 변에 다리가 난 IC = 칩, 둥근 배지 = 공명 효과.
+- **문양이 효과를 말한다**: 가운데 11×11 도트 문양(십자 = 회복, 육각 방패 = 방어, 방울 = 독 …).
+- **붉은색은 위험**: 기체를 해치거나(독·피해) 대가가 있는 효과에만 쓴다. 지키기·회복은 상아 발광만.
+- **벽돌**: 일반 = 티타늄 판, 강화 = 리벳 박힌 어두운 장갑판, 효과(⚔·방어·회복) = 상아 판 + 먹색 문양, 오염 = 어두운 판 + 붉은 방울.
+- 광원은 왼쪽 위, 바깥 1px 먹색 외곽선, 32칸 격자를 정수배로 확대(도트 굵기를 캐릭터 그림과 맞춘다).
+- 그림 위의 색은 테마와 무관한 고정색이다. 다크·라이트 양쪽 배경에서 읽히는지 캡처로 확인한다.
 
-| 원본 | 게임용 | 쓰이는 곳 |
-|---|---|---|
-| `dungeon.png` | `dungeon.png` 720×1360, 128색 | 캔버스 전체 배경. 벽돌판은 `--field`로 45% 덮어 조준선 대비 확보, 다크 모드는 `--bg`로 78~84% 덮음 |
-| `characters/*.png` | 최대 256px | 전투 캐릭터. 발밑을 y=90에 맞추고 `ART_BOX` 상자 안에 비율대로 그린다 |
-| `collection.png` 구슬 7종 | `orb_*.png` 96px | 날아가는 구슬·발사대·HUD·보상 카드·메인 진열 |
-| `bricks.png` 벽돌 6종 | `brick_*.png` 176×96 | 벽돌(n·stone·atk·def·heal·poison). 회색 배경을 바깥에서부터 지워 투명화, 원본 약 2:1을 22:12로 맞춤 (`build_bricks`) |
-| `collection.png` 코인·불꽃 | `coin.png`·`spark.png` | 코인 칩 아이콘, 구슬 충돌 불꽃 |
-| `collection.png` 돌 파편 | `rubble.png` | 성벽 벽돌이 부서질 때 튀어 오르며 도는 파편 |
-| `collection.png` 패널 | `ui_panel.png` | 전투 시작 배너(몬스터 이름) `border-image` |
-| `collection.png` 액자 | `ui_frame.png` | 구슬 줄의 "지금 쏠 구슬" 테두리 |
-| `collection.png` 어두운 바 | `ui_bar.png` | 주 버튼(`.btn.primary`) 배경 |
+## 검사
 
-- 캔버스 백버퍼를 화면 크기에 맞춘 정수배(`RES`, 2~8)로 늘려 일러스트를 세밀하게 그린다. 휴대폰(3배 화면)에서는 보통 6~7배다. 고정 4배 + 최근접 확대일 때보다 점선 굵기 변동계수가 3.9~16% → 1.4~7.7%로 줄었다(Playwright 7개 기기 크기 측정). 게임 좌표·판정은 180×340 그대로라 수치·밸런스 변화는 없다.
-- 상태 표현: 피격 = 단색 실루엣 번쩍임(기사 붉은색, 몬스터 흰색), 정예·2페이즈 보스 = 붉은 윤곽, 일반 벽돌 체력 = 어두운 덮개 + 숫자 판.
-- 동작 프레임이 없어 캐릭터는 대기 중 위아래로 흔들린다(`artBob`, 박쥐는 크고 빠르게). 공격은 앞으로 내밀기, 사망은 가라앉으며 흐려지기.
-- UI 조각은 고정색이라 글자·바탕색도 고정하고, 바탕색을 `padding-box`에 깔아 그림 로드 실패 시에도 같은 대비가 나오게 했다.
-- 게임 수치, 충돌 판정, 저장 구조에는 변경이 없다.
+```bash
+python3 tools/check_assets.py     # 목록·흰 배경 잔여물·떠 있는 조각·대기 포즈 이음매·프레임 연속성·좌우 표식·팔레트
+node tools/shots.cjs <폴더>       # 실제 게임 화면 캡처(다크·라이트) + 9개 화면비 넘침 검사
+```
 
-## 검증
+## 아직 없는 그림
 
-- 기존 JS 전체 `node --check` 통과.
-- `node tools/sim.mjs 60`: 1세션 돌파 25/60(42%), 보스 격파 시 남은 체력 중앙값 33%, 발사당 벽돌 파괴 0.52·천장 타격 0.82. 무작위 표본이며 목표치 달성이나 밸런스 변경의 증거로 해석하지 않는다.
-- PNG 형식·크기·알파 채널·사용자 제공 원본 체크섬과 문서 내 파일 링크를 검사한다.
-- 런타임 변경이 없어 브라우저 플레이 검증은 수행하지 않았다.
+- 코테크·아키텍트 제로의 전투 그림과 동작 시트(센티넬·OMNIS로 대신한다).
+- 구슬 레벨 테두리(`orb_lv_*`)·공명 문양(`res_*`): 코드에 연결되지 않았다(ASSET_PROMPTS 4.3·4.4).
+- 구슬 부품·칩·벽돌의 AI 일러스트판: 지금은 도트 아이콘이다. 캐릭터 그림만큼 세밀한 그림을 원하면 ASSET_PROMPTS 4~6절로 생성해 `assets/illustrated`에 넣는다.

@@ -48,6 +48,7 @@
 | `fx/orb_guard.gif` | <img src="light/fx/orb_guard.gif" height="160"> |
 | `fx/orb_heavy.gif` | <img src="light/fx/orb_heavy.gif" height="160"> |
 | `fx/orb_split.gif` | <img src="light/fx/orb_split.gif" height="160"> |
+| `fx/orb_toxin.gif` | <img src="light/fx/orb_toxin.gif" height="160"> |
 | `fx/orb_venom.gif` | <img src="light/fx/orb_venom.gif" height="160"> |
 
 ## dark
@@ -95,4 +96,5 @@
 | `fx/orb_guard.gif` | <img src="dark/fx/orb_guard.gif" height="160"> |
 | `fx/orb_heavy.gif` | <img src="dark/fx/orb_heavy.gif" height="160"> |
 | `fx/orb_split.gif` | <img src="dark/fx/orb_split.gif" height="160"> |
+| `fx/orb_toxin.gif` | <img src="dark/fx/orb_toxin.gif" height="160"> |
 | `fx/orb_venom.gif` | <img src="dark/fx/orb_venom.gif" height="160"> |

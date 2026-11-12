@@ -83,11 +83,21 @@ addEventListener('keydown', e => {
 });
 
 // ── 메인 루프
-let last = performance.now();
+// 전투는 고정 시간 간격(STEP)으로만 나아간다. 화면 주사율(60·90·120Hz)이나 프레임 끊김에 따라 구슬이 나뉘어 움직이는
+// 횟수가 달라지면 같은 조준이 기기마다 다른 벽돌에 맞는다. 남은 시간은 모아 두었다가 다음 프레임에 쓴다
+const STEP = 1 / 120, STEP_MAX = 6;
+let last = performance.now(), stepAcc = 0;
 function frame(now){
   requestAnimationFrame(frame);   // 먼저 예약: 아래에서 예외가 나도 다음 프레임은 돈다(한 번의 오류로 화면이 영구 정지하지 않게)
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (G && mode === 'play') update(dt);
+  if (G && mode === 'play'){
+    // 타격 정지(hit stop): 맞는 순간 아주 잠깐 멈춰 무게를 준다. 멈춘 동안은 시간을 모으지 않는다(뒤에 몰아서 흐르지 않게)
+    if (G.stop > 0) G.stop -= dt;
+    else {
+      stepAcc = Math.min(stepAcc + dt, STEP * STEP_MAX);
+      while (stepAcc >= STEP && G && mode === 'play' && !(G.stop > 0)){ update(STEP); stepAcc -= STEP; }
+    }
+  } else stepAcc = 0;
   draw(); drawScene(dt);
   // 전투 중에는 코인 그림(::before)이 "코인"을 대신해 글자를 줄인다(한 줄 헤더에서 몬스터 이름 자리를 지키려고). 읽기 프로그램용 이름은 따로 단다
   if (G && mode === 'play'){ const h = $('hCoin'), t = `${RUN.coins} · ${G.turn}턴`;
