@@ -148,16 +148,21 @@ js/net.js           기록 서버 통신(닉네임 등록·원정 시작 표·�
 js/map.js           원정 상태(RUN·G·mode), 갈림길 지도 생성
 js/battle.js        전투: 벽돌 줄 생성, 슬롯 고르기·과열, 구슬 물리, 턴 진행, 몬스터 행동·특성
 js/render.js        캔버스 draw()와 HUD
-js/scene.js         상점·휴식 장면 캔버스(상인·모닥불 연출)
+js/scene.js         브로커·충전소 장면 캔버스(단말기 속 윤·코일 히터 연출)
 js/screens.js       오버레이 전환, 메인·지도 화면, 전투 시작·종료
 js/rewards.js       보상(칩 3택1)·휴식·상점(회로·칩·패치 구매, 송신)
 js/garage.js        차고: 구슬 조립·장전·분해·회로 합성, 부품 드롭·적재함·송신, 릭/구슬 레벨·공명, 시뮬레이터용 autoGarage
 js/main.js          메뉴·입력·메인 루프 (항상 마지막)
 tools/sim.mjs       헤드리스 밸런스 시뮬레이터(조준 봇)
-tools/regress.mjs   회귀 검사(재현한 버그·저장 복구·기록 대기열·시드 난수)
+tools/regress.mjs   회귀 검사(재현한 버그·저장 복구·기록 대기열·시드 난수·화면 용어·대사 말투·주사율 무관 물리)
+tools/shots.cjs     실제 브라우저 캡처 + 9개 화면비 넘침·작은 버튼·동작 줄이기 누락 검사(Playwright)
+tools/check_assets.py  그림 전수 검사(목록·흰 배경 잔여물·떠 있는 조각·이음매·좌우·팔레트)
 tools/d1-check.mjs  기록 서버 통합 검사(로컬 Functions + D1)
 tools/build_game_assets.py  일러스트 원본(assets/illustrated) → 게임용 축소본(assets/game)
-assets/illustrated/ 일러스트 원본(characters·actions·portraits·items, 배경·벽돌·아이콘)
+tools/draw_item_assets.py   구슬 부품·칩·벽돌·크레딧·충전소·앱 아이콘을 도트로 그린다
+tools/build_cyber_actions.py  캐릭터 동작 시트(공격·피격·사망·스킬)를 만든다
+tools/clean_matte.py        캐릭터 그림 안쪽에 남은 흰 배경 조각을 지운다
+assets/illustrated/ 일러스트 원본(characters·actions·portraits). 구슬 부품·벽돌·아이콘의 AI 원본을 넣으면 도트 그림을 대신한다
 assets/game/        게임이 실제로 읽는 축소본
 assets/audio/       터미널·지도 음원 곡과 권리 기록(LICENSE.md)
 tools/export_assets.py  도트 에셋·연출을 PNG/GIF로 내보내는 툴 (결과: docs/assets/)
@@ -165,10 +170,10 @@ tools/draw_cyber_assets.py  사이버펑크 갱도 배경(chasm)·HUD 프레임(
 functions/api/      (서버) Cloudflare Pages Functions 기록 API
 db/schema.sql       (서버) D1 테이블 정의
 docs/GAME_DESIGN.md 현재 구현 기준 게임 디자인 문서
-docs/SCENARIO.md    시나리오 〈마지막 번개〉 v6.0 연출 대본·인물·결정 사항(D1~D6)
+docs/SCENARIO.md    시나리오 〈마지막 번개〉 v6.0 연출 대본·인물·화계 표(누가 누구에게 어떤 말투)·결정 사항(D1~D6)
 docs/GLOSSARY.md    화면 용어 기준(용어집)
 docs/ASSET_PROMPTS.md  사이버펑크 에셋 생성 프롬프트 모음
-docs/art/           일러스트 에셋 설명·미리보기
+docs/art/           그림 에셋 현황(illustrated-assets.md)·동작 프레임 점검 기준(action-frames.md)·동작 미리보기(action-preview.html)
 docs/tasks/         작업 지시서
 AGENTS.md           개발 규칙(사람·AI 에이전트 공통)
 CLAUDE.md           Claude Code용 진입점(AGENTS.md를 불러옴)
@@ -235,7 +240,11 @@ node tools/regress.mjs   # 실패가 있으면 종료 코드 1
 실제 게임 코드를 시뮬레이터처럼 불러, 고친 버그가 다시 생기지 않는지·깨진 저장을 견디는지·기록 대기열과 시드 난수가 정한 대로 도는지 본다. 기록 서버를 고쳤다면 `tools/d1-check.mjs` 머리말대로 로컬 D1에서 통합 검사를 돌린다.
 
 **4. 실제 브라우저**
-`index.html`을 `file://`로 연다. 메인 → 지도 → 전투 → 보상 → 새로고침 후 이어하기까지 해 보고 콘솔 오류를 확인한다. 로드 순서나 전역 이름 충돌 문제는 여기서만 드러난다. Playwright로 자동화해도 된다.
+```bash
+node tools/shots.cjs /tmp/shots        # 11개 화면 × 9개 화면비 × 다크·라이트: 예외·넘침·작은 버튼 검사 + 캡처
+node tools/test-items-browser.cjs      # 메인 → 지도 → 전투 → 보상 → 새로고침 후 이어하기
+```
+직접 볼 때는 `index.html`을 `file://`로 연다. 메인 → 지도 → 전투 → 보상 → 새로고침 후 이어하기까지 해 보고 콘솔 오류를 확인한다. 로드 순서나 전역 이름 충돌 문제는 여기서만 드러난다. Playwright로 자동화해도 된다.
 
 ### 에셋 이미지 내보내기
 게임 코드(`js/sprites.js`의 `SPR`·`ICON`·`FONT`·`drawOrbSprite`, `css/style.css`의 색 토큰)를 그대로 읽어 PNG·GIF로 뽑는다. 도트를 고쳤으면 다시 돌리기만 하면 된다. 게임 실행에는 필요 없는 개발 도구다(Python 3 + Pillow).
@@ -247,7 +256,7 @@ python3 tools/export_assets.py --only static,fx --scale 4
 ```
 - 정적: 스프라이트(기본·정예·피격 변형), 아이콘, 구슬, 숫자 폰트, 로고, 한 장 모음(`contact_sheet.png`)
 - 연출 GIF: 몬스터별 공격·피격·쓰러짐, 보스 분노, 벽돌 종류별 파괴, 폭탄 폭발, 구슬별 대기 연출, 전투 한 판 재현(`battle.gif`)
-- 연출은 `battle.js`의 공식(파편·숫자 팝업·포물선 탄·돌진·물리)을 옮겨 재현한다. 충격파 링·히트스톱·슬로모션·대기 동작은 **툴 전용 제안**으로, 게임에는 아직 없다.
+- 연출은 `battle.js`의 공식(파편·숫자 팝업·포물선 탄·돌진·물리)을 옮겨 재현한다. 충격파 링·슬로모션은 **툴 전용 제안**으로, 게임에는 아직 없다(타격 정지와 대기 동작은 게임에 들어갔다).
 - 미리보기: [`docs/assets/README.md`](docs/assets/README.md)
 
 ## 배포

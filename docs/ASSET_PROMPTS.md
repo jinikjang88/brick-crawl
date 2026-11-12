@@ -195,7 +195,7 @@ Use case: stylized-concept. Asset type: Brick Crawl cyberpunk dialogue portrait 
 - 코어 그림은 전투에서 날아가는 구슬 자체이고, 차고·아카이브의 구슬 아이콘이다.
 - 회로 그림은 차고·보관함·부품 드롭 토스트의 아이콘으로만 쓴다(전투 구슬에는 그리지 않는다). 그래서 **구(球)가 아니라 꽂는 카트리지**로 그린다.
 - 파일 이름은 옛 `orb_<id>.png`를 그대로 쓴다: 코드(`orbPortrait`·`drawOrb`)가 `orb_` + id로 찾으므로 넣기만 하면 바뀐다.
-- **원본 저장 경로**: `assets/illustrated/items/orb_<id>.png` → `python3 tools/build_game_assets.py`로 `96×96` 빌드. `build_items()`가 `collection.png` 시트(`build_sheet`)보다 나중에 돌아서, 같은 이름이면 `items/` 그림이 이긴다.
+- **원본 저장 경로**: `assets/illustrated/items/orb_<id>.png` → `python3 tools/build_game_assets.py`로 `96×96` 빌드. 지금 게임이 쓰는 그림은 `tools/draw_item_assets.py`가 그린 도트 아이콘(2026-11-12)이고, 이 경로에 AI 그림을 넣으면 같은 이름의 도트를 덮어쓴다.
 
 ### 4.1 코어 7종 (구, 전투에서 날아가는 몸체)
 
@@ -386,16 +386,24 @@ Mobile game app icon, square full-bleed composition (no rounded corners, no bord
 
 ---
 
-## 8. 생성 현황 (2026-11-04)
+## 8. 생성 현황 (2026-11-12)
 
-`assets/game/`에 실제로 있는 파일 기준이다. "옛 그림"은 2026-10 중세 던전 화풍(상아·황동·석재)으로, 사이버펑크 화면과 톤이 어긋난다. 터미널·배경·UI 프레임을 어떤 색 방향으로 바꿀지는 [작업 07](tasks/07-cyberpunk-visual.md)에서 결정 대기 중이며, 6.1 배경 프롬프트도 그 결정에 맞춰 고친다(지금 문구는 `brushed titanium`·`no neon`이라 사이버펑크보다 폐허 벙커가 나온다).
+`assets/game/`에 실제로 있는 파일 기준이다. 옛 중세 그림(상아·황동·석재)은 2026-11-12에 모두 걷어 냈다. 구슬 부품·칩·벽돌·크레딧·충전소·앱 아이콘은
+`tools/draw_item_assets.py`가 그린 **도트 아이콘**으로 채웠고, 이 문서 4~6절의 프롬프트로 AI 일러스트를 만들어 `assets/illustrated`에 넣으면 그것이 대신 쓰인다.
+전체 표와 만드는 순서는 [`docs/art/illustrated-assets.md`](art/illustrated-assets.md).
 
-| 구분 | 생성·적용됨 | 아직 없음(폴백·옛 그림) |
+| 구분 | 지금 쓰는 그림 | AI 일러스트로 바꿀 수 있는 것 |
 |---|---|---|
-| 1. 캐릭터 | `rick`·`sludge`·`drone`·`guardian`·`disperser`·`sentinel`·`gemini`·`omnis`·`claude` | `codex`·`zero` → `ART_FALLBACK`(`js/art.js`)으로 다른 보스 그림 |
-| 2. 액션 시트 | `rick`·`sentinel`·`sludge`·`drone`·`guardian`·`disperser`·`gemini`·`omnis`·`claude` (9종) | `codex`·`zero` (폴백 그림의 액션 시트 사용) |
+| 1. 캐릭터 | AI 일러스트 9종(`rick`·`sludge`·`drone`·`guardian`·`disperser`·`sentinel`·`gemini`·`omnis`·`claude`) | `codex`·`zero`(지금은 `ART_FALLBACK`으로 센티넬·OMNIS) |
+| 2. 액션 시트 | 9종(릭은 AI 시트, 기체 8종은 원본 한 장을 관절로 움직인 것) | `codex`·`zero`, 릭 피격 줄(구슬이 사라졌다 나타남) |
 | 3. 대화 초상 | 14종 전부(`portrait_*`) | — |
-| 4. 구슬 부품 | 옛 구슬 그림을 코어·회로 아이콘으로 임시 사용(2026-10-09 중세 화풍, 일부는 `collection.png` 출신 황동) | 4절 프롬프트로 재생성: 코어 7·회로 15(회로는 구 대신 카트리지, `orb_prism` 새로), 구슬 레벨 테두리 4·공명 문양 6(코드 연결도 필요) |
-| 5. 칩 | 40종(2026-10-09 화풍) | 사이버펑크 재생성 전 |
-| 6. 배경·장면 | 배경 `chasm`·브로커 장면(윤 초상을 단말기 화면으로) — 도트 대체본 | 배경 AI 원본 `chasm`(6.1), 충전소 `heater`(→ 옛 `campfire`), 벽돌 6종(#33 상아·황동판), 앱 아이콘(기사) |
-| UI 프레임 | `ui_bar`·`ui_panel`·`ui_frame`·`scan` — HUD 판·꺾쇠·주사선(`tools/draw_cyber_assets.py`) | — |
+| 4. 구슬 부품 | 도트: 코어 7·회로 16(`orb_prism` 포함)·공명 효과 3 | 4.1·4.2절. 구슬 레벨 테두리 4·공명 문양 6은 코드 연결도 필요 |
+| 5. 칩 | 도트 40종(IC 실루엣 + 문양) | 5절 |
+| 6. 배경·장면 | 도트: 배경 `chasm`, 벽돌 6종, 충전소 히터(`campfire.png`), 크레딧·불꽃·파편, 앱 아이콘 | 6.1·6.2·6.4·6.5절 |
+| UI 프레임 | `ui_bar`·`ui_panel`·`ui_frame`·`scan`(`tools/draw_cyber_assets.py`) | — |
+
+AI 그림을 받으면 넣기 전에 확인한다(생성형 그림에서 자주 나오는 결함):
+1. 몸에 둘러싸인 안쪽의 배경이 지워졌는가(고리 안, 케이블 사이). 남았으면 `tools/clean_matte.py`의 `TARGETS`에 더한다.
+2. 바라보는 방향·무기를 든 손이 [좌우 기준표](art/action-frames.md)와 같은가. 시트라면 칸마다 같은가.
+3. 붉은색이 위험한 것에만 쓰였는가. 황동·보라·초록이 섞이지 않았는가.
+4. `python3 tools/check_assets.py` 통과.

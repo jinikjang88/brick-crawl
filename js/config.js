@@ -6,6 +6,8 @@ const W = 180, H = 340, BT = 110, FLOOR = 330;
 const COLS = 7, CW = 24, OX = 6, RIGHT = OX + COLS * CW, ROWH = 14, BRH = 12, MAXROW = 11;
 const CRASH_Y = BT + 4 + MAXROW * ROWH - 1;
 const PX = 44, MX = 136, BALL_SPEED = 300;
+// 타격 정지 시간(초). 연출일 뿐 결과에는 영향이 없다: 멈춘 동안 전투 시간이 흐르지 않을 뿐이다
+const HIT_STOP = { base:.022, per:.008, max:.06, kill:.11 };
 const AIM_MIN = -Math.PI + 0.22, AIM_MAX = -0.22;   // 너무 눕힌 각도는 벽만 타므로 뺀다
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');

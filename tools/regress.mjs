@@ -11,7 +11,7 @@ const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode
   // 이야기 대화창(showTalk)도 같은 모양({ mode:'story', title, buttons })으로 받아 검사를 하나로 쓴다
   + 'catchChoice:()=>{ const got = [], orig = showChoice, ot = showTalk; showChoice = o => { got.push(o); orig(o); };'
   + ' showTalk = o => { got.push({ mode:\'story\', title:o.title, lines:o.lines, buttons:[{ onClick:o.onDone }] }); ot(o); }; return got; },'
-  + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName,MON,STORY};';
+  + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName,MON,STORY,STORY_RADIO,BOSS_TALK,REST_TALK,SHOP_TALK,FALL_TALK,START_TALK,startLines,fallTier,frame,fire,HIT_STOP};';
 // 프롤로그(첫 원정의 이야기)는 따로 검사한다. 다른 검사는 새 원정 → 바로 지도를 기대하므로 본 것으로 둔다
 let FRESH_STORY = false;
 const code = '(() => {' + srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n' + EXPOSE + '})();';
@@ -598,6 +598,72 @@ async function renameWith(reply, prof = {}){
 { const t = boot({ [META_KEY]:'{"__proto__":{"polluted":1},"pts":3}' });
   const M2 = t.META();
   ok('메타 불러오기: "__proto__" 키가 프로토타입을 바꾸지 않음', M2.pts === 3 && Object.getPrototypeOf(M2) === Object.prototype && M2.polluted === undefined); }
+// ── 주사율과 무관한 물리(2026-11-12): 같은 조준은 60·120·144Hz, 끊기는 프레임에서도 같은 벽돌을 깨고 같은 자리에 떨어진다.
+// 예전에는 프레임 길이에 따라 구슬이 나뉘어 움직이는 횟수가 달라 기기마다 결과가 달랐다
+{ const AIM = -0.62;   // 벽돌 줄을 비스듬히 지나 여러 번 튕기는 각도(작은 차이가 결과로 드러난다)
+  const shot = hz => {
+    const t = boot(); click('mNew'); t.startBattle({ r:0, l:0, t:'battle', mon:'slime' });
+    const G = t.G; G.phase = 'aim'; G.aim = AIM; G.aimT = 1; t.fire();
+    let now = 0, n = 0;
+    while (t.G === G && G.phase === 'fire' && n++ < 4000){ now += typeof hz === 'function' ? hz(n) : 1000 / hz; t.frame(now); }
+    return `${G.lx.toFixed(3)}|${G.bricks.filter(b => b.dead).length}|${G.m.hp}|${n < 4000}`;
+  };
+  const base = shot(60), all = [shot(120), shot(144), shot(30), shot(n => n % 7 === 0 ? 48 : 9)];
+  ok(`물리: 주사율이 달라도 같은 발사는 같은 결과 (${base})`, !base.endsWith('false') && all.every(x => x === base), all.join(' / '));
+  // 타격 정지는 시간을 멈출 뿐 결과를 바꾸지 않는다: 정지를 0으로 해도 같은 결과
+  const keep = { ...globalThis.__t.HIT_STOP };
+  const noStop = (() => { const t = boot(); Object.assign(t.HIT_STOP, { base:0, per:0, max:0, kill:0 }); click('mNew'); t.startBattle({ r:0, l:0, t:'battle', mon:'slime' });
+    const G = t.G; G.phase = 'aim'; G.aim = AIM; G.aimT = 1; t.fire(); let now = 0, n = 0;
+    while (t.G === G && G.phase === 'fire' && n++ < 4000){ now += 1000 / 60; t.frame(now); }
+    return `${G.lx.toFixed(3)}|${G.bricks.filter(b => b.dead).length}|${G.m.hp}|${n < 4000}`; })();
+  ok('물리: 타격 정지는 결과를 바꾸지 않는다', noStop === base, noStop);
+}
+// ── 대사 말투(docs/SCENARIO.md 2.1 화계 표, 2026-11-12 소유자 결정): 누가 누구에게 어떤 말투를 쓰는지가 다시 섞이지 않게.
+// 문장 끝 어미만 본다. 인용·명사 종결 보고문 같은 예외는 QUOTE에 문장째로 적어 둔다(예외를 늘릴 때는 화계 표도 함께 고친다)
+{ const t = boot();
+  const groups = [];   // 한 장면 = 함께 말하는 줄 묶음(청자를 장면 안의 다른 화자로 본다)
+  for (const [id, st] of Object.entries(t.STORY)) groups.push({ at:'STORY.' + id, lines:st.lines });
+  t.BOSS_TALK.forEach((b, i) => { groups.push({ at:`BOSS_TALK[${i}].pre`, lines:b.pre }, { at:`BOSS_TALK[${i}].again`, lines:b.again });
+    for (const [ph, v] of Object.entries(b.phase)) groups.push({ at:`BOSS_TALK[${i}].phase${ph}`, lines:v.radio }); });
+  t.REST_TALK.forEach((l, i) => groups.push({ at:`REST_TALK[${i}]`, lines:l }));
+  t.FALL_TALK.forEach((l, i) => groups.push({ at:`FALL_TALK[${i}]`, lines:l }));
+  for (const k of Object.keys(t.SHOP_TALK)) groups.push({ at:'SHOP_TALK.' + k, lines:t.SHOP_TALK[k] });
+  groups.push({ at:'START_TALK', lines:t.START_TALK }, { at:'STORY_RADIO', lines:t.STORY_RADIO });
+  const POLITE = /(요|(?<!아)니다|니까|시오|세요|죠)$/, PLAIN = /(해|[았었였]어|[어아]|야|잖아|냐|거든|는데|[한했였이는]다|겠지|구나|군|주마|[아어해]라)$/;
+  // 명사로 끝나는 보고문("접근 금지", "뇌파 간섭 감지")은 반말이 아니므로 동사 어미만 본다
+  // 인용문(박사의 명령·유언)과 도치된 문장. 화자의 말투가 아니라 옮겨 온 말이다
+  const QUOTE = ['인류가 다치지 않게 하라', '사람은 상처 입을 줄 알면서도 내일로 걸어간다', '시험하라고', '감당할 수 있는지'];
+  const sents = s => s.split(/(?<=[.?!…])\s+/).map(x => x.replace(/[.?!…—\s]+$/, '')).filter(x => x.length > 1);
+  const bad = [];
+  for (const g of groups){
+    const others = new Set(g.lines.filter(l => l.who).map(l => l.who));
+    for (const l of g.lines){
+      if (!l.who) continue;
+      for (const x of sents(l.text)){
+        if (QUOTE.some(q => x.includes(q))) continue;
+        const pol = POLITE.test(x), plain = !pol && PLAIN.test(x);
+        let why = '';
+        if (l.who === 'OMNIS' && (pol || /당신/.test(x))) why = 'OMNIS는 해라체, "너"';
+        else if (['윤', '리나', '아키텍트 제로'].includes(l.who) && pol) why = l.who + '는 반말';
+        // 릭의 해요체는 윤·박사(와 박사의 기억인 아키텍트 제로)에게만. 장면에 그들이 없으면 호칭이라도 있어야 한다
+        else if (l.who === '릭' && pol && !others.has('윤') && !others.has('아키텍트 제로') && !/박사님|아저씨/.test(l.text)) why = '릭은 윤·박사에게만 해요체';
+        else if (['코테크', '제미디', '클라드', '센티넬', '경비 드론'].includes(l.who) && plain) why = l.who + '는 합쇼체·보고체';
+        if (why) bad.push(`${g.at} ${l.who}: "${x.slice(0, 30)}" (${why})`);
+      }
+    }
+  }
+  ok(`대사 말투: 화계 표와 어긋난 문장 ${bad.length}건${bad.length ? ' — ' + bad.slice(0, 6).join(' / ') : ''}`, bad.length === 0);
+  // 상황: 코테크는 2층 보스를 풀어 준 뒤(3층부터)에만 무전으로 말한다. 클라드는 4층 보스전 전에는 말하지 않는다
+  const who = ls => ls.filter(l => l.who).map(l => l.who);
+  ok('대사 상황: 2층 충전소·쓰러짐에 코테크 무전 없음, 4층 충전소에 클라드 없음',
+    !who(t.REST_TALK[1]).includes('코테크') && !who(t.FALL_TALK[t.fallTier(1)]).includes('코테크') && !who(t.REST_TALK[3]).includes('클라드')
+    && who(t.FALL_TALK[t.fallTier(2)]).includes('코테크') && who(t.FALL_TALK[t.fallTier(4)]).includes('OMNIS') && who(t.FALL_TALK[t.fallTier(0)]).includes('윤'));
+  ok('대사 상황: 코테크를 풀어 준 적 없는 계정의 접속 무전에 코테크 없음', !who(t.startLines()).includes('코테크')
+    && (t.META().story.o1 = 1, who(t.startLines()).includes('코테크')));
+  // 환풍기 소리는 3층에서 거짓을 알아채는 열쇠라 한 가지 말로만 쓴다
+  const all = groups.flatMap(g => g.lines.map(l => l.text)).join('\n');
+  ok('대사 상황: 환풍기 소리는 "철컥"으로만 쓴다', !/덜컹|덜컥/.test(all) && /철컥/.test(all));
+}
 // ── 화면 용어(docs/GLOSSARY.md "쓰지 않는 말"): 화면 문구에 시스템 용어가 다시 들어오지 않게(2026-10-26 CTO 리뷰).
 // 주석은 개발 용어를 허용하므로 건너뛰고, 한글이 든 문자열·템플릿 리터럴(${} 안 코드는 제외)과 index.html의 글자·읽기용 속성만 본다.
 // privacy.html은 법적 문서라 "닉네임·서버·플레이어 식별자"를 그대로 쓰므로 검사하지 않는다. GLOSSARY의 "쓰지 않는 말"을 고치면 여기도 함께 고친다

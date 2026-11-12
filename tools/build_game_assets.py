@@ -5,8 +5,8 @@
 게임 캔버스는 논리 180×340을 화면에 맞춘 정수배(휴대폰 기준 4~7배) 백버퍼로 그리므로, 각 에셋은
 그 화면에서 실제로 차지하는 크기의 1~2배만 남긴다.
 
-collection.png는 균등 격자가 아니라서 알파 영역(연결 요소)으로 조각을 찾는다.
-원본 배치가 바뀌면 SHEET_ORDER를 다시 확인해야 한다.
+구슬 부품·칩·벽돌·크레딧·앱 아이콘은 tools/draw_item_assets.py가 도트로 그린다(2026-11-12).
+AI 일러스트 원본(items/*.png·bricks.png·icon.png)을 넣으면 여기서 같은 이름으로 덮어쓰므로, 이 스크립트를 나중에 돌린다.
 
 실행: python3 tools/build_game_assets.py  (Pillow, numpy 필요)
 """
@@ -24,15 +24,8 @@ OUT = ROOT / 'assets' / 'game'
 # 올리면 큰 화면에서 선명해지지만 파일이 커진다(배경 하나가 배율 제곱으로 커짐)
 RES = 4
 
-# 원본 시트의 줄별 조각 순서(왼쪽→오른쪽). None은 쓰지 않는 조각
-SHEET_ORDER = [
-    ['orb_basic', 'orb_bomb', 'orb_drill', 'orb_guard', 'orb_split', 'orb_venom', 'orb_heavy'],
-    # 벽돌은 bricks.png(build_bricks)로 옮겼다. 조각 수 검사를 위해 자리만 남긴다
-    [None] * 6,
-    ['ui_panel', 'ui_frame', 'coin', 'spark', 'rubble', 'ui_bar'],
-]
-# 조각별 저장 크기(px). 구슬은 발사대 9px·HUD 48px 표시를 모두 감당하도록 넉넉히
-SHEET_SIZE = {'orb': (96, 96), 'brick': (22 * RES * 2, 12 * RES * 2), 'coin': (48, 48), 'spark': (64, 64), 'rubble': (64, 64)}
+# 벽돌 저장 크기(px): 게임 벽돌 22×12의 RES×2배
+SHEET_SIZE = {'brick': (22 * RES * 2, 12 * RES * 2)}
 CHARS = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel', 'gemini', 'omnis']
 CHAR_MAX = 256  # 몬스터 최대 표시 60px × RES 보다 약간 크게
 
@@ -64,63 +57,6 @@ def fit(img, size):
     return out
 
 
-def build_sheet():
-    sheet = Image.open(SRC / 'collection.png').convert('RGBA')
-    a = np.array(sheet)
-    # 조각 경계가 몇 px 차이로 붙어 있어 원본 해상도로 연결 요소를 찾는다(수 초 걸림)
-    k = 1
-    small = a[::k, ::k, 3] > 20
-    comps = [c for c in label(small) if c[1] > 500]
-    # 폭탄 심지 불꽃처럼 본체와 떨어진 작은 조각은 가장 가까운 큰 조각에 붙인다
-    big = [c for c in comps if c[1] > 5000]
-    tiny = [c for c in comps if c[1] <= 5000]
-    boxes = [list(c[0]) for c in big]
-    # 조각끼리 bbox가 겹치면(송곳 끝과 방패 구슬) 이웃 조각 픽셀이 섞이므로, 큰 조각 소유 지도를 만들어 지운다
-    owner = np.full(small.shape, -1)
-    for i, c in enumerate(big):
-        owner[c[2]] = i
-    for (bx, _, _) in tiny:
-        cx, cy = (bx[0] + bx[2]) / 2, (bx[1] + bx[3]) / 2
-        j = min(range(len(boxes)), key=lambda i: abs((boxes[i][0] + boxes[i][2]) / 2 - cx) + abs((boxes[i][1] + boxes[i][3]) / 2 - cy))
-        b = boxes[j]; boxes[j] = [min(b[0], bx[0]), min(b[1], bx[1]), max(b[2], bx[2]), max(b[3], bx[3])]
-    # 줄 → 왼쪽 순으로 정렬
-    boxes.sort(key=lambda b: b[1])
-    for i, b in enumerate(boxes):
-        b.append(i)
-    rows = []
-    for b in boxes:
-        if rows and abs(rows[-1][0][1] - b[1]) < 120:
-            rows[-1].append(b)
-        else:
-            rows.append([b])
-    assert [len(r) for r in rows] == [len(r) for r in SHEET_ORDER], f'시트 조각 배치가 예상과 다르다: {[len(r) for r in rows]}'
-    for names, row in zip(SHEET_ORDER, rows):
-        row.sort(key=lambda b: b[0])
-        for name, b in zip(names, row):
-            if not name:
-                continue
-            x0, y0, x1, y1 = (max(0, b[0] * k - k), max(0, b[1] * k - k), b[2] * k + k, b[3] * k + k)
-            crop = sheet.crop((x0, y0, x1, y1))
-            # 다른 큰 조각의 픽셀은 투명 처리한다
-            own = owner[y0:y1, x0:x1]
-            ca = np.array(crop); h_, w_ = own.shape
-            other = (own >= 0) & (own != b[4])
-            ca[:h_, :w_, 3][other] = 0
-            crop = Image.fromarray(ca)
-            bb = crop.getbbox(); crop = crop.crop(bb)
-            if name.startswith('ui_'):
-                # DOM 장식(border-image)용: 비율을 지켜 절반 크기로. 테두리 조각 폭을 CSS에서 원본 비율로 자른다
-                save(crop.resize((crop.width // 2, crop.height // 2), Image.LANCZOS), name)
-                continue
-            size = SHEET_SIZE[name.split('_')[0]]
-            if name.startswith('brick'):
-                # 원본 벽돌(약 3:2)을 게임 벽돌(22:12) 비율로 늘린다. 돌 질감이라 늘려도 어색하지 않다
-                img = crop.resize(size, Image.LANCZOS)
-            else:
-                img = fit(crop, size)
-            save(img, name)
-
-
 BRICK_GRID = [['brick_n', 'brick_stone', 'brick_atk'], ['brick_def', 'brick_heal', 'brick_poison']]
 
 
@@ -130,6 +66,9 @@ def build_bricks():
     collection.png 벽돌은 일반·특수 벽돌 질감이 비슷해 판에서 구분이 약했다. 배경색은 위·아래 가장자리
     중앙값으로 잡고, 칸마다 전경이 충분한 행·열 범위로 벽돌 경계를 찾는다(흩어진 잡음 픽셀 무시).
     """
+    # AI 원본이 없으면 tools/draw_item_assets.py가 그린 도트 벽돌을 그대로 둔다
+    if not (SRC / 'bricks.png').exists():
+        return
     im = np.asarray(Image.open(SRC / 'bricks.png').convert('RGB')).astype(int)
     h, w, _ = im.shape
     bg = np.median(np.concatenate([im[:8].reshape(-1, 3), im[-8:].reshape(-1, 3)]), axis=0)
@@ -193,6 +132,8 @@ ICON_SIZES = {'icon-1024': 1024, 'icon-512': 512, 'icon-192': 192, 'apple-touch-
 
 
 def build_icons():
+    if not (SRC / 'icon.png').exists():
+        return
     img = Image.open(SRC / 'icon.png').convert('RGB')
     assert img.width == img.height, f'icon.png는 정사각형이어야 한다: {img.size}'
     d = ROOT / 'icons'; d.mkdir(exist_ok=True)
@@ -210,7 +151,6 @@ def save(img, name):
 
 
 if __name__ == '__main__':
-    build_sheet()
     build_bricks()
     build_chars()
     build_bg()

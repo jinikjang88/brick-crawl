@@ -553,7 +553,7 @@ function showMap(note){
   const ms = $('mapStory'); ms.textContent = '';
   // 프롤로그를 본 뒤의 접속은 첫 지도에서 접속 시작 무전(대본 6.4)을, 그 밖에는 층 무전을 띄운다
   const fresh = startRadio && !RUN.abyss && RUN.s === 0 && !RUN.path.length;
-  const rad = fresh ? START_TALK[Math.floor(Math.random() * START_TALK.length)] : !RUN.abyss && STORY_RADIO[RUN.s];
+  const rad = fresh ? pickLine(startLines()) : !RUN.abyss && STORY_RADIO[RUN.s];
   if (rad){
     const line = document.createElement('small'); line.className = 'mapLine'; line.textContent = STORY_FLOOR[RUN.s] || '';
     ms.append(line, radioRow(rad));
@@ -722,8 +722,8 @@ function runOver(){
   // 익스트랙션: 송신하지 못한 적재함은 잃는다(장전한 구슬은 차고에 그대로)
   const lostN = cargoParts();
   if (RUN.cargo) RUN.cargo = { cores:{}, circs:{}, scrap:0 };
-  // 쓰러짐 무전(대본 6.3): 1층 = 윤, 2~4층 = 코테크, 5층 = OMNIS·클라드. 심층부는 무전 없이
-  const fall = RUN.abyss ? [] : FALL_TALK[RUN.s === 0 ? 0 : RUN.s >= 4 ? 2 : 1];
+  // 쓰러짐 무전(대본 6.3): 1층 = 윤, 2층 = 무전 없음, 3~4층 = 코테크, 5층 = OMNIS·클라드. 심층부는 무전 없이
+  const fall = RUN.abyss ? [] : FALL_TALK[fallTier(RUN.s)];
   showChoice({
     mode:'result', title:'신호가 끊겼다',
     say:fall,

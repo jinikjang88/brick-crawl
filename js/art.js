@@ -14,7 +14,7 @@ const ART_FILES = ['chasm', 'coin', 'spark', 'rubble', 'merchant', 'campfire', .
   ...['n', 'stone', 'atk', 'def', 'heal', 'poison'].map(k => 'brick_' + k)];
 // 미생성 에셋 폴백: 새 사이버펑크 에셋이 아직 없는 캐릭터는 대응하는 에셋으로 그린다
 const ART_FALLBACK = {
-  codex:'sentinel', claude:'guardian', zero:'omnis',
+  codex:'sentinel', zero:'omnis',
 };
 // 캐릭터 화면 상자(논리 px). 원본 크기가 제각각이라 발밑을 같은 바닥선에 맞추고 상자 안에 비율대로 넣는다.
 // 위로는 의도 아이콘(y 25~35), 아래로는 공·방 숫자(y 93)를 가리지 않는 높이로 정했다

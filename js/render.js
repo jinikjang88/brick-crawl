@@ -61,8 +61,10 @@ function draw(){
   }
   const g = G; if (!g) return;
   if (isAbyss()) drawAbyssFx(g.time);
-  const sx = g.shake > 0 ? Math.round((Math.random() - .5) * g.shake) : 0;
-  const sy = g.shake > 0 ? Math.round((Math.random() - .5) * g.shake) : 0;
+  // 화면 흔들림도 장식 움직임이라 동작 줄이기 설정에서는 끈다(피해는 숫자·깜빡임·소리로 이미 전한다)
+  const shk = g.shake > 0 && !(artCalm && artCalm.matches) ? g.shake : 0;
+  const sx = shk ? Math.round((Math.random() - .5) * shk) : 0;
+  const sy = shk ? Math.round((Math.random() - .5) * shk) : 0;
   ctx.setTransform(RES, 0, 0, RES, sx * RES, sy * RES);
 
   const p = g.p, m = g.m;
