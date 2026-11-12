@@ -25,20 +25,51 @@ ART_JS = ROOT / 'js' / 'art.js'
 
 GX, GY = CELL // 2, CELL - FOOT_ROOM  # (160, 314)
 
-C_INK = (27, 26, 24, 255)
-C_IVORY = (246, 238, 220, 255)
-C_WHITE = (255, 253, 248, 255)
-C_SILVER = (205, 189, 156, 255)
-C_BRASS = (160, 125, 69, 255)
+# 연출 색(2026-11-12): 옛 중세 팔레트(황동·따뜻한 먹색)를 화면과 같은 무채색 + 화(#C1443C)로 바꿨다.
+# 이름은 호출부가 많아 그대로 둔다: C_SILVER = 밝은 티타늄, C_BRASS = 티타늄(더는 황동이 아니다)
+C_INK = (11, 13, 16, 255)
+C_IVORY = (230, 226, 214, 255)
+C_WHITE = (244, 247, 248, 255)
+C_SILVER = (200, 208, 212, 255)
+C_BRASS = (150, 160, 166, 255)
 C_RED = (193, 68, 60, 255)
 C_RED_HI = (235, 110, 95, 255)
-C_SMOKE = (72, 68, 64, 190)
+C_SMOKE = (66, 74, 81, 190)
 
 
 def crop_tight(im):
     a = np.array(im)
     ys, xs = np.nonzero(a[..., 3] > 20)
     return im.crop((int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1))
+
+
+def drop_strays(cell, ratio=0.012):
+    """몸에서 떨어져 떠 있는 작은 조각을 지운다(연출을 그리기 전의 포즈 그림에만 쓴다).
+    파츠를 자르는 다각형 경계와 가려진 곳을 메우는 처리에서 삼각형 부스러기가 몸 밖에 남았다(가디언 발 옆, 센티넬 포드 옆).
+    클라드의 떠 있는 패널처럼 원래 떨어져 있는 큰 부품은 넓이 비율로 남긴다."""
+    a = np.array(cell)
+    mask = a[..., 3] > 20
+    total = int(mask.sum())
+    if not total:
+        return cell
+    h, w = mask.shape
+    seen = np.zeros_like(mask)
+    for y0, x0 in zip(*np.nonzero(mask)):
+        if seen[y0, x0]:
+            continue
+        stack = [(y0, x0)]; seen[y0, x0] = True
+        pts = []
+        while stack:
+            y, x = stack.pop(); pts.append((y, x))
+            for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1), (y + 1, x + 1), (y - 1, x - 1), (y + 1, x - 1), (y - 1, x + 1)):
+                if 0 <= ny < h and 0 <= nx < w and mask[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True; stack.append((ny, nx))
+        if len(pts) < total * ratio:
+            ys, xs = zip(*pts)
+            a[ys, xs] = 0
+    # 반투명 가장자리 찌꺼기도 함께 지운다
+    a[(a[..., 3] <= 20)] = 0
+    return Image.fromarray(a, 'RGBA')
 
 
 def draw_pixel_burst(draw, cx, cy, radii, color, outline=C_INK, n_rays=8, angle_offset=0.0):
@@ -74,7 +105,12 @@ def draw_hex_shield(draw, cx, cy, r, color=C_IVORY, border=C_BRASS, fill_alpha=6
     for k in range(6):
         a = math.pi / 6 + k * math.pi / 3
         pts.append((round(cx + math.cos(a) * r), round(cy + math.sin(a) * r * 1.15)))
-    draw.polygon(pts, fill=(*color[:3], fill_alpha), outline=C_INK)
+    # ImageDraw는 RGBA 그림 위에서 섞지 않고 덮어쓴다: 반투명 면을 바로 칠하면 캐릭터가 지워지고 탁한 판이 남는다.
+    # 따로 그린 면을 알파 합성으로 얹어 방벽 너머로 몸이 비쳐 보이게 한다
+    base = draw._image
+    layer = Image.new('RGBA', base.size, (0, 0, 0, 0))
+    ImageDraw.Draw(layer).polygon(pts, fill=(*color[:3], fill_alpha))
+    base.alpha_composite(layer)
     draw.line(pts + [pts[0]], fill=C_INK, width=4)
     draw.line(pts + [pts[0]], fill=border, width=2)
 
@@ -608,7 +644,7 @@ class SkinnedEnemy:
                 arr[red_mask, 2] *= (1 - desat * 0.5)
             cell = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), 'RGBA')
 
-        return cell
+        return drop_strays(cell)
 
 
 def build_rick():
@@ -1038,25 +1074,26 @@ def build_sentinel():
         ({}, 1.0, 0.0, None),
     ]
 
-    build_legacy('sentinel')
-    base_3 = Image.open(GAME_DIR / 'sentinel_actions.png').convert('RGBA')
-    death_cells = [base_3.crop((c * CELL, 2 * CELL, (c + 1) * CELL, 3 * CELL)) for c in range(6)]
-
-    atlas = Image.new('RGBA', (CELL * 6, CELL * 4), (0, 0, 0, 0))
-    for r_idx, row_specs in [(0, atk), (1, hit), (3, skill)]:
-        for c, (pose, br, desat, fx_fn) in enumerate(row_specs):
-            cell = rig.render_pose(pose, brightness=br, desat=desat)
-            if fx_fn:
-                cell = fx_fn(cell, rig)
-            atlas.alpha_composite(cell, (c * CELL, r_idx * CELL))
-    for c, dc in enumerate(death_cells):
-        atlas.alpha_composite(dc, (c * CELL, 2 * CELL))
-
-    target = GAME_DIR / 'sentinel_actions.png'
-    atlas.save(target, optimize=True)
-    meta = {'iw': rig.iw, 'ih': rig.ih}
-    print(target.relative_to(ROOT), target.stat().st_size, meta)
-    return meta
+    # 2행: 사망 — 네 다리가 벌어지며 주저앉고, 포드와 방열판이 앞으로 떨어진다.
+    # 예전에는 이 줄만 옛 AI 시트(actions/sentinel.png)에서 잘라 왔는데, 포드 모양이 다른 그림이라 쓰러지는 순간
+    # 다른 기체로 바뀌어 보였고 불꽃도 주황색이었다. 다른 줄과 같은 그림(리그)으로 만든다
+    death = [
+        ({'pelvis': {'dx': 14, 'dy': 30, 'rot': 6}, 'torso': {'rot': 14}, 'fins': {'rot': 18}, 'pod_l': {'rot': 20}, 'pod_r': {'rot': 24}}, 1.15, 0.10,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX, GY - 125, (12, 42), C_RED_HI, C_INK, 8), c)[1]),
+        ({'pelvis': {'dy': 70, 'rot': -6}, 'shin_l': {'foot_dx': -24}, 'shin_r': {'foot_dx': 24},
+          'torso': {'rot': -10}, 'fins': {'rot': -8}, 'pod_l': {'rot': -18}, 'pod_r': {'rot': -22}}, 0.92, 0.28,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX, GY - 95, 42, 6, C_SMOKE, C_SILVER), c)[1]),
+        ({'pelvis': {'dy': 108, 'rot': -12}, 'shin_l': {'foot_dx': -46}, 'shin_r': {'foot_dx': 46},
+          'torso': {'rot': -16}, 'fins': {'rot': -14}, 'pod_l': {'rot': -30}, 'pod_r': {'rot': -34}}, 0.82, 0.48,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX, GY - 50, 58, 7, C_SMOKE, C_BRASS), c)[1]),
+        ({'pelvis': {'dy': 138, 'rot': -16}, 'shin_l': {'foot_dx': -64}, 'shin_r': {'foot_dx': 64},
+          'torso': {'rot': -20}, 'fins': {'rot': -18}, 'pod_l': {'rot': -38}, 'pod_r': {'rot': -42}}, 0.72, 0.68, None),
+        ({'pelvis': {'dy': 154, 'rot': -19}, 'shin_l': {'foot_dx': -74}, 'shin_r': {'foot_dx': 74},
+          'torso': {'rot': -23}, 'fins': {'rot': -21}, 'pod_l': {'rot': -44}, 'pod_r': {'rot': -48}}, 0.64, 0.84, None),
+        ({'pelvis': {'dy': 162, 'rot': -20}, 'shin_l': {'foot_dx': -78}, 'shin_r': {'foot_dx': 78},
+          'torso': {'rot': -24}, 'fins': {'rot': -22}, 'pod_l': {'rot': -46}, 'pod_r': {'rot': -50}}, 0.58, 0.92, None),
+    ]
+    return assemble_sheet('sentinel', rig, atk, hit, death, skill)
 
 
 def build_drone():
