@@ -125,20 +125,40 @@ const FONT = {
   '5':'111100111001111','6':'111100111101111','7':'111001010010010','8':'111101111101111','9':'111101111001111',
   '+':'000010111010000','-':'000000111000000','/':'001001010100100','x':'000101010101000'
 };
+// 같은 행에서 맞닿은 도트는 한 사각형으로 묶어 전투 중 Canvas 호출을 줄인다.
+function dotRuns(rows, ink){
+  const runs = [];
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length;){
+      if (row[x] !== ink){ x++; continue; }
+      const start = x++;
+      while (row[x] === ink) x++;
+      runs.push([start, y, x - start]);
+    }
+  });
+  return runs;
+}
+const FONT_RUNS = Object.fromEntries(Object.entries(FONT).map(([ch, dots]) => [ch, dotRuns(dots.match(/.{3}/g), '1')]));
+const ICON_RUNS = Object.fromEntries(Object.entries(ICON).map(([name, rows]) => [name, dotRuns(rows, '#')]));
+
+function drawDotRuns(runs, x, y, sc){
+  for (const [dx, dy, w] of runs) ctx.fillRect(x + dx * sc, y + dy * sc, w * sc, sc);
+}
 function drawText(s, x, y, col, sc = 1, align = 'left'){
   const w = (s.length * 4 - 1) * sc;
   let x0 = align === 'center' ? x - w / 2 : x;
   x0 = Math.round(x0); y = Math.round(y);
   ctx.fillStyle = col;
   for (let i = 0; i < s.length; i++){
-    const f = FONT[s[i]]; if (!f) continue;
-    for (let p = 0; p < 15; p++) if (f[p] === '1') ctx.fillRect(x0 + (i * 4 + p % 3) * sc, y + (p / 3 | 0) * sc, sc, sc);
+    const runs = FONT_RUNS[s[i]];
+    if (runs) drawDotRuns(runs, x0 + i * 4 * sc, y, sc);
   }
   return w;
 }
 function drawIcon(name, x, y, col, sc = 1){
-  const m = ICON[name]; if (!m) return; ctx.fillStyle = col; x = Math.round(x); y = Math.round(y);
-  for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) if (m[r][c] === '#') ctx.fillRect(x + c * sc, y + r * sc, sc, sc);
+  const runs = ICON_RUNS[name]; if (!runs) return;
+  ctx.fillStyle = col;
+  drawDotRuns(runs, Math.round(x), Math.round(y), sc);
 }
 function drawSprite(map, x, y, sc, main, alt, eye){
   x = Math.round(x); y = Math.round(y);

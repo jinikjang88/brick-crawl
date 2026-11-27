@@ -98,7 +98,9 @@ function frame(now){
       while (stepAcc >= STEP && G && mode === 'play' && !(G.stop > 0)){ update(STEP); stepAcc -= STEP; }
     }
   } else stepAcc = 0;
-  draw(); drawScene(dt);
+  // 가려진 전투판과 장면은 다시 보일 때 그린다. 일시정지 중에는 두 캔버스가 모두 메뉴 뒤에 있다.
+  if (mode === 'play') draw();
+  else if (mode !== 'pause') drawScene(dt);
   // 전투 중에는 코인 그림(::before)이 "코인"을 대신해 글자를 줄인다(한 줄 헤더에서 몬스터 이름 자리를 지키려고). 읽기 프로그램용 이름은 따로 단다
   if (G && mode === 'play'){ const h = $('hCoin'), t = `${RUN.coins} · ${G.turn}턴`;
     if (h.textContent !== t){ h.textContent = t; h.setAttribute('aria-label', `크레딧 ${RUN.coins}, ${G.turn}턴`); } }
