@@ -11,7 +11,7 @@ const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode
   // 이야기 대화창(showTalk)도 같은 모양({ mode:'story', title, buttons })으로 받아 검사를 하나로 쓴다
   + 'catchChoice:()=>{ const got = [], orig = showChoice, ot = showTalk; showChoice = o => { got.push(o); orig(o); };'
   + ' showTalk = o => { got.push({ mode:\'story\', title:o.title, lines:o.lines, buttons:[{ onClick:o.onDone }] }); ot(o); }; return got; },'
-  + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName,MON,STORY,STORY_RADIO,BOSS_TALK,REST_TALK,SHOP_TALK,FALL_TALK,START_TALK,startLines,fallTier,frame,fire,HIT_STOP};';
+  + 'update,victory,bossDropsNow,sealedAt,NICK_A,NICK_B,NICK_C,BAD_NAME,badName,validName,MON,STORY,STORY_RADIO,BOSS_TALK,REST_TALK,SHOP_TALK,FALL_TALK,START_TALK,startLines,fallTier,frame,fire,HIT_STOP,TREE};';
 // 프롤로그(첫 원정의 이야기)는 따로 검사한다. 다른 검사는 새 원정 → 바로 지도를 기대하므로 본 것으로 둔다
 let FRESH_STORY = false;
 const code = '(() => {' + srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n' + EXPOSE + '})();';
@@ -53,7 +53,7 @@ const click = id => els[id].onclick({ currentTarget:els[id] });
 let fail = 0;
 const ok = (name, c) => { console.log((c ? '통과' : '실패') + ' ' + name); if (!c) fail++; };
 
-// ── R01: 불굴(d4)만 피해를 줄이고, 재생(d3)은 승리 회복만 준다. 방어도 0, 체력 24, 피해 8
+// ── R01: 충격 흡수(d6)만 피해를 줄이고, 응급 처치(d4)는 승리 회복만 준다. 방어도 0, 체력 24, 피해 8
 // 전투 검사는 지도와 무관하게 슬라임 전투 하나를 직접 연다
 const BATTLE = { r:0, l:0, t:'battle', mon:'slime' };
 let T = boot(), M = T.META();
@@ -61,19 +61,19 @@ click('mNew'); T.newBattle(BATTLE);
 if (!T.G) throw new Error('전투 시작 실패');
 function hit(tr, v = 8){ M.tree = Object.fromEntries(tr.map(k => [k, 1])); T.G.p.def = 0; T.G.p.hp = 24; T.hurtPlayer(v); return 24 - T.G.p.hp; }
 ok('R01 트리 없음 피해 8', hit([]) === 8);
-ok('R01 재생(d3)만 피해 8', hit(['d1', 'd2', 'd3']) === 8);
-ok('R01 불굴(d4) 피해 8→6', hit(['d1', 'd2', 'd3', 'd4']) === 6);
-ok('R01 불굴 올림: 피해 3→3', hit(['d1', 'd2', 'd3', 'd4'], 3) === 3);
-M.tree = { d1:1, d2:1, d3:1, d4:1 }; T.G.p.def = 2; T.G.p.hp = 24; T.hurtPlayer(8);
-ok('R01 불굴 감소 후 방어도 흡수(8→6, 방어 2 → 체력 -4)', 24 - T.G.p.hp === 4);
-M.tree = { d1:1, d2:1, d3:1 }; T.RUN.maxHp = 40; T.RUN.relics.medkit = 0; T.G.p.hp = 20; T.battleEnd(true);
-ok('R01 재생: 승리 회복 +2', T.RUN.hp === 22);
+ok('R01 응급 처치(d4)만 피해 8', hit(['d1', 'd2', 'd3', 'd4']) === 8);
+ok('R01 충격 흡수(d6) 피해 10→8', hit(['d4', 'd5', 'd6'], 10) === 8);
+ok('R01 충격 흡수 올림: 피해 8→7', hit(['d4', 'd5', 'd6']) === 7);
+M.tree = { d6:1 }; T.G.p.def = 2; T.G.p.hp = 24; T.hurtPlayer(10);
+ok('R01 충격 흡수 감소 후 방어도 흡수(10→8, 방어 2 → 체력 -6)', 24 - T.G.p.hp === 6);
+M.tree = { d1:1, d2:1, d3:1, d4:1 }; T.RUN.maxHp = 40; T.RUN.relics.medkit = 0; T.G.p.hp = 20; T.battleEnd(true);
+ok('R01 응급 처치: 승리 회복 +1', T.RUN.hp === 21);
 M.tree = {}; T.newBattle(BATTLE);
 
 // ── R04: 다음 하강으로 붕괴선을 넘는 벽돌을 놓고 몬스터 턴의 하강 단계만 실행한다
 function descend(rows, crusher, o = {}){
-  const G = T.G; T.RUN.relics.crusher = crusher ? 1 : 0; T.RUN.relics.callus = o.callus ? 1 : 0; T.RUN.relics.brace = o.brace ? 1 : 0; G.callus = false;
-  M.tree = o.d4 ? { d1:1, d2:1, d3:1, d4:1 } : {};
+  const G = T.G; T.RUN.relics.crusher = crusher ? 1 : 0; T.RUN.relics.callus = o.callus ? 1 : 0; T.RUN.relics.brace = o.brace ? 1 : 0; G.callus = 0;
+  M.tree = o.d6 ? { d6:1 } : {};
   G.p.hp = 24; G.p.def = 0; G.m.dead = false; G.m.boss = false;
   G.bricks = rows.map(([r, c]) => ({ r, c, y:0, hp:1, type:'n', dead:false }));
   G.turn = T.WALL.every; G.cur = { t:'wait' }; G.eStep = 2; G.timer = 1;
@@ -82,11 +82,11 @@ function descend(rows, crusher, o = {}){
 ok('R04 파쇄기 없음: 벽돌 1개 붕괴 피해 2', descend([[10, 3]], false) === 2);
 ok('R04 파쇄기: 파쇄한 벽돌은 붕괴 피해 없음', descend([[10, 3]], true) === 0);
 ok('R04 파쇄기: 2개 중 1개만 제외 → 피해 2', descend([[10, 3], [10, 4]], true) === 2);
-ok('R04+불굴: 붕괴 2개(피해 4) → 3', descend([[10, 3], [10, 4]], false, { d4:1 }) === 3);
-ok('R04+불굴: 파쇄 후 남은 1개(피해 2) → 2', descend([[10, 3], [10, 4]], true, { d4:1 }) === 2);
-ok('R04+지지대+불굴: 파쇄 후 남은 2개(피해 2) → 2', descend([[10, 3], [10, 4], [10, 5]], true, { brace:1, d4:1 }) === 2);
-ok('R04+굳은살: 파쇄로 붕괴가 없으면 굳은살을 아낀다', descend([[10, 3]], true, { callus:1 }) === 0 && T.G.callus === false);
-ok('R04+굳은살: 남은 벽돌 붕괴는 굳은살이 막는다', descend([[10, 3], [10, 4]], true, { callus:1 }) === 0 && T.G.callus === true);
+ok('R04+충격 흡수: 붕괴 3개(피해 6) → 5', descend([[10, 3], [10, 4], [10, 5]], false, { d6:1 }) === 5);
+ok('R04+충격 흡수: 파쇄 후 남은 1개(피해 2) → 2', descend([[10, 3], [10, 4]], true, { d6:1 }) === 2);
+ok('R04+완충기+충격 흡수: 파쇄 후 남은 2개(피해 2) → 2', descend([[10, 3], [10, 4], [10, 5]], true, { brace:1, d6:1 }) === 2);
+ok('R04+장갑 안감: 파쇄로 붕괴가 없으면 장갑 안감을 아낀다', descend([[10, 3]], true, { callus:1 }) === 0 && T.G.callus === 0);
+ok('R04+장갑 안감: 남은 벽돌 붕괴는 장갑 안감이 막는다', descend([[10, 3], [10, 4]], true, { callus:1 }) === 0 && T.G.callus === 1);
 M.tree = {};
 
 // ── R02: 깨진 저장으로도 메인이 뜨고, 이어하기·새 원정이 막히지 않는다
@@ -139,7 +139,7 @@ for (const [name, data] of Object.entries(cases)){
   ok('R02 메타 보정: 최고 기록·배지 유지, 깨진 칸 기본값', t.mode === 'main' && m.best === 7 && m.pts === 0 && m.runs === 0
     && m.badges.oneshot === 1 && typeof m.seen.orb === 'object'); }
 { // best 하나만 깨져도 나머지 메타를 지킨다(다음 저장 때 덮어쓰지 않게)
-  const store = { [META_KEY]:JSON.stringify({ best:'x', pts:9, tree:{ a1:1 }, badges:{ rich:1 }, seen:{ orb:{ bomb:1 }, relic:{} } }) };
+  const store = { [META_KEY]:JSON.stringify({ best:'x', pts:9, tree:{ a1:1 }, treeV:2, badges:{ rich:1 }, seen:{ orb:{ bomb:1 }, relic:{} } }) };
   const t = boot(store); click('mNew'); const m = JSON.parse(store[META_KEY]);
   ok('R02 메타 best 손상: 포인트·트리·배지 유지', t.META().best === 0 && m.pts === 9 && m.tree.a1 === 1 && m.badges.rich === 1); }
 { let err = null, t; try { t = boot({}, true); click('mNew'); } catch(e){ err = e; }
@@ -259,8 +259,16 @@ function seeded(mathSeed, seed = 777){
 { // 메타 v4 → v5: 진행도는 옮기고 차고를 붙인다. v4 키는 저장할 때 지운다
   const store = { 'brickquest:meta:v4':JSON.stringify({ best:12, pts:7, tree:{ a1:1 }, badges:{ rich:1 } }) };
   const t = boot(store); click('mNew');
-  ok('작업 08 메타 이전: 기록·모듈·트로피 유지, 차고 기본값, v4 키 삭제', t.META().best === 12 && t.META().tree.a1 === 1 && t.META().badges.rich === 1
+  ok('작업 08 메타 이전: 기록·트로피 유지, 옛 모듈은 설계도로 환불(7+2), 차고 기본값, v4 키 삭제', t.META().best === 12 && !t.META().tree.a1 && t.META().pts === 9 && t.META().badges.rich === 1
     && t.META().g.orbs.join() === 'basic' && !('brickquest:meta:v4' in store) && META_KEY in store);
+}
+{ // 트리 개정(2026-11-27): 옛 트리 노드 값(2·3·3·8·3·8)을 한 번 돌려주고 비운다. 개정 뒤 저장은 그대로 둔다
+  const store = { [META_KEY]:JSON.stringify({ best:5, pts:1, tree:{ a1:1, a2:1, a4:1, d1:1, nope:1 } }) };
+  const t = boot(store), m = t.META();
+  ok('트리 개정 환불: 1 + 2 + 3 + 8 + 2 = 16, 트리 비움', m.pts === 16 && !Object.keys(m.tree).length && m.treeV === 2);
+  const t2 = boot({ [META_KEY]:JSON.stringify({ pts:1, tree:{ a1:1 }, treeV:2 }) });
+  ok('트리 개정 환불: 개정 뒤 저장은 손대지 않음', t2.META().pts === 1 && t2.META().tree.a1 === 1);
+  ok('트리 총비용 168', t.TREE.reduce((a, n) => a + n.cost, 0) === 168);
 }
 { // 작업 08 2단계: 층별 등장 구성. 3층 지도의 일반 기체는 3층 또는 앞 층(2층) 기체, 정예는 3층 정예만
   const t = boot(); click('mNew');

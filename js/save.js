@@ -16,7 +16,7 @@ for (const k of OLD_KEYS) try { localStorage.removeItem(k); } catch(e){}
 // 처음 시작하는 릭은 번개 구슬 하나뿐이다(소유자 결정: 나머지는 파밍해 조립한다)
 // oxp = 구슬마다 천장 타격 수(구슬 레벨, orbs와 같은 순서). circs 키 뒤의 '+'는 Ⅱ 회로(합성)
 const GARAGE_BASE = () => ({ orbs:['basic'], load:[0], cores:{}, circs:{}, scrap:0, oxp:[0] });
-const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{}, seen:{ orb:{}, relic:{} }, asc:0, ascPick:0, ascClear:{}, story:{}, g:GARAGE_BASE(), lv:1, xp:0, res:{} });
+const META_BASE = () => ({ best:0, abyssBest:0, runs:0, clears:0, pts:0, tree:{}, badges:{}, seen:{ orb:{}, relic:{} }, asc:0, ascPick:0, ascClear:{}, story:{}, g:GARAGE_BASE(), lv:1, xp:0, res:{}, treeV:TREE_V });
 // lv·xp = 릭 레벨·경험치, res = 찾은 공명(작업 08 3단계). 필드만 늘어 v5 그대로 읽힌다(없으면 기본값)
 // p칸까지 처음 돌파하며 받는 포인트 합계(본편·심연 모두 5칸째가 보스)
 const ptsUpTo = p => { let t = 0; for (let i = 1; i <= p; i++) t += i % 5 === 0 ? PTS.boss : PTS.cell; return t; };
@@ -27,13 +27,21 @@ let META = META_BASE();
     let m = JSON.parse(localStorage.getItem(META_KEY));
     if (!m) m = JSON.parse(localStorage.getItem(META_OLD));
     // best 하나가 깨졌다고 통째로 버리면 다음 saveMeta()가 정상 포인트·트리·배지까지 덮어쓴다. 칸별 보정은 아래에서
-    if (m && typeof m === 'object' && !Array.isArray(m)){ META = META_BASE(); for (const k of Object.keys(META)) if (hasKey(m, k)) META[k] = m[k]; return; }
+    if (m && typeof m === 'object' && !Array.isArray(m)){ META = META_BASE(); for (const k of Object.keys(META)) if (hasKey(m, k)) META[k] = m[k];
+      if (!hasKey(m, 'treeV')) META.treeV = 1;   // 트리 개정 전 계정(아래에서 환불)
+      return; }
   } catch(e){}
 })();
 // 메타는 원정보다 소중하다(포인트·배지·도감): 버리지 않고 깨진 칸만 기본값으로 메운다
 for (const k of ['best', 'abyssBest', 'runs', 'clears', 'pts', 'asc', 'ascPick'])
   if (typeof META[k] !== 'number' || !isFinite(META[k]) || META[k] < 0) META[k] = 0;
 if (!META.tree || typeof META.tree !== 'object') META.tree = {};
+// 트리 개정(TREE_V, 2026-11-27): 옛 트리에서 찍은 노드 값을 설계도로 돌려주고 비운다.
+// 같은 id라도 효과·앞 노드가 바뀌어 그대로 두면 앞 노드 없이 뒤 노드만 찍힌 계정이 생긴다
+if (META.treeV !== TREE_V){
+  for (const id in META.tree) if (/^[adoe][1-6]$/.test(id) && META.tree[id]) META.pts += TREE_OLD_COST[id[1]];
+  META.tree = {}; META.treeV = TREE_V;
+}
 if (!META.badges || typeof META.badges !== 'object') META.badges = {};
 if (!META.seen || typeof META.seen !== 'object') META.seen = {};
 for (const k of ['ascClear', 'story', 'res']) if (!META[k] || typeof META[k] !== 'object') META[k] = {};

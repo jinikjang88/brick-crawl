@@ -309,91 +309,106 @@ const cargoMax = () => CARGO_MAX + (rel('charm') ? 3 : 0);
 // 원정 안의 보상에는 곱연산을 두지 않는다(곱은 스킬 트리 핵심 노드만): 효과는 덧셈이거나 규칙을 바꾸는 것
 const RELICS = {
   // 일반
-  whetstone:{ t:1, name:'오버클럭',   max:1, desc:'전투를 시작할 때 ⚔ +1' },
-  buckler:  { t:1, name:'보호 필름',  max:1, desc:'첫 기체 턴 직전에 방어도 +3' },
-  wallet:   { t:1, name:'대용량 지갑', max:1, desc:'전투에서 이길 때마다 크레딧 +3' },
-  bandage:  { t:1, name:'절연 테이프',     max:1, desc:'충전 회복 +3' },
+  whetstone:{ t:2, name:'오버클럭',   max:1, desc:'전투를 시작할 때 ⚔ +1' },
+  buckler:  { t:1, name:'보호 필름',  max:1, desc:'첫 기체 턴 직전에 방어도 +2' },
+  wallet:   { t:1, name:'대용량 지갑', max:1, desc:'전투에서 이길 때마다 크레딧 +2' },
+  bandage:  { t:1, name:'절연 테이프',     max:1, desc:'충전 회복 +2' },
   luckycoin:{ t:1, name:'할인 토큰',  max:1, desc:'브로커 가격 -10%' },
   callus:   { t:1, name:'장갑 안감',  max:1, desc:'전투마다 첫 오버플로 피해를 받지 않는다' },
   mason:    { t:1, name:'신호 비컨',  max:1, desc:'⚔·🛡 같은 특수 벽돌이 더 자주 나온다' },
-  lantern:  { t:1, name:'진단 램프', max:1, desc:'정예를 이기면 크레딧 +10' },
-  medkit:   { t:1, name:'복구 키트',   max:2, desc:'전투에서 이길 때마다 체력 +2' },
-  focus:    { t:1, name:'조준경', max:2, desc:'조준선이 15% 느려진다' },
+  lantern:  { t:1, name:'진단 램프', max:1, desc:'정예를 이기면 크레딧 +6' },
+  medkit:   { t:1, name:'복구 키트',   max:2, desc:'전투에서 이길 때마다 체력 +1' },
+  focus:    { t:1, name:'조준경', max:2, desc:'조준선이 10% 느려진다' },
   // 고급
-  combo:    { t:2, name:'계수기', max:2, desc:'구슬 하나가 천장을 칠 수 있는 횟수 +1 (기본 3회)' },
-  harvest:  { t:2, name:'코어 추출기',     max:2, desc:'⚔·🛡 벽돌 효과 +1' },
+  combo:    { t:2, name:'계수기', max:1, desc:'구슬 하나가 천장을 칠 수 있는 횟수 +1 (기본 3회)' },
+  harvest:  { t:2, name:'코어 추출기',     max:1, desc:'⚔·🛡 벽돌 효과 +1' },
   // 후반 몬스터의 연속 공격에 버틸 수단: 막는(갑옷·인내) 쪽과 버는(흡혈) 쪽을 둘 다 둔다
-  armor:    { t:2, name:'방탄판', max:2, desc:'전투를 시작할 때 방어도 +3' },
+  armor:    { t:2, name:'방탄판', max:1, desc:'전투를 시작할 때 방어도 +2' },
   brace:    { t:2, name:'완충기',  max:1, desc:'오버플로 피해가 벽돌 1개당 2에서 1로' },
   antidote: { t:2, name:'해독 주사',       max:1, desc:'독 피해를 받을 때마다 독이 2씩 줄어든다' },
-  rebound:  { t:2, name:'반발 패드',   max:1, desc:'구슬이 바닥에 닿을 때 25% 확률로 한 번 다시 튀어 오른다' },
+  rebound:  { t:2, name:'반발 패드',   max:1, desc:'구슬이 바닥에 닿을 때 15% 확률로 한 번 다시 튀어 오른다' },
   sting:    { t:2, name:'오염 주입기',  max:1, desc:'기체에게 독을 걸 때마다 +1' },
   thorns:   { t:2, name:'역전류 하네스',     max:1, desc:'기체에게 맞을 때마다 기체에게 피해 1' },
-  breath:   { t:2, name:'방열판',     max:1, desc:'기체가 쉬는 턴에 체력 +2' },
+  breath:   { t:2, name:'방열판',     max:1, desc:'기체가 쉬는 턴에 체력 +1' },
   scout:    { t:2, name:'스캐너',     max:1, desc:'지도에서 전투 구역의 기체가 보인다' },
   // 희귀
-  counter:  { t:3, name:'반사 릴레이', max:1, desc:'기체 공격을 방어도로 막은 양의 절반(올림)을 되돌려준다' },
+  counter:  { t:3, name:'반사 릴레이', max:1, desc:'기체 공격을 방어도로 막은 양의 1/3(올림)을 되돌려준다' },
   leech:    { t:3, name:'전력 흡수',  max:1, desc:'구슬 하나가 천장을 세 번째 칠 때 체력 +1' },
-  endure:   { t:3, name:'무정전 전원', max:1, desc:'기체 연속 공격의 첫 타를 막는다' },
-  wrath:    { t:3, name:'과부하',     max:1, desc:'체력이 30% 이하일 때 천장 타격 피해 +2' },
+  endure:   { t:3, name:'무정전 전원', max:1, desc:'체력이 절반 이하일 때 기체 연속 공격의 첫 타를 막는다' },
+  wrath:    { t:3, name:'과부하',     max:1, desc:'체력이 30% 이하일 때 천장 타격 피해 +1' },
   heart:    { t:3, name:'백업 전원',  max:1, desc:'전투마다 한 번, 쓰러질 피해를 받아도 체력 1로 버틴다' },
   alchemy:  { t:3, name:'분진 응축기',   max:1, desc:'이기면 기체에게 남아 있던 독만큼 크레딧' },
-  twin:     { t:3, name:'이중 어댑터',       max:1, desc:'3턴마다 같은 구슬을 한 번 더 쏜다' },
   smith:    { t:3, name:'납땜 인두', max:1, desc:'구슬의 과열이 2턴 이상이면 과열 -1' },
   charm:    { t:3, name:'잠금 카트리지',     max:1, desc:'적재함 +3칸' },
   pouch:    { t:3, name:'회전 탄창',  max:1, desc:'장갑 슬롯 +1칸' },
   // 전설
-  kingsword:{ t:4, name:'마스터 키',    max:1, desc:'⚔ 벽돌 효과 +2' },
-  hourglass:{ t:4, name:'원자 시계',     max:1, desc:'기체의 모든 연속 공격 -1 (최소 1)' },
-  ring:     { t:4, name:'재점화 링', max:1, desc:'침투마다 한 번, 쓰러지면 체력 50%로 일어난다' },
-  crusher:  { t:4, name:'유압 분쇄기',  max:1, desc:'기체 턴마다 가장 아래 벽돌 하나를 부순다' },
+  kingsword:{ t:4, name:'마스터 키',    max:1, desc:'⚔ 벽돌 효과 +1' },
+  hourglass:{ t:4, name:'원자 시계',     max:1, desc:'기체의 3연타 이상 연속 공격 -1' },
+  ring:     { t:4, name:'재점화 링', max:1, desc:'침투마다 한 번, 쓰러지면 체력 35%로 일어난다' },
+  crusher:  { t:4, name:'유압 분쇄기',  max:1, desc:'기체 턴 2번마다 가장 아래 벽돌 하나를 부순다' },
   plague:   { t:4, name:'웜',         max:1, desc:'기체 독이 방어도도 깎고, 줄어들지 않는다' },
   giant:    { t:4, name:'파워 프레임', max:1, desc:'분광 코어가 피해를 나누지 않는다' },
-  warp:     { t:4, name:'정지장 시계',  max:1, desc:'매 턴 조준선이 처음 0.5초 동안 멈춰 있다' },
+  warp:     { t:4, name:'정지장 시계',  max:1, desc:'매 턴 조준선이 처음 0.3초 동안 멈춰 있다' },
   greed:    { t:4, name:'과열 채굴기',  max:1, desc:'전투에서 이길 때마다 크레딧 +12, 브로커 가격 +15' },
   pact:     { t:4, name:'신경 우회 케이블', max:1, desc:'얻는 즉시 최대 체력 -8, 천장 타격 피해 +1' },
-  collector:{ t:4, name:'기록 수집 드론',     max:1, desc:'아카이브에 모은 코어·회로 5종마다 전투 시작 ⚔ +1' },
+  collector:{ t:4, name:'기록 수집 드론',     max:1, desc:'아카이브에 모은 코어·회로 8종마다 전투 시작 ⚔ +1' },
 };
 // ── 스킬 트리(영구 성장): 칸을 처음 돌파할 때 포인트를 얻어 노드를 찍는다(POE2식 갈래).
-// 포인트: 칸 최초 돌파 +1, 세션 보스 최초 돌파 +3 → 본편 전부 35점. 트리 전체는 108점이라 본편만으로는 1/3 정도만 찍힌다.
+// 포인트: 칸 최초 돌파 +1, 세션 보스 최초 돌파 +3(본편 35점) + 릭 레벨 업 +1(최대 29). 트리 전체는 168점이라 본편으로는 일부만 찍힌다.
 // 남은 노드는 심연을 내려가며(심연 칸도 최초 돌파마다 같은 규칙) 채운다.
-// 갈래마다 줄기 2개 → 두 가지(prong)로 갈라지고, 가지 끝 핵심 노드(key)만 곱연산이다:
-// 원정 안의 성장은 여전히 덧셈·질적 성장이고, 곱연산은 심연(엔드게임)에서 버티라고 영구 성장에만 둔다
+// 2026-11-27 개정(소유자 결정): 갈래마다 줄기 3개 → 두 가지(prong) 3개씩. 한 칸 효과를 줄이고 칸 수를 늘렸다.
+// 기본 공격력 +1(코일 증폭)은 피해가 두 배가 되는 효과라 첫 칸에서 가지 깊은 곳으로 옮겼다.
+// 가지 끝 핵심 노드(key)만 곱연산이다: 원정 안의 성장은 여전히 덧셈·질적 성장이고, 곱연산은 심연(엔드게임)에서 버티라고 영구 성장에만 둔다
+// 좌표는 9칸 격자(5.6 + 11.1 × i). 위 = 공격, 아래 = 방어, 왼쪽 = 구슬, 오른쪽 = 자원
 const PTS = { cell:1, boss:3 };
 const TREE = [
   { id:'root', name:'영점 조정', cost:0, req:null, x:50, y:50, desc:'모든 갈래의 출발점' },
   // 공격(위)
-  { id:'a1', name:'코일 증폭',     cost:2, req:'root', x:50, y:35.7, desc:'릭의 기본 공격력 +1 (모든 천장 타격 피해 +1)' },
-  { id:'a2', name:'연속 방전', cost:3, req:'a1',   x:50, y:21.3, desc:'구슬마다 천장 타격 상한 +1' },
-  { id:'a3', name:'과충전',     cost:3, req:'a2',   x:35.7, y:7,  desc:'⚔ 벽돌의 공격력 +1 추가' },
-  { id:'a4', name:'약점 스캔',  cost:8, req:'a3',   x:21.3, y:7,  key:true, desc:'체력이 절반 이하인 기체에게 천장 타격 피해 ×1.5' },
-  { id:'a5', name:'공명 증폭', cost:3, req:'a2',   x:64.3, y:7,  desc:'같은 구슬의 세 번째 천장 타격부터 피해 +1' },
-  { id:'a6', name:'네 번째 파형',  cost:8, req:'a5',   x:78.7, y:7,  key:true, desc:'모든 천장 타격 피해 ×1.5' },
+  { id:'a1', name:'과충전',       cost:2,  req:'root', x:50,   y:38.9, desc:'⚔ 벽돌의 공격력 +1 추가' },
+  { id:'a2', name:'공명 증폭',    cost:3,  req:'a1',   x:50,   y:27.8, desc:'같은 구슬의 세 번째 천장 타격부터 피해 +1' },
+  { id:'a3', name:'연속 방전',    cost:3,  req:'a2',   x:50,   y:16.7, desc:'구슬마다 천장 타격 상한 +1' },
+  { id:'a4', name:'예열',         cost:3,  req:'a3',   x:38.9, y:5.6,  desc:'전투 3턴째부터 ⚔ +1' },
+  { id:'a5', name:'코일 증폭',    cost:4,  req:'a4',   x:27.8, y:5.6,  desc:'릭의 기본 공격력 +1 (모든 천장 타격 피해 +1)' },
+  { id:'a6', name:'약점 스캔',    cost:10, req:'a5',   x:16.7, y:5.6,  key:true, desc:'체력이 절반 이하인 기체에게 천장 타격 피해 ×1.3' },
+  { id:'a7', name:'선제 타격',    cost:3,  req:'a3',   x:61.1, y:5.6,  desc:'체력이 가득한 기체에게 천장 타격 피해 +1' },
+  { id:'a8', name:'과충전 Ⅱ',     cost:4,  req:'a7',   x:72.2, y:5.6,  desc:'⚔ 벽돌의 공격력 +1 추가' },
+  { id:'a9', name:'네 번째 파형', cost:10, req:'a8',   x:83.3, y:5.6,  key:true, desc:'모든 천장 타격 피해 ×1.3' },
   // 방어(아래)
-  { id:'d1', name:'절연 슈트', cost:2, req:'root', x:50, y:64.3, desc:'최대 체력 +4' },
-  { id:'d2', name:'차폐 전개', cost:3, req:'d1',   x:50, y:78.7, desc:'전투 시작 방어도 +2' },
-  { id:'d3', name:'응급 처치',  cost:3, req:'d2',   x:35.7, y:93, desc:'전투에서 이길 때마다 체력 +2' },
-  { id:'d4', name:'충격 흡수',  cost:8, req:'d3',   x:21.3, y:93, key:true, desc:'기체·오버플로 피해 ×0.75' },
-  { id:'d5', name:'장갑판 보강',     cost:3, req:'d2',   x:64.3, y:93, desc:'🛡 벽돌의 방어도 +1 추가' },
-  { id:'d6', name:'완전 차폐', cost:8, req:'d5',   x:78.7, y:93, key:true, desc:'전투 중 얻는 방어도 ×1.5' },
+  { id:'d1', name:'절연 슈트',    cost:2,  req:'root', x:50,   y:61.1, desc:'최대 체력 +2' },
+  { id:'d2', name:'차폐 전개',    cost:3,  req:'d1',   x:50,   y:72.2, desc:'전투 시작 방어도 +1' },
+  { id:'d3', name:'보강 슈트',    cost:3,  req:'d2',   x:50,   y:83.3, desc:'최대 체력 +2' },
+  { id:'d4', name:'응급 처치',    cost:3,  req:'d3',   x:38.9, y:94.4, desc:'전투에서 이길 때마다 체력 +1' },
+  { id:'d5', name:'냉각 대기',    cost:4,  req:'d4',   x:27.8, y:94.4, desc:'기체가 쉬는 턴에 체력 +1' },
+  { id:'d6', name:'충격 흡수',    cost:10, req:'d5',   x:16.7, y:94.4, key:true, desc:'기체·오버플로 피해 ×0.8' },
+  { id:'d7', name:'장갑판 보강',  cost:3,  req:'d3',   x:61.1, y:94.4, desc:'🛡 벽돌의 방어도 +1 추가' },
+  { id:'d8', name:'완충 안감',    cost:4,  req:'d7',   x:72.2, y:94.4, desc:'전투마다 오버플로 피해를 한 번 받지 않는다' },
+  { id:'d9', name:'완전 차폐',    cost:10, req:'d8',   x:83.3, y:94.4, key:true, desc:'전투 중 얻는 방어도 ×1.3' },
   // 구슬(왼쪽)
-  { id:'o1', name:'축전기 튜닝', cost:2, req:'root', x:35.7, y:50, desc:'EMP 코어 구슬의 과열 -1' },
-  { id:'o2', name:'부품 감별', cost:3, req:'o1',   x:21.3, y:50, desc:'회로 드롭률 +5%p' },
-  { id:'o3', name:'재스캔 회로', cost:3, req:'o2',   x:7,  y:35.7, desc:'보상 다시 스캔하기 +1회' },
-  { id:'o4', name:'파형 동기화',     cost:8, req:'o3',   x:7,  y:21.3, key:true, desc:'회로를 2개 끼운 구슬의 천장 타격 피해 ×2' },
-  { id:'o5', name:'조준 보정',  cost:3, req:'o2',   x:7,  y:64.3, desc:'조준선이 15% 느려진다' },
-  { id:'o6', name:'고압 사출',     cost:8, req:'o5',   x:7,  y:78.7, key:true, desc:'텅스텐·EMP 코어 구슬의 천장 타격 피해 ×2' },
+  { id:'o1', name:'축전기 튜닝',  cost:2,  req:'root', x:38.9, y:50,   desc:'EMP 코어 구슬의 과열 -1' },
+  { id:'o2', name:'부품 감별',    cost:3,  req:'o1',   x:27.8, y:50,   desc:'회로 드롭률 +3%p' },
+  { id:'o3', name:'조준 보정',    cost:3,  req:'o2',   x:16.7, y:50,   desc:'조준선이 10% 느려진다' },
+  { id:'o4', name:'재스캔 회로',  cost:3,  req:'o3',   x:5.6,  y:38.9, desc:'보상 다시 스캔하기 +1회' },
+  { id:'o5', name:'부품 감별 Ⅱ',  cost:4,  req:'o4',   x:5.6,  y:27.8, desc:'회로 드롭률 +3%p' },
+  { id:'o6', name:'파형 동기화',  cost:10, req:'o5',   x:5.6,  y:16.7, key:true, desc:'회로를 2개 끼운 구슬의 천장 타격 피해 ×1.6' },
+  { id:'o7', name:'조준 보정 Ⅱ',  cost:3,  req:'o3',   x:5.6,  y:61.1, desc:'조준선이 10% 더 느려진다' },
+  { id:'o8', name:'정지 조준',    cost:4,  req:'o7',   x:5.6,  y:72.2, desc:'매 턴 조준선이 처음 0.2초 동안 멈춰 있다' },
+  { id:'o9', name:'고압 사출',    cost:10, req:'o8',   x:5.6,  y:83.3, key:true, desc:'텅스텐·EMP 코어 구슬의 천장 타격 피해 ×1.6' },
   // 경제(오른쪽, 화면 이름은 자원)
-  { id:'e1', name:'비상금', cost:2, req:'root', x:64.3, y:50, desc:'시작 크레딧 +30' },
-  { id:'e2', name:'단골 할인',    cost:3, req:'e1',   x:78.7, y:50, desc:'브로커 가격 -20%' },
-  { id:'e3', name:'고철 수거', cost:3, req:'e2',   x:93, y:35.7, desc:'전투 승리 크레딧 +5' },
-  { id:'e4', name:'예비 칩', cost:8, req:'e3',  x:93, y:21.3, key:true, desc:'무작위 칩 하나를 지니고 출발' },
-  { id:'e5', name:'수리 숙련',  cost:3, req:'e2',   x:93, y:64.3, desc:'충전소·복구 패치 회복 +5' },
-  { id:'e6', name:'비상 재시동',     cost:8, req:'e5',   x:93, y:78.7, key:true, desc:'침투마다 한 번, 쓰러지면 체력 30%로 일어난다' },
+  { id:'e1', name:'비상금',       cost:2,  req:'root', x:61.1, y:50,   desc:'시작 크레딧 +20' },
+  { id:'e2', name:'단골 할인',    cost:3,  req:'e1',   x:72.2, y:50,   desc:'브로커 가격 -10%' },
+  { id:'e3', name:'고철 수거',    cost:3,  req:'e2',   x:83.3, y:50,   desc:'전투 승리 크레딧 +3' },
+  { id:'e4', name:'단골 할인 Ⅱ',  cost:3,  req:'e3',   x:94.4, y:38.9, desc:'브로커 가격 -10% 더' },
+  { id:'e5', name:'정예 현상금',  cost:4,  req:'e4',   x:94.4, y:27.8, desc:'정예를 이기면 크레딧 +6' },
+  { id:'e6', name:'예비 칩',      cost:10, req:'e5',   x:94.4, y:16.7, key:true, desc:'무작위 칩 하나를 지니고 출발' },
+  { id:'e7', name:'수리 숙련',    cost:3,  req:'e3',   x:94.4, y:61.1, desc:'충전소·복구 패치 회복 +3' },
+  { id:'e8', name:'수리 숙련 Ⅱ',  cost:4,  req:'e7',   x:94.4, y:72.2, desc:'충전소·복구 패치 회복 +3 더' },
+  { id:'e9', name:'비상 재시동',  cost:10, req:'e8',   x:94.4, y:83.3, key:true, desc:'침투마다 한 번, 쓰러지면 체력 25%로 일어난다' },
 ];
+// 2026-11-27 이전 트리(갈래마다 6칸)의 노드 값. 옛 계정이 찍은 노드를 이 값으로 한 번 돌려주고 트리를 비운다(save.js)
+const TREE_V = 2, TREE_OLD_COST = { 1:2, 2:3, 3:3, 4:8, 5:3, 6:8 };
 const tree = id => !!(META.tree && META.tree[id]);
 const rel = id => (RUN && RUN.relics[id]) || 0;
-const hitCap = () => 3 + rel('combo') + (tree('a2') ? 1 : 0);
+const hitCap = () => 3 + rel('combo') + (tree('a3') ? 1 : 0);
 
 // ── 배지: 한 번 따면 영구히 남는 업적. 같은 배지를 다시 따면 횟수만 오른다(모으는 재미 + 자랑거리).
 // icon은 ICON(7×7 도트) 이름. 조건은 battle.js·screens.js에서 earnBadge(id)로 건다

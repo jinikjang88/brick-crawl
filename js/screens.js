@@ -42,6 +42,8 @@ function showChoice(o){
   // 무전 한두 줄(충전소·브로커·쓰러짐): 초상 + 이름 + 대사. 지문은 이름 없이
   const say = $('cSay'); say.textContent = ''; say.hidden = !(o.say && o.say.length);
   for (const ln of (o.say || [])) say.append(radioRow(ln));
+  // 조립대(차고의 구슬 하나): 카드 목록 대신 그림으로 보여 줄 덩어리. 다른 화면에서는 비운다
+  const bench = $('cBench'); bench.textContent = ''; bench.hidden = !o.bench; if (o.bench) bench.append(...o.bench);
   const box = $('cCards'); box.textContent = '';
   for (const c of o.cards){
     const b = document.createElement('button');
@@ -275,10 +277,10 @@ function showStory(id, next){
 }
 // 스킬 트리 중 원정 시작 때 한 번 정해지는 효과
 function applyTreeStart(r){
-  if (tree('d1')){ r.maxHp += 4; r.hp += 4; }
+  const hp = (tree('d1') ? 2 : 0) + (tree('d3') ? 2 : 0); r.maxHp += hp; r.hp += hp;
   if (tree('o1')){ const i = r.deck.indexOf('bomb'); if (i >= 0) r.deck[i] = 'bomb+'; }
-  if (tree('e1')) r.coins += 30;
-  if (tree('e4')) gainRelic(rollRelics(1)[0]);
+  if (tree('e1')) r.coins += 20;
+  if (tree('e6')) gainRelic(rollRelics(1)[0]);
 }
 // 끝난 원정을 기록 서버 대기열에 올린다(쓰러짐·포기·덮어쓰기·완주). 스킬 포인트는 칸을 처음 돌파할 때 이미 받았다
 function endRun(r){ recordRun(r); }
@@ -660,9 +662,9 @@ function battleEnd(win){
   gainRickXp(n.t);
   // 고난 6: 군주는 껍데기다. 승리 회복 없이 남은 체력 그대로 근원과 이어 싸운다(저장해 두어 새로고침해도 근원부터)
   if (G.cfg.final && !G.cfg.king && ascOn(6)){ RUN.hp = G.p.hp; RUN.king = true; saveRun(); return storyOnce('root', () => startBattle(G.node)); }
-  RUN.hp = Math.min(RUN.maxHp, G.p.hp + 2 * rel('medkit') + (tree('d3') ? 2 : 0));
-  const gain = (n.t === 'boss' ? 40 : n.t === 'elite' ? 22 + rnd(7, 'reward') : 10 + rnd(5, 'reward')) + (tree('e3') ? 5 : 0)
-    + (rel('wallet') ? 3 : 0) + (rel('greed') ? 12 : 0) + (n.t === 'elite' && rel('lantern') ? 10 : 0) + (rel('alchemy') ? G.m.poison : 0);
+  RUN.hp = Math.min(RUN.maxHp, G.p.hp + rel('medkit') + (tree('d4') ? 1 : 0));
+  const gain = (n.t === 'boss' ? 40 : n.t === 'elite' ? 22 + rnd(7, 'reward') : 10 + rnd(5, 'reward')) + (tree('e3') ? 3 : 0)
+    + (rel('wallet') ? 2 : 0) + (rel('greed') ? 12 : 0) + (n.t === 'elite' ? (rel('lantern') ? 6 : 0) + (tree('e5') ? 6 : 0) : 0) + (rel('alchemy') ? G.m.poison : 0);
   RUN.coins += gain; RUN.lastGain = gain;
   if (RUN.coins >= 200) earnBadge('rich');
   if (n.t === 'boss' && RUN.abyss && RUN.s === 4) earnBadge('abyss5');

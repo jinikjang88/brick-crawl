@@ -31,7 +31,9 @@ function gainRelic(id){
   if (id === 'pact'){ RUN.maxHp = Math.max(8, RUN.maxHp - 8); RUN.hp = Math.min(RUN.hp, RUN.maxHp); }
 }
 const tierTag = t => RARITY[t].name;
-const rerollMax = () => 1 + (tree('o3') ? 1 : 0);
+// 수리 숙련Ⅰ·Ⅱ(트리): 충전소·복구 패치 회복에 함께 더한다
+const repairBonus = () => (tree('e7') ? 3 : 0) + (tree('e8') ? 3 : 0);
+const rerollMax = () => 1 + (tree('o4') ? 1 : 0);
 // 보상: 정예·보스는 칩 3택1(구슬 보상은 부품 드롭으로 바뀌었다, 작업 08). 이번 전투에서 떨어진 부품을 부제에 함께 보여 준다
 // 뽑은 보상은 원정에 저장한다: 메인으로 나갔다 이어하면 카드·다시 뽑기가 새로 나오는 걸 막는다(상점과 같은 이유)
 const rollReward = kind => rollRelics(3, kind === 'boss');
@@ -65,7 +67,7 @@ let restSay = null, shopSay = null;
 // ── 휴식
 function showRest(){
   if (!restSay) restSay = pickLine(REST_TALK[Math.min(RUN.s, REST_TALK.length - 1)]);
-  const amt = Math.ceil(RUN.maxHp * 0.4) + (tree('e5') ? 5 : 0) + (rel('bandage') ? 3 : 0);
+  const amt = Math.ceil(RUN.maxHp * 0.4) + repairBonus() + (rel('bandage') ? 2 : 0);
   setHeader(`${stageName(RUN.s)}`, '충전소');
   showChoice({ mode:'rest', scene:'rest', title:'충전소', sub:`체력 ${RUN.hp}/${RUN.maxHp}. 잠시 전원을 꽂고 숨을 돌린다.`, say:[restSay], cards:[
     { name:'충전하기', desc:`체력 ${amt} 회복`, disabled:RUN.hp >= RUN.maxHp,
@@ -85,7 +87,7 @@ function showShop(){
       { k:'heal', price:15 },
     ];
     // 흥정·행운 동전·탐욕: 물건을 정할 때 값도 바꿔 저장한다(이미 정해진 상점 값은 그대로)
-    RUN.shop.forEach(it => it.price = Math.round(it.price * (tree('e2') ? .8 : 1) * (rel('luckycoin') ? .9 : 1)) + (rel('greed') ? 15 : 0));
+    RUN.shop.forEach(it => it.price = Math.round(it.price * (1 - (tree('e2') ? .1 : 0) - (tree('e4') ? .1 : 0)) * (rel('luckycoin') ? .9 : 1)) + (rel('greed') ? 15 : 0));
     saveRun();
   }
   setHeader(`${stageName(RUN.s)}`, '브로커');
@@ -97,7 +99,7 @@ function showShop(){
       disabled:it.sold || poor, onPick:() => buy(() => addCargo({ scrap:0, cores:[], circs:[it.id] })) };
     if (it.k === 'relic') return { relic:it.id, name:RELICS[it.id].name, tag:tierTag(relicTier(it.id)) + ' · ' + tag, desc:RELICS[it.id].desc, rare:relicTier(it.id) >= 3,
       disabled:it.sold || poor, onPick:() => buy(() => gainRelic(it.id)) };
-    const herb = 8 + (tree('e5') ? 5 : 0);
+    const herb = 8 + repairBonus();
     return { name:'복구 패치', tag, desc:`체력 ${herb} 회복 (지금 ${RUN.hp}/${RUN.maxHp})`,
       disabled:it.sold || poor || RUN.hp >= RUN.maxHp, onPick:() => buy(() => RUN.hp = Math.min(RUN.maxHp, RUN.hp + herb)) };
   });
