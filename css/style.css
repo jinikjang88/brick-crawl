@@ -148,7 +148,7 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .logoCv{width:155px;height:110px}
 .ovMain .logo{font-size:13px;letter-spacing:.5em}
 .tagline{font-size:14px;font-weight:700;margin:0 0 8px;color:var(--ink2)}
-.orbPortrait{width:48px;height:48px;image-rendering:pixelated;flex:none}
+.orbPortrait{width:48px;height:48px;image-rendering:auto;flex:none}
 .orbBar:not(:empty){border:1px solid var(--ink3);border-bottom:3px solid var(--ink2);background:var(--panel);padding:6px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:60px}
 .orbCurrent,.orbNext{display:flex;align-items:center;gap:6px}
 .orbCurrent small{display:block;font-size:11px;letter-spacing:.1em;color:var(--ink2)}
@@ -178,8 +178,12 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .abil .none{color:var(--ink2)}
 @media(max-width:360px){.orbCurrent b{font-size:14px}.orbCurrent .orbPortrait{width:38px;height:38px}.slots{gap:4px}.ov{padding:12px 10px}.big{font-size:25px}}
 @media(prefers-reduced-motion:reduce){.rCard{transition:none}}
-/* 일러스트 구슬(<img>)은 원본이 세밀해서 도트처럼 최근접 축소하면 오히려 깨진다 */
+/* 일러스트 구슬(<img>)은 원본이 세밀해서 도트처럼 최근접 축소하면 오히려 깨진다. 구슬 레벨 테두리(.orbRing)는 코어 위에 겹친다 */
 img.orbPortrait{image-rendering:auto;object-fit:contain}
+.orbWrap{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.orbWrap .orbRing{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);pointer-events:none;object-fit:contain;image-rendering:auto}
+.slot .orbWrap .orbRing{inset:-2px;width:calc(100% + 4px);height:calc(100% + 4px)}
+.orbCurrent .orbWrap .orbRing{inset:5px;width:calc(100% - 10px);height:calc(100% - 10px)}
 /* 금화 칩 앞에 일러스트 금화. 칩은 그림 + 숫자만이라 그림을 못 불러오면 단위 없는 숫자가 된다(읽기 프로그램은 aria-label "금화 N"을 읽는다) */
 .hCoin:not(:empty){display:inline-flex;align-items:center;gap:4px}
 .hCoin:not(:empty)::before{content:'';width:16px;height:16px;flex:none;background:url('../assets/game/coin.png') center/contain no-repeat}
@@ -328,7 +332,7 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .bCard b em{font-style:normal;font-size:13px;color:var(--ink2)}
 .bCard span{display:block;font-size:13px;color:var(--ink2);line-height:1.4}
 .bCard > div{flex:1;min-width:0}
-.bIc{width:44px;height:44px;flex:none;image-rendering:pixelated}
+.bIc{width:44px;height:44px;flex:none;image-rendering:auto}
 /* 도감 구역 제목: 구슬·유물·배지 */
 .bHead{margin-top:10px;font-size:15px;font-weight:800;color:var(--ink);border-bottom:2px solid var(--line);padding-bottom:2px}
 #ovBadge{isolation:isolate}
@@ -516,7 +520,7 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .tSkip{min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:0;background:var(--panel);color:var(--ink2);font-size:13px;font-weight:800;cursor:pointer;flex:none}
 .tSkip:active{transform:translateY(2px)}
 .tStage{flex:1 1 auto;width:100%;max-width:var(--content);min-height:96px;display:flex;align-items:flex-end;justify-content:space-between;cursor:pointer}
-.tPort{width:min(40%,160px);aspect-ratio:1;object-fit:contain;image-rendering:pixelated;border:2px solid var(--line);background:var(--field);visibility:hidden;opacity:.3;filter:grayscale(1);transition:opacity .2s,filter .2s,transform .2s}
+.tPort{width:min(40%,160px);aspect-ratio:1;object-fit:contain;image-rendering:auto;border:2px solid var(--line);background:var(--field);visibility:hidden;opacity:.3;filter:grayscale(1);transition:opacity .2s,filter .2s,transform .2s}
 .tPort.shown{visibility:visible}
 .tPort.on{opacity:1;filter:none;border-color:var(--ink);transform:translateY(-4px)}
 .tPort.enemy{border-color:var(--accent)}
@@ -538,14 +542,15 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 /* 낮은 화면(가로로 눕힌 노트북 창 등): 초상을 접어 대사 상자와 "다음"이 한 화면에 들어오게 */
 @media(max-height:480px){.tStage{display:none}.tBox{min-height:120px}}
 
-/* ── 전투 무전 띠(대본 RADIO): 판 위쪽에 잠깐. 전투를 막지 않게 입력을 통과시킨다 */
-.radio{position:absolute;left:6px;right:6px;top:6px;z-index:6;display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--panel);border:2px solid var(--ink);
+/* ── 전투 무전 띠(대본 RADIO): 상단 체력 막대·기체 예고·캐릭터(0~33%)와 시작 배너·초기 벽돌(34~47%)을 가리지 않도록
+   벽돌판 중단 여백(top:48.5%)에 반투명 패널로 띄운다. 전투를 막지 않게 입력을 통과시킨다 */
+.radio{position:absolute;left:6px;right:6px;top:48.5%;z-index:6;display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--panel);background:color-mix(in srgb,var(--panel) 90%,transparent);border:2px solid var(--ink);
   pointer-events:none;opacity:0;transform:translateY(-6px);transition:opacity .2s,transform .2s;text-align:left}
 .radio.on{opacity:1;transform:none}
 .radio.enemy{border-color:var(--accent)}
 .radio.enemy b{color:var(--accent)}
 .radio.note span{font-style:italic}
-.rPort{width:36px;height:36px;flex:none;image-rendering:pixelated;border:1px solid var(--line)}
+.rPort{width:36px;height:36px;flex:none;image-rendering:auto;border:1px solid var(--line)}
 .rBody{display:flex;flex-direction:column;min-width:0}
 .rBody b{font-size:12px;line-height:1.3}
 .rBody span{font-size:13px;line-height:1.35;color:var(--ink2);word-break:keep-all}

@@ -50,7 +50,8 @@ function showChoice(o){
     if (c.tag){ const em = document.createElement('em'); em.textContent = c.tag; t.append(em); }
     const d = document.createElement('span'); d.textContent = c.desc;
     const kind = c.orb ? orbKind(c.orb) : Object.keys(ORBS).find(k => ORBS[k].name === c.name);
-    if (kind){ b.classList.add('orbCard'); b.append(orbPortrait(kind)); }
+    if (c.res){ b.classList.add('orbCard'); b.append(resPortrait(c.res, 'orbPortrait')); }
+    else if (kind){ b.classList.add('orbCard'); b.append(orbPortrait(kind, 'orbPortrait', c.orb ? orbLevel(c.orb) : 1)); }
     if (c.relic){ b.classList.add('orbCard'); b.append(relicPortrait(c.relic)); }
     const body = document.createElement('div'); body.className = 'cardBody'; body.append(t, d);
     b.append(body);
@@ -456,7 +457,7 @@ function showBadges(){
   box.append(bookHead('공명'));
   for (const r of RESONANCE){
     const own = !!META.res[r.id];
-    box.append(bookRow(own ? orbPortrait(r.core, 'bIc') : badgeIcon(UNKNOWN, false), own ? r.name : '???',
+    box.append(bookRow(own ? resPortrait(r.id, 'bIc') : badgeIcon(UNKNOWN, false), own ? r.name : '???',
       own ? `${ORBS[r.core].short} + ${r.circs.map(c => ORBS[c].short).join(' + ')}` : `${ORBS[r.core].name} + ?`,
       own ? r.desc : '차고에서 맞는 회로를 끼우면 드러난다', own));
   }

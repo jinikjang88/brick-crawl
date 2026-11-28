@@ -159,14 +159,15 @@ tools/shots.cjs     실제 브라우저 캡처 + 9개 화면비 넘침·작은 �
 tools/check_assets.py  그림 전수 검사(목록·흰 배경 잔여물·떠 있는 조각·이음매·좌우·팔레트)
 tools/d1-check.mjs  기록 서버 통합 검사(로컬 Functions + D1)
 tools/build_game_assets.py  일러스트 원본(assets/illustrated) → 게임용 축소본(assets/game)
-tools/draw_item_assets.py   구슬 부품·칩·벽돌·크레딧·충전소·앱 아이콘을 도트로 그린다
-tools/build_cyber_actions.py  캐릭터 동작 시트(공격·피격·사망·스킬)를 만든다
+tools/draw_cel_characters.py 캐릭터·기체·보스 14종, 대화 초상 14종, 앱 아이콘을 벡터 셀화로 그린다
+tools/draw_item_assets.py   구슬 부품·칩·벽돌·크레딧·충전소를 슈퍼샘플링 셀화로 그린다
+tools/build_cyber_actions.py  캐릭터 14종 50프레임 동작 시트(공격·피격·사망·스킬·대기)를 만든다
 tools/clean_matte.py        캐릭터 그림 안쪽에 남은 흰 배경 조각을 지운다
-assets/illustrated/ 일러스트 원본(characters·actions·portraits). 구슬 부품·벽돌·아이콘의 AI 원본을 넣으면 도트 그림을 대신한다
+assets/illustrated/ 일러스트 원본(characters·portraits·chasm·icon)
 assets/game/        게임이 실제로 읽는 축소본
 assets/audio/       터미널·지도 음원 곡과 권리 기록(LICENSE.md)
-tools/export_assets.py  도트 에셋·연출을 PNG/GIF로 내보내는 툴 (결과: docs/assets/)
-tools/draw_cyber_assets.py  사이버펑크 갱도 배경(chasm)·HUD 프레임(ui_*)·주사선을 도트로 그린다
+tools/import_ai_assets.py   외부/AI 생성 원본의 배경(흰색·체커보드) 제거 및 모노크롬/화 팔레트 정규화
+tools/draw_cyber_assets.py  사이버펑크 수직 갱도 배경(chasm)·HUD 프레임(ui_*)·주사선을 셀화로 그린다
 functions/api/      (서버) Cloudflare Pages Functions 기록 API
 db/schema.sql       (서버) D1 테이블 정의
 docs/GAME_DESIGN.md 현재 구현 기준 게임 디자인 문서
@@ -246,18 +247,19 @@ node tools/test-items-browser.cjs      # 메인 → 지도 → 전투 → 보상
 ```
 직접 볼 때는 `index.html`을 `file://`로 연다. 메인 → 지도 → 전투 → 보상 → 새로고침 후 이어하기까지 해 보고 콘솔 오류를 확인한다. 로드 순서나 전역 이름 충돌 문제는 여기서만 드러난다. Playwright로 자동화해도 된다.
 
-### 에셋 이미지 내보내기
-게임 코드(`js/sprites.js`의 `SPR`·`ICON`·`FONT`·`drawOrbSprite`, `css/style.css`의 색 토큰)를 그대로 읽어 PNG·GIF로 뽑는다. 도트를 고쳤으면 다시 돌리기만 하면 된다. 게임 실행에는 필요 없는 개발 도구다(Python 3 + Pillow).
+### 에셋 빌드 및 전수 검증
+셀화 생성 스크립트나 `assets/illustrated/` 원본을 수정했을 때는 순서대로 빌드하고 전수 검사를 돌린다(Python 3 + Pillow, numpy).
 ```bash
-pip install pillow
-python3 tools/export_assets.py                  # docs/assets/light
-python3 tools/export_assets.py --theme both     # 라이트·다크
-python3 tools/export_assets.py --only static,fx --scale 4
+pip install pillow numpy
+python3 tools/draw_cyber_assets.py     # 수직 갱도 배경(chasm)·HUD 프레임·주사선 생성
+python3 tools/draw_item_assets.py      # 구슬 부품·칩·레벨 링·공명 문양·벽돌·소품 셀화 생성
+python3 tools/draw_cel_characters.py   # 캐릭터 14종·대화 초상 14종·앱 아이콘 셀화 원본 생성
+python3 tools/build_game_assets.py     # 원본(assets/illustrated) → 런타임(assets/game) 및 icons/* 변환
+python3 tools/build_cyber_actions.py   # 캐릭터 14종 50프레임 동작 시트(*_actions.png) 생성 및 ART_SHEET 갱신
+python3 tools/check_assets.py          # 목록·흰 배경 잔여물·떠 있는 조각·이음매·연속성·좌우·팔레트 검사
 ```
-- 정적: 스프라이트(기본·정예·피격 변형), 아이콘, 구슬, 숫자 폰트, 로고, 한 장 모음(`contact_sheet.png`)
-- 연출 GIF: 몬스터별 공격·피격·쓰러짐, 보스 분노, 벽돌 종류별 파괴, 폭탄 폭발, 구슬별 대기 연출, 전투 한 판 재현(`battle.gif`)
-- 연출은 `battle.js`의 공식(파편·숫자 팝업·포물선 탄·돌진·물리)을 옮겨 재현한다. 충격파 링·슬로모션은 **툴 전용 제안**으로, 게임에는 아직 없다(타격 정지와 대기 동작은 게임에 들어갔다).
-- 미리보기: [`docs/assets/README.md`](docs/assets/README.md)
+- 동작 프레임 점검기: [`docs/art/action-preview.html`](docs/art/action-preview.html) (브라우저에서 한 칸씩 재생·확인)
+- 에셋 현황 및 기준: [`docs/art/illustrated-assets.md`](docs/art/illustrated-assets.md), [`docs/art/action-frames.md`](docs/art/action-frames.md)
 
 ## 배포
 

@@ -19,11 +19,11 @@ const MON = {
     // 독 행동의 v를 비워 두면 독 양 = 몬스터 ⚔ 공격력: 머리 위 숫자 그대로 독이 쌓이고, 층이 깊어질수록 함께 세진다
     pattern:[{t:'atk',n:2},{t:'poison'},{t:'atk',n:2},{t:'spore'}],
     row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1, heal:1 }, poison:.2 } },
-  // ── 2~5층 새 기체(작업 08 2단계, 대본의 층 묘사에서). 그림은 ASSET_PROMPTS에 프롬프트를 더하고, 그 전엔 비슷한 기존 그림을 쓴다
-  compiler: { name:'컴파일 드론', spr:'drone', hp:8, atk:1, def:0, sweep:1.1, trait:'spawn', weak:['bomb'],
+  // ── 2~5층 새 기체(작업 08 2단계, 대본의 층 묘사에서). 그림이 준비된 기체는 고유 스프라이트를 쓰고 나머지는 기존 기체로 폴백
+  compiler: { name:'컴파일 드론', spr:'compiler', hp:8, atk:1, def:0, sweep:1.1, trait:'spawn', weak:['bomb'],
     pattern:[{t:'atk',n:2},{t:'wait'}],
     row:{ d:.6, hard:.25, stat:.4, w:{ atk:1, def:1 } } },
-  holo: { name:'홀로그램 잔상', spr:'drone', hp:7, atk:1, def:0, sweep:1.2, trait:'phantom', weak:['split'],
+  holo: { name:'홀로그램 잔상', spr:'holo', hp:7, atk:1, def:0, sweep:1.2, trait:'phantom', weak:['split'],
     pattern:[{t:'atk',n:3},{t:'wait'}],
     row:{ d:.58, hard:.2, stat:.4, w:{ atk:1, def:1 } } },
   stone: { name:'방어석', spr:'guardian', hp:10, atk:1, def:1, sweep:1.1, trait:'quarry', weak:['hammer'],
@@ -39,7 +39,7 @@ const MON = {
     pattern:[{t:'atk',n:3},{t:'guard',v:2}],
     row:{ d:.62, hard:.35, stat:.35, w:{ atk:1, def:1 } } },
   // 정예 전용(정예 배율이 붙는다)
-  arm: { name:'코테크 작업 팔', spr:'guardian', hp:10, atk:1, def:1, sweep:1.2, trait:'spawn', weak:['bomb', 'hammer'],
+  arm: { name:'코테크 작업 팔', spr:'arm', hp:10, atk:1, def:1, sweep:1.2, trait:'spawn', weak:['bomb', 'hammer'],
     pattern:[{t:'atk',n:2},{t:'summon'}],
     row:{ d:.62, hard:.3, stat:.4, w:{ atk:1, def:1 } } },
   observer: { name:'거울 관측기', spr:'drone', hp:9, atk:1, def:0, sweep:1.25, trait:'reflect', weak:['mirror'],

@@ -4,39 +4,43 @@
 // 이미지는 <img>로 불러온다: fetch·모듈과 달리 file://에서도 막히지 않는다.
 // 로드 전·실패·Node(시뮬레이터)에서는 각 그리기 함수가 false를 돌려주고, 호출부가 기존 도트로 그린다
 const ART = { img:{}, tint:{} };
-const ART_CHARS = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel', 'codex', 'gemini', 'claude', 'omnis', 'zero'];
-const ART_ACTIONS_LIST = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel', 'gemini', 'omnis', 'claude'];
+const ART_CHARS = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel', 'codex', 'gemini', 'claude', 'omnis', 'zero', 'compiler', 'holo', 'arm'];
+const ART_ACTIONS_LIST = ['rick', 'sludge', 'drone', 'guardian', 'disperser', 'sentinel', 'codex', 'gemini', 'omnis', 'claude', 'zero', 'compiler', 'holo', 'arm'];
 const ART_PORTRAITS = ['rick', 'rick_determined', 'lina', 'lina_warm', 'yun', 'drone', 'sentinel', 'codex_hostile', 'codex', 'gemini_hostile', 'gemini', 'claude', 'omnis', 'zero'];
 const ART_FILES = ['chasm', 'coin', 'spark', 'rubble', 'merchant', 'campfire', ...ART_CHARS, ...ART_ACTIONS_LIST.map(n => n + '_actions'),
   ...ART_PORTRAITS.map(n => 'portrait_' + n),
-  ...Object.keys(ORBS).map(k => 'orb_' + k),
+  ...Object.keys(ORBS).filter(k => ORBS[k].part !== 'res').map(k => 'orb_' + k),
+  ...[2, 3, 4, 5].map(lv => 'orb_lv_' + lv),
+  ...(typeof RESONANCE !== 'undefined' ? RESONANCE : []).map(r => 'res_' + r.id),
   ...Object.keys(RELICS).map(k => 'relic_' + k),
   ...['n', 'stone', 'atk', 'def', 'heal', 'poison'].map(k => 'brick_' + k)];
 // 미생성 에셋 폴백: 새 사이버펑크 에셋이 아직 없는 캐릭터는 대응하는 에셋으로 그린다
-const ART_FALLBACK = {
-  codex:'sentinel', zero:'omnis',
-};
+const ART_FALLBACK = {};
 // 캐릭터 화면 상자(논리 px). 원본 크기가 제각각이라 발밑을 같은 바닥선에 맞추고 상자 안에 비율대로 넣는다.
 // 위로는 의도 아이콘(y 25~35), 아래로는 공·방 숫자(y 93)를 가리지 않는 높이로 정했다
 const ART_BOX = {
-  rick:{ w:46, h:52 },
+  rick:{ w:62, h:60 },
   sludge:{ w:54, h:44 },
   drone:{ w:62, h:40, lift:10, bob:2, rate:4.5 },
+  compiler:{ w:58, h:46, lift:8, bob:1.8, rate:3.6 },
+  holo:{ w:48, h:54, lift:4, bob:1.6, rate:3.2 },
+  arm:{ w:60, h:54, lift:4 },
   guardian:{ w:56, h:54 },
   disperser:{ w:52, h:52 },
-  sentinel:{ w:64, h:54 }, codex:{ w:62, h:54 },
+  sentinel:{ w:64, h:54 }, codex:{ w:62, h:54, lift:3, bob:1.2, rate:2.4 },
   gemini:{ w:54, h:56, lift:4, bob:1.4, rate:2.8 }, claude:{ w:58, h:54 },
-  omnis:{ w:60, h:56, lift:6, bob:1.5, rate:2.6 }, zero:{ w:62, h:56, lift:6, bob:1.5, rate:3.0 },
+  omnis:{ w:60, h:56, lift:6, bob:1.5, rate:2.6 }, zero:{ w:58, h:52, lift:3, bob:1.5, rate:3.0 },
 };
 const ART_FOOT = 90;
-// 대기 중에만 숨쉬기를 더한다. 공격·피격·사망은 별도 시트의 실제 포즈를 재생한다.
+// 공중 부양 기체(box.bob 지정)만 부유 진동을 더한다. 지면에 서는 캐릭터는 동작 시트의 다관절 대기 루프(idle)로 숨쉰다.
 // 동작 줄이기 설정이면 끈다: 정보가 없는 장식 움직임이고, CSS 쪽 장식 애니메이션도 같은 설정에서 끈다
 let artCalm = null;
 try { artCalm = matchMedia('(prefers-reduced-motion: reduce)'); } catch(e){}
 function artBob(name, t){
   if (artCalm && artCalm.matches) return 0;
   const box = ART_BOX[name] || {};
-  return Math.sin(t * (box.rate || 2.2) + name.length) * (box.bob || .75);
+  if (!box.bob) return 0;
+  return Math.sin(t * (box.rate || 2.2) + name.length) * box.bob;
 }
 
 (function loadArt(){
@@ -91,13 +95,14 @@ function drawBgArt(){
 // 동작 아틀라스 배치(tools/build_action_assets.py가 다시 쓴다). 칸은 넘친 팔·무기까지 품는 정사각형이고,
 // 모든 프레임이 칸의 (ax, foot)을 발밑 기준점으로 공유한다. iw·ih는 대기 포즈 크기: 화면 상자에 맞출 배율을 여기서 구한다
 const ART_SHEET = { cell:320, ax:160, foot:314,
-  rick:{ iw:100, ih:211 }, sentinel:{ iw:242, ih:236 }, sludge:{ iw:216, ih:197 }, drone:{ iw:232, ih:178 }, guardian:{ iw:234, ih:231 }, disperser:{ iw:224, ih:196 }, gemini:{ iw:163, ih:232 }, omnis:{ iw:191, ih:236 }, claude:{ iw:191, ih:236 } };
-// 각 동작은 여섯 포즈. 공격의 타격 프레임을 짧게 두고 복귀에 여유를 준다.
+  rick:{ iw:143, ih:244 }, sentinel:{ iw:242, ih:240 }, codex:{ iw:199, ih:238 }, sludge:{ iw:216, ih:205 }, drone:{ iw:232, ih:176 }, guardian:{ iw:220, ih:234 }, disperser:{ iw:224, ih:215 }, gemini:{ iw:163, ih:232 }, omnis:{ iw:175, ih:236 }, claude:{ iw:182, ih:236 }, zero:{ iw:228, ih:240 }, compiler:{ iw:224, ih:184 }, holo:{ iw:102, ih:220 }, arm:{ iw:220, ih:234 } };
+// 각 동작은 10프레임(공격·피격·사망·스킬 + 4행 다관절 대기 루프). 선딜레이 압축 후 폭발적인 관절 신전과 완만한 복귀를 그린다.
 const ART_ACTIONS = {
-  attack:{ row:0, times:[.06,.06,.05,.06,.09,.10] },
-  hit:{ row:1, times:[.035,.04,.055,.05,.06,.08] },
-  death:{ row:2, times:[.10,.10,.12,.12,.14,.16] },
-  skill:{ row:3, times:[.07,.08,.07,.08,.10,.10] },
+  attack:{ row:0, times:[.04,.045,.045,.035,.04,.045,.05,.055,.06,.065] },
+  hit:{ row:1, times:[.025,.03,.035,.04,.045,.045,.045,.045,.045,.045] },
+  death:{ row:2, times:[.06,.065,.07,.075,.08,.085,.09,.095,.10,.12] },
+  skill:{ row:3, times:[.045,.05,.05,.05,.05,.055,.055,.055,.055,.055] },
+  idle:{ row:4, loop:true, times:[.13,.13,.13,.13,.13,.13,.13,.13,.13,.13] },
 };
 function artHasActions(name){
   if (!artImg(name) && !artImg(name + '_actions') && ART_FALLBACK[name]) name = ART_FALLBACK[name];
@@ -111,27 +116,36 @@ function artAdvance(actor, dt){
   if (!actor.artAction) return;
   actor.artElapsed += dt;
   const clip = ART_ACTIONS[actor.artAction];
+  if (!clip || clip.loop) return;
   if (actor.artAction !== 'death' && actor.artElapsed >= clip.times.reduce((a,b) => a+b, 0)) actor.artAction = null;
 }
 function artFrame(action, elapsed){
   const clip = ART_ACTIONS[action];
   if (!clip) return null;
-  if (artCalm && artCalm.matches) return { row:clip.row, col:action === 'death' ? 5 : 3 };
+  const last = clip.times.length - 1;
+  if (artCalm && artCalm.matches) return { row:clip.row, col:action === 'death' ? last : action === 'idle' ? 0 : Math.floor(last * .5) };
+  if (clip.loop){
+    const dur = clip.times.reduce((a, b) => a + b, 0);
+    elapsed = ((elapsed % dur) + dur) % dur;
+  }
   let col = 0;
-  while (col < 5 && elapsed >= clip.times[col]) elapsed -= clip.times[col++];
+  while (col < last && elapsed >= clip.times[col]) elapsed -= clip.times[col++];
   return { row:clip.row, col };
 }
 
-// cx: 가운데, 발밑은 ART_FOOT + dy. o = { flash:색, flashA, outline:색 }
+// cx: 가운데, 발밑은 ART_FOOT + dy. o = { flash:색, flashA, outline:색, idleT }
 function drawCharArt(name, cx, dy, o = {}){
   if (!artImg(name) && !artImg(name + '_actions') && ART_FALLBACK[name]) name = ART_FALLBACK[name];
   const box = ART_BOX[name];
-  const pose = o.actor && (artFrame(o.actor.artAction, o.actor.artElapsed) || { row:0, col:5 });
-  const sheet = pose && artImg(name + '_actions');
+  const sheet = o.actor && artImg(name + '_actions');
   const meta = ART_SHEET[name];
   if (sheet && box && meta){
     // 대기 포즈를 상자에 맞춘 배율을 모든 프레임에 쓴다. 팔·무기는 상자 밖으로 뻗고, 누운 포즈도 커지지 않는다
-    const cell = ART_SHEET.cell, src = sheet.naturalWidth / 6;
+    const cell = ART_SHEET.cell, cols = ART_ACTIONS.attack.times.length, src = sheet.naturalWidth / cols;
+    const hasIdle = (ART_ACTIONS.idle.row + 1) * src <= sheet.naturalHeight;
+    const idleT = o.idleT !== undefined ? o.idleT : (typeof G !== 'undefined' && G ? G.time : 0);
+    const pose = artFrame(o.actor.artAction, o.actor.artElapsed)
+      || (hasIdle ? artFrame('idle', idleT + name.length * .17) : { row:0, col:cols - 1 });
     const row = (pose.row + 1) * src <= sheet.naturalHeight ? pose.row : 0;
     const k = Math.min(box.w / meta.iw, box.h / meta.ih), size = cell * k;
     // 날던 박쥐는 사망 앞 세 포즈(0.32초) 동안 바닥으로 내려온다. 한 번에 0으로 떨어지면 첫 프레임이 순간이동해 보인다

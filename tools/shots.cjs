@@ -22,7 +22,7 @@ const SCREENS = {
   shop: () => { showShop(); },
   rest: () => { showRest(); },
   garage: () => { showGarage(() => showMap(), false); },
-  archive: () => { for (const k of Object.keys(ORBS)) META.seen.orb[k] = true; for (const k of Object.keys(RELICS)) META.seen.relic[k] = true; showBadges(); },
+  archive: () => { for (const k of Object.keys(ORBS)) META.seen.orb[k] = true; for (const k of Object.keys(RELICS)) META.seen.relic[k] = true; for (const r of RESONANCE) META.res[r.id] = 1; showBadges(); },
   menu: () => { openMenu(); },
 };
 

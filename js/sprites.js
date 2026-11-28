@@ -208,10 +208,15 @@ const ORB_MARK = {
   crown:['#.#.#','#####','#####','.....','.....'],
 };
 // 같은 명암과 각인을 전투·덱·보상에서 공유해야 작은 구슬도 식별된다.
-function drawOrbSprite(kind, x, y, size = 9, target = ctx){
+function drawOrbSprite(kind, x, y, size = 9, target = ctx, lv = 1){
   const g = target, u = size / 12;
   const im = typeof artImg === 'function' && artImg('orb_' + kind);
-  if (im){ g.drawImage(im, x - size / 2, y - size / 2, size, size); return; }
+  if (im){
+    g.drawImage(im, x - size / 2, y - size / 2, size, size);
+    const ring = lv >= 2 && artImg('orb_lv_' + lv);
+    if (ring){ const rs = size * 1.28; g.drawImage(ring, x - rs / 2, y - rs / 2, rs, rs); }
+    return;
+  }
   g.save(); g.translate(Math.round(x - size / 2), Math.round(y - size / 2)); g.scale(u, u);
   const rect = (col, a, b, w, h) => { g.fillStyle = col; g.fillRect(a, b, w, h); };
   rect(C.line, 3, 12, 8, 1);
@@ -259,16 +264,38 @@ function relicPortrait(kind, className = 'orbPortrait'){
   im.src = ART.img['relic_' + kind].src;
   return im;
 }
-function orbPortrait(kind, className = 'orbPortrait'){
+function orbPortrait(kind, className = 'orbPortrait', lv = 1){
   // 일러스트 구슬은 <img>로 둔다: 아직 로드 전이어도 브라우저가 도착하면 알아서 그리고, 실패하면 도트 캔버스로 바꾼다
+  let coreEl;
   if (typeof Image !== 'undefined' && ART.img['orb_' + kind]){
     const im = document.createElement('img');
     im.src = ART.img['orb_' + kind].src; im.alt = ''; im.className = className; im.setAttribute('aria-hidden', 'true');
-    im.onerror = () => { delete ART.img['orb_' + kind]; im.replaceWith(orbPortrait(kind, className)); };
+    im.onerror = () => { delete ART.img['orb_' + kind]; im.replaceWith(orbPortrait(kind, className, 1)); };
+    coreEl = im;
+  } else {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 32;
+    c.className = className; c.setAttribute('aria-hidden', 'true');
+    drawOrbSprite(kind, 16, 16, 22, c.getContext('2d'));
+    coreEl = c;
+  }
+  if (lv >= 2 && typeof Image !== 'undefined' && ART.img['orb_lv_' + lv]){
+    const wrap = document.createElement('span'); wrap.className = 'orbWrap'; wrap.setAttribute('aria-hidden', 'true');
+    const ring = document.createElement('img');
+    ring.src = ART.img['orb_lv_' + lv].src; ring.alt = ''; ring.className = 'orbRing';
+    ring.onerror = () => ring.remove();
+    wrap.append(coreEl, ring);
+    return wrap;
+  }
+  return coreEl;
+}
+function resPortrait(id, className = 'bIc'){
+  if (typeof Image !== 'undefined' && ART.img['res_' + id]){
+    const im = document.createElement('img');
+    im.src = ART.img['res_' + id].src; im.alt = ''; im.className = className; im.setAttribute('aria-hidden', 'true');
+    const r = RESONANCE.find(x => x.id === id);
+    im.onerror = () => { delete ART.img['res_' + id]; if (r) im.replaceWith(orbPortrait(r.core, className)); };
     return im;
   }
-  const c = document.createElement('canvas'); c.width = 32; c.height = 32;
-  c.className = className; c.setAttribute('aria-hidden', 'true');
-  drawOrbSprite(kind, 16, 16, 22, c.getContext('2d'));
-  return c;
+  const r = RESONANCE.find(x => x.id === id);
+  return orbPortrait(r ? r.core : 'basic', className);
 }

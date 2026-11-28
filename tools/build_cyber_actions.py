@@ -192,11 +192,14 @@ def solve_2bone_ik(H0, K0, A0, H1, A1):
     L2 = math.hypot(A0[0] - K0[0], A0[1] - K0[1])
     dx, dy = A1[0] - H1[0], A1[1] - H1[1]
     d = math.hypot(dx, dy)
-    # 기본 무릎이 H0->A0 선분의 어느 쪽에 있었는지 외적 부호로 판별
-    cross0 = (K0[0] - H0[0]) * (A0[1] - H0[1]) - (K0[1] - H0[1]) * (A0[0] - H0[0])
-    sign = 1.0 if cross0 >= 0 else -1.0
+    # 기본 무릎(K0)이 H0->A0 단위벡터의 법선 (-uy0, ux0) 방향과 이루는 내적 부호를 보존한다.
+    # 그래야 대기 포즈(H1==H0, A1==A0)에서 K1==K0가 정확히 복원되고, 굽힘 시 무릎이 역관절로 뒤집히지 않는다.
+    dx0, dy0 = A0[0] - H0[0], A0[1] - H0[1]
+    d0 = max(1e-6, math.hypot(dx0, dy0))
+    dot0 = (K0[0] - H0[0]) * (-dy0 / d0) + (K0[1] - H0[1]) * (dx0 / d0)
+    sign = 1.0 if dot0 >= 0 else -1.0
 
-    d_clamped = max(abs(L1 - L2) + 1.0, min(L1 + L2 - 1.0, d))
+    d_clamped = max(abs(L1 - L2) + 0.5, min(L1 + L2 - 0.5, d))
     a = (L1 * L1 - L2 * L2 + d_clamped * d_clamped) / (2.0 * d_clamped)
     h = math.sqrt(max(0.0, L1 * L1 - a * a))
 
@@ -647,129 +650,475 @@ class SkinnedEnemy:
         return drop_strays(cell)
 
 
+N_COLS = 10
+
+
+def draw_crescent_slash(cell_im, cx, cy, rx, ry, deg0, deg1, thick=18, color=C_WHITE, mid_col=C_SILVER):
+    """2배 슈퍼샘플링으로 날카롭게 끝이 모이는 애니메이션풍 초승달 스미어(검기/타격 궤적)를 합성한다."""
+    SS = 2
+    layer = Image.new('RGBA', (CELL * SS, CELL * SS), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    steps = 28
+    outer, inner = [], []
+    for i in range(steps + 1):
+        u = i / steps
+        ang = math.radians(deg0 + (deg1 - deg0) * u)
+        w = math.sin(math.pi * u) ** 0.75 * thick
+        ox = (cx + math.cos(ang) * (rx + w * 0.55)) * SS
+        oy = (cy + math.sin(ang) * (ry + w * 0.55)) * SS
+        ix = (cx + math.cos(ang) * max(2.0, rx - w * 0.45)) * SS
+        iy = (cy + math.sin(ang) * max(2.0, ry - w * 0.45)) * SS
+        outer.append((ox, oy))
+        inner.append((ix, iy))
+    poly = outer + inner[::-1]
+    d.line(poly + [poly[0]], fill=C_INK, width=5)
+    d.polygon(poly, fill=(*mid_col[:3], 225))
+    # 안쪽 고휘도 코어 궤적
+    core_pts = []
+    for i in range(3, steps - 2):
+        u = i / steps
+        ang = math.radians(deg0 + (deg1 - deg0) * u)
+        w = math.sin(math.pi * u) * (thick * 0.32)
+        core_pts.append(((cx + math.cos(ang) * (rx + w * 0.25)) * SS, (cy + math.sin(ang) * (ry + w * 0.25)) * SS))
+    for i in range(steps - 3, 2, -1):
+        u = i / steps
+        ang = math.radians(deg0 + (deg1 - deg0) * u)
+        w = math.sin(math.pi * u) * (thick * 0.32)
+        core_pts.append(((cx + math.cos(ang) * (rx - w * 0.15)) * SS, (cy + math.sin(ang) * (ry - w * 0.15)) * SS))
+    if len(core_pts) >= 3:
+        d.polygon(core_pts, fill=color)
+    out = cell_im.copy()
+    out.alpha_composite(layer.resize((CELL, CELL), Image.LANCZOS))
+    return out
+
+
+def draw_plasma_bolts(cell_im, cx, cy, r0, r1, phase=0.0, n_bolts=5, color=C_WHITE):
+    """구체·건틀릿 주변에 뻗어 나오는 예리한 셀화풍 분기 번개 아크."""
+    SS = 2
+    layer = Image.new('RGBA', (CELL * SS, CELL * SS), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    for i in range(n_bolts):
+        ang = phase + i * (2 * math.pi / n_bolts)
+        pts = []
+        segs = 4
+        for k in range(segs + 1):
+            u = k / segs
+            rr = r0 + (r1 - r0) * u
+            jag = (5.5 if k % 2 == 1 else -4.5) * math.sin(math.pi * u) * (1 if i % 2 == 0 else -1)
+            na = ang + jag * 0.025
+            pts.append((round((cx + math.cos(na) * rr) * SS), round((cy + math.sin(na) * rr) * SS)))
+        d.line(pts, fill=C_INK, width=7)
+        d.line(pts, fill=color, width=3)
+    out = cell_im.copy()
+    out.alpha_composite(layer.resize((CELL, CELL), Image.LANCZOS))
+    return out
+
+
+def draw_railgun_blast(cell_im, x0, y0, x1, y1, h=18, color=C_IVORY, core=C_WHITE):
+    """다중 충격파 링 + 나선형 플라즈마 번개 + 고휘도 레일건 빔 합성."""
+    out = cell_im.copy()
+    d = ImageDraw.Draw(out)
+    draw_laser_beam(d, x0, y0, x1, y1, color=C_SILVER, core=core, h=h)
+    # 빔 위아래를 감싸는 고전압 지그재그 번개 두 줄
+    span = x1 - x0
+    if abs(span) > 24:
+        top_arc = [(x0, y0 - 4), (x0 + span * 0.32, y0 - h * 0.95), (x0 + span * 0.66, y0 + h * 0.65), (x1, y1 - 3)]
+        bot_arc = [(x0, y0 + 4), (x0 + span * 0.36, y0 + h * 0.95), (x0 + span * 0.72, y0 - h * 0.65), (x1, y1 + 3)]
+        draw_lightning_arc(d, [(round(px), round(py)) for px, py in top_arc], C_WHITE, C_WHITE, width=3)
+        draw_lightning_arc(d, [(round(px), round(py)) for px, py in bot_arc], C_IVORY, C_WHITE, width=2)
+    draw_pixel_ring(d, x0 + 14, y0, 14, round(h * 1.9), C_WHITE, C_INK, width=3)
+    draw_pixel_ring(d, x0 + 34, y0, 10, round(h * 1.35), C_SILVER, C_INK, width=2, dashed=True)
+    draw_pixel_burst(d, x1 - 10, y1, (8, round(h * 1.9)), C_WHITE, C_INK, n_rays=8, angle_offset=0.25)
+    return out
+
+
 def build_rick():
-    """릭(Rick): 대기(5번 칸)와 시작(0번 칸)은 구슬을 들고 있는 모습(characters/rick.png)을 사용한다."""
-    a = np.array(Image.open(ACT_DIR / 'rick.png').convert('RGBA'))
-    owner = segment(a)
-    h, w = a.shape[:2]
-    cw, ch = w / 6, h / 3
-    boxes = []
-    for i in range(18):
-        r, c = divmod(i, 6)
-        ys, xs = np.nonzero(owner == i)
-        boxes.append((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1, c * cw, r * ch))
-    ax = (boxes[5][0] + boxes[5][2]) / 2 - boxes[5][4]
-    foot = [boxes[r * 6 + 5][3] - boxes[r * 6 + 5][5] for r in range(3)]
-    rel = []
-    for i, (x0, y0, x1, y1, ox, oy) in enumerate(boxes):
-        dy = -foot[i // 6] - max(0, y1 - oy - foot[i // 6])
-        rel.append((x0 - ox - ax, y0 - oy + dy, x1 - ox - ax, y1 - oy + dy))
-    half = max(max(-r[0], r[2]) for r in rel)
-    up = max(-r[1] for r in rel)
-    scale = min((CELL / 2 - PAD) / half, (CELL - FOOT_ROOM - PAD) / up)
+    """릭(Rick) — 서브컬처 셀화풍 마스터 스프라이트 기반 14파츠 인체 다관절 리깅(어깨-상완-전완-손목 3단 체인 + 양다리 정방향 무릎 2-Bone IK + 코트·어깨장갑) × 50프레임(10×5)."""
+    parts_spec = [
+        {'name': 'orb',         'poly': [(635, 175), (805, 175), (805, 308), (635, 308)], 'pivot': (716, 260), 'parent': 'hand_r',      'blur': 8,  'weld_radius': 0},
+        {'name': 'hand_r',      'poly': [(676, 308), (768, 308), (768, 384), (676, 384)], 'pivot': (682, 355), 'parent': 'forearm_r',   'blur': 10, 'weld_radius': 30},
+        {'name': 'forearm_r',   'poly': [(580, 330), (682, 328), (698, 388), (576, 428)], 'pivot': (594, 368), 'parent': 'upper_arm_r', 'blur': 12, 'weld_radius': 42},
+        {'name': 'upper_arm_r', 'poly': [(536, 224), (590, 224), (614, 336), (596, 392), (554, 392), (542, 310)], 'pivot': (552, 246), 'parent': 'torso', 'blur': 14, 'weld_radius': 48},
+        {'name': 'head',        'poly': [(398, 38),  (586, 38),  (586, 204), (518, 212), (444, 202)], 'pivot': (486, 198), 'parent': 'torso', 'blur': 12, 'weld_radius': 38},
+        {'name': 'forearm_l',   'poly': [(318, 362), (396, 362), (410, 542), (334, 542)], 'pivot': (356, 366), 'parent': 'upper_arm_l', 'blur': 12, 'weld_radius': 42},
+        {'name': 'upper_arm_l', 'poly': [(322, 198), (434, 198), (418, 315), (396, 366), (320, 366)], 'pivot': (398, 242), 'parent': 'torso', 'blur': 14, 'weld_radius': 50},
+        {'name': 'coat_b',      'poly': [(225, 418), (442, 418), (402, 588), (225, 668)], 'pivot': (424, 438), 'parent': 'pelvis',      'blur': 16, 'weld_radius': 48},
+        {'name': 'shin_l',      'poly': [(302, 672), (456, 672), (456, 986), (302, 986)], 'pivot': (362, 952), 'parent': None,          'blur': 14},
+        {'name': 'thigh_l',     'poly': [(372, 515), (496, 515), (466, 686), (352, 686)], 'pivot': (446, 515), 'parent': 'pelvis',      'blur': 14},
+        {'name': 'shin_r',      'poly': [(502, 675), (662, 675), (662, 956), (502, 956)], 'pivot': (565, 915), 'parent': None,          'blur': 14},
+        {'name': 'thigh_r',     'poly': [(496, 515), (604, 515), (606, 688), (502, 688)], 'pivot': (538, 515), 'parent': 'pelvis',      'blur': 14},
+        {'name': 'pelvis',      'poly': [(404, 425), (590, 425), (596, 550), (394, 550)], 'pivot': (492, 475), 'parent': None,          'blur': 15},
+        {'name': 'torso',       'poly': None, 'pivot': (488, 425), 'parent': 'pelvis',    'blur': 15, 'weld_radius': 52},
+    ]
+    # 두 무릎 K 모두 우측(+x, 진행 방향)으로 자연스럽게 굽혀지도록 무릎 기준점 설정
+    ik_legs = [
+        {'thigh': 'thigh_l', 'shin': 'shin_l', 'hip_parent': 'pelvis', 'H': (446, 515), 'K': (428, 672), 'A': (362, 952)},
+        {'thigh': 'thigh_r', 'shin': 'shin_r', 'hip_parent': 'pelvis', 'H': (538, 515), 'K': (570, 675), 'A': (565, 915)},
+    ]
+    chains = [
+        ['coat_b'],
+        ['thigh_r', 'shin_r'],
+        ['thigh_l', 'shin_l'],
+        ['pelvis', 'torso', 'head'],
+        ['upper_arm_l', 'forearm_l'],
+        ['upper_arm_r', 'forearm_r', 'hand_r'],
+        ['orb'],
+    ]
+    rig = SkinnedEnemy('rick', parts_spec, ik_legs=ik_legs, chains=chains, base_size=244, blur_radius=14)
 
+    # 0행: 공격(10프레임) — 무게중심 후방 이동 & 팔꿈치 깊은 굴곡 차징(f0~f2) -> 골반·흉곽 회전 + 어깨·팔꿈치 완전 신전 채찍 타격(f3~f5) -> 반동 및 완만한 복귀(f6~f9)
+    atk = [
+        # f0: 예비 동작 시작 — 무릎을 살짝 굽히며 오른 팔꿈치를 몸쪽으로 당긴다
+        ({'pelvis': {'dx': -10, 'dy': 10, 'rot': -2.5}, 'torso': {'rot': -5}, 'head': {'rot': 4}, 'coat_b': {'rot': 9},
+          'upper_arm_l': {'rot': 10}, 'forearm_l': {'rot': -12},
+          'upper_arm_r': {'rot': 14}, 'forearm_r': {'rot': -18}, 'hand_r': {'rot': -6}, 'orb': {'sx': 0.95, 'sy': 0.95}}, 1.01, 0.0, None),
+        # f1: 깊은 코일링 — 뒷다리에 체중을 싣고 건틀릿에 고전압 응축
+        ({'pelvis': {'dx': -22, 'dy': 22, 'rot': -5}, 'torso': {'rot': -10}, 'head': {'rot': 8}, 'coat_b': {'rot': 18},
+          'upper_arm_l': {'rot': 20}, 'forearm_l': {'rot': -22},
+          'upper_arm_r': {'rot': 26}, 'forearm_r': {'rot': -34}, 'hand_r': {'rot': -12}, 'orb': {'sx': 0.90, 'sy': 0.90}}, 1.04, 0.0,
+         lambda c, r: draw_plasma_bolts(c, GX + 36, GY - 190, 10, 26, phase=0.2, n_bolts=4)),
+        # f2: 최대 압축(점화 직전) — 구체 발광 팽창 & 수렴 링
+        ({'pelvis': {'dx': -28, 'dy': 28, 'rot': -6.5}, 'torso': {'rot': -13}, 'head': {'rot': 11}, 'coat_b': {'rot': 25},
+          'upper_arm_l': {'rot': 25}, 'forearm_l': {'rot': -28},
+          'upper_arm_r': {'rot': 32}, 'forearm_r': {'rot': -42}, 'hand_r': {'rot': -16}, 'orb': {'sx': 1.14, 'sy': 1.14}}, 1.08, 0.0,
+         lambda c, r: (
+             draw_pixel_ring(ImageDraw.Draw(c), GX + 32, GY - 192, 26, 26, C_WHITE, C_INK, 2, dashed=True),
+             draw_plasma_bolts(c, GX + 32, GY - 192, 12, 34, phase=0.9, n_bolts=5))[1]),
+        # f3: 폭발적 하체·어깨 회전 시작 — 초승달 스미어 궤적과 함께 팔이 펴지기 시작!
+        ({'pelvis': {'dx': 14, 'dy': 14, 'rot': 4}, 'shin_r': {'foot_dx': 8}, 'torso': {'rot': 8}, 'head': {'rot': -5}, 'coat_b': {'rot': -16},
+          'upper_arm_l': {'rot': -18}, 'forearm_l': {'rot': -6},
+          'upper_arm_r': {'rot': -38}, 'forearm_r': {'rot': 34}, 'hand_r': {'rot': 6}, 'orb': {'joint_dx': 16, 'joint_dy': 12, 'sx': 1.20, 'sy': 1.16}}, 1.12, 0.0,
+         lambda c, r: draw_crescent_slash(c, GX + 36, GY - 168, 56, 44, -68, 38, thick=18, color=C_WHITE, mid_col=C_SILVER)),
+        # f4: 팔꿈치 180도 완전 신전(최대 타격 임팩트!) — 전방 런지 + 초고출력 레일건 번개 포격!
+        ({'pelvis': {'dx': 32, 'dy': 20, 'rot': 7.5}, 'shin_r': {'foot_dx': 16}, 'torso': {'rot': 13}, 'head': {'rot': -9}, 'coat_b': {'rot': -28},
+          'upper_arm_l': {'rot': -32}, 'forearm_l': {'rot': 10},
+          'upper_arm_r': {'rot': -66}, 'forearm_r': {'rot': 64}, 'hand_r': {'rot': 12}, 'orb': {'joint_dx': 44, 'joint_dy': 22, 'sx': 1.32, 'sy': 1.14}}, 1.16, 0.0,
+         lambda c, r: draw_railgun_blast(
+             draw_crescent_slash(c, GX + 52, GY - 165, 68, 52, -52, 46, thick=22, color=C_WHITE, mid_col=C_IVORY),
+             GX + 72, GY - 165, CELL - 6, GY - 165, h=18)),
+        # f5: 격발 여진 및 손목 반동(팔로우 스루) — 이중 충격파 확산
+        ({'pelvis': {'dx': 28, 'dy': 18, 'rot': 6.5}, 'shin_r': {'foot_dx': 14}, 'torso': {'rot': 11}, 'head': {'rot': -7}, 'coat_b': {'rot': -25},
+          'upper_arm_l': {'rot': -28}, 'forearm_l': {'rot': 8},
+          'upper_arm_r': {'rot': -60}, 'forearm_r': {'rot': 56}, 'hand_r': {'rot': -8}, 'orb': {'joint_dx': 68, 'joint_dy': 20, 'sx': 1.24, 'sy': 1.06}}, 1.10, 0.0,
+         lambda c, r: (
+             draw_laser_beam(ImageDraw.Draw(c), GX + 78, GY - 165, CELL - 8, GY - 165, C_SILVER, C_WHITE, h=10),
+             draw_pixel_ring(ImageDraw.Draw(c), GX + 96, GY - 165, 18, 42, C_WHITE, C_INK, 3, dashed=True),
+             draw_plasma_bolts(c, GX + 90, GY - 165, 14, 42, phase=1.7, n_bolts=5))[2]),
+        # f6: 잔류 스파크 & 팔꿈치 자연 이완 시작
+        ({'pelvis': {'dx': 18, 'dy': 12, 'rot': 4}, 'shin_r': {'foot_dx': 8}, 'torso': {'rot': 6}, 'head': {'rot': -4}, 'coat_b': {'rot': -16},
+          'upper_arm_l': {'rot': -16}, 'forearm_l': {'rot': 4},
+          'upper_arm_r': {'rot': -36}, 'forearm_r': {'rot': 32}, 'hand_r': {'rot': -5}, 'orb': {'joint_dx': 24, 'joint_dy': 8, 'sx': 0.96, 'sy': 0.96}}, 1.05, 0.0,
+         lambda c, r: draw_plasma_bolts(c, GX + 68, GY - 175, 8, 24, phase=2.4, n_bolts=4)),
+        # f7: 복귀 1 — 가드 자세로 회수
+        ({'pelvis': {'dx': 8, 'dy': 6, 'rot': 1.8}, 'shin_r': {'foot_dx': 3}, 'torso': {'rot': 2.5}, 'head': {'rot': -2}, 'coat_b': {'rot': -7},
+          'upper_arm_l': {'rot': -7}, 'forearm_l': {'rot': 2},
+          'upper_arm_r': {'rot': -16}, 'forearm_r': {'rot': 14}, 'hand_r': {'rot': -2}}, 1.02, 0.0, None),
+        # f8: 복귀 2 — 무릎·코트 잔진동 안착
+        ({'pelvis': {'dx': 2, 'dy': 2, 'rot': 0.5}, 'torso': {'rot': 0.8}, 'coat_b': {'rot': -2},
+          'upper_arm_l': {'rot': -2}, 'upper_arm_r': {'rot': -5}, 'forearm_r': {'rot': 4}}, 1.0, 0.0, None),
+        # f9: 완벽한 대기 포즈 이음매
+        ({}, 1.0, 0.0, None),
+    ]
+
+    # 1행: 피격(10프레임) — 충격 스파크 -> 무릎 굴곡 & 전완 건틀릿 안면 크로스 가드 -> 다관절 탄성 복귀
+    hit = [
+        ({'pelvis': {'dx': -12, 'dy': 10, 'rot': -4}, 'torso': {'rot': -8}, 'head': {'rot': 9}, 'coat_b': {'rot': 14},
+          'upper_arm_l': {'rot': 14}, 'forearm_l': {'rot': -16},
+          'upper_arm_r': {'rot': -14}, 'forearm_r': {'rot': -22}, 'hand_r': {'rot': -8}}, 1.24, 0.0,
+         lambda c, r: draw_hit_spark(c, GX + 24, GY - 165, is_red=False)),
+        ({'pelvis': {'dx': -24, 'dy': 20, 'rot': -7}, 'torso': {'rot': -14}, 'head': {'rot': 15}, 'coat_b': {'rot': 24},
+          'upper_arm_l': {'rot': 24}, 'forearm_l': {'rot': -26},
+          'upper_arm_r': {'rot': -24}, 'forearm_r': {'rot': -36}, 'hand_r': {'rot': -12}}, 1.14, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX + 6, GY - 172, (10, 30), C_WHITE, C_INK, 8), c)[1]),
+        ({'pelvis': {'dx': -32, 'dy': 26, 'rot': -9}, 'shin_l': {'foot_dx': -6}, 'torso': {'rot': -18}, 'head': {'rot': 18}, 'coat_b': {'rot': 32},
+          'upper_arm_l': {'rot': 30}, 'forearm_l': {'rot': -32},
+          'upper_arm_r': {'rot': -28}, 'forearm_r': {'rot': -44}, 'hand_r': {'rot': -14}}, 0.96, 0.0,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX - 18, GY - 8, 22, 4, C_SMOKE, C_SILVER), c)[1]),
+        ({'pelvis': {'dx': -28, 'dy': 23, 'rot': -8}, 'shin_l': {'foot_dx': -5}, 'torso': {'rot': -15}, 'head': {'rot': 15}, 'coat_b': {'rot': 28},
+          'upper_arm_l': {'rot': 26}, 'forearm_l': {'rot': -28},
+          'upper_arm_r': {'rot': -24}, 'forearm_r': {'rot': -38}, 'hand_r': {'rot': -10}}, 0.97, 0.0, None),
+        ({'pelvis': {'dx': -20, 'dy': 16, 'rot': -5.5}, 'shin_l': {'foot_dx': -3}, 'torso': {'rot': -11}, 'head': {'rot': 11}, 'coat_b': {'rot': 20},
+          'upper_arm_l': {'rot': 18}, 'forearm_l': {'rot': -20},
+          'upper_arm_r': {'rot': -16}, 'forearm_r': {'rot': -26}, 'hand_r': {'rot': -6}}, 0.99, 0.0, None),
+        ({'pelvis': {'dx': -12, 'dy': 10, 'rot': -3.5}, 'torso': {'rot': -7}, 'head': {'rot': 7}, 'coat_b': {'rot': 12},
+          'upper_arm_l': {'rot': 11}, 'forearm_l': {'rot': -12},
+          'upper_arm_r': {'rot': -10}, 'forearm_r': {'rot': -15}}, 1.0, 0.0, None),
+        ({'pelvis': {'dx': -6, 'dy': 5, 'rot': -1.8}, 'torso': {'rot': -3.5}, 'head': {'rot': 3.5}, 'coat_b': {'rot': 6},
+          'upper_arm_l': {'rot': 5}, 'forearm_l': {'rot': -6},
+          'upper_arm_r': {'rot': -5}, 'forearm_r': {'rot': -7}}, 1.0, 0.0, None),
+        ({'pelvis': {'dx': -2.5, 'dy': 2, 'rot': -0.7}, 'torso': {'rot': -1.5}, 'head': {'rot': 1.5}, 'coat_b': {'rot': 2.5},
+          'upper_arm_r': {'rot': -2}, 'forearm_r': {'rot': -3}}, 1.0, 0.0, None),
+        ({'pelvis': {'dx': -0.8, 'dy': 0.5}, 'torso': {'rot': -0.4}, 'coat_b': {'rot': 0.8}}, 1.0, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+
+    # 2행: 사망(10프레임) — 치명타 피격 -> 무릎 굴복 -> 한쪽 무릎 꿇기 -> 지면 쓰러짐 & 코어 소멸
+    death = [
+        ({'pelvis': {'dx': -14, 'dy': 16, 'rot': -5}, 'torso': {'rot': -10}, 'head': {'rot': 12}, 'coat_b': {'rot': 16},
+          'upper_arm_l': {'rot': 16}, 'upper_arm_r': {'rot': 8}, 'forearm_r': {'rot': 12}, 'orb': {'sx': 0.90, 'sy': 0.90}}, 1.16, 0.08,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX + 6, GY - 155, (10, 36), C_WHITE, C_INK, 8), c)[1]),
+        ({'pelvis': {'dx': -18, 'dy': 36, 'rot': -2}, 'shin_l': {'foot_dx': -10}, 'shin_r': {'foot_dx': 8},
+          'torso': {'rot': 4}, 'head': {'rot': 16}, 'coat_b': {'rot': 8},
+          'upper_arm_l': {'rot': 8}, 'forearm_l': {'rot': 10}, 'upper_arm_r': {'rot': 14}, 'forearm_r': {'rot': 22}, 'orb': {'sx': 0.78, 'sy': 0.78}}, 0.98, 0.20, None),
+        ({'pelvis': {'dx': -12, 'dy': 64, 'rot': 4}, 'shin_l': {'foot_dx': -22}, 'shin_r': {'foot_dx': 18},
+          'torso': {'rot': 12}, 'head': {'rot': 20}, 'coat_b': {'rot': -6},
+          'upper_arm_l': {'rot': -8}, 'forearm_l': {'rot': 16}, 'upper_arm_r': {'rot': 18}, 'forearm_r': {'rot': 32}, 'orb': {'joint_dy': 18, 'sx': 0.65, 'sy': 0.65}}, 0.90, 0.34, None),
+        ({'pelvis': {'dx': -4, 'dy': 94, 'rot': 10}, 'shin_l': {'foot_dx': -34}, 'shin_r': {'foot_dx': 28},
+          'torso': {'rot': 20}, 'head': {'rot': 25}, 'coat_b': {'rot': -14},
+          'upper_arm_l': {'rot': -18}, 'forearm_l': {'rot': 22}, 'upper_arm_r': {'rot': 22}, 'forearm_r': {'rot': 40}, 'orb': {'joint_dy': 34, 'sx': 0.52, 'sy': 0.52}}, 0.84, 0.48, None),
+        ({'pelvis': {'dx': 2, 'dy': 122, 'rot': 16}, 'shin_l': {'foot_dx': -46}, 'shin_r': {'foot_dx': 38},
+          'torso': {'rot': 27}, 'head': {'rot': 30}, 'coat_b': {'rot': -22},
+          'upper_arm_l': {'rot': -26}, 'forearm_l': {'rot': 28}, 'upper_arm_r': {'rot': 26}, 'forearm_r': {'rot': 48}, 'orb': {'joint_dy': 50, 'sx': 0.40, 'sy': 0.40}}, 0.78, 0.60,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX, GY - 22, 44, 5, C_SMOKE, C_SILVER), c)[1]),
+        ({'pelvis': {'dx': 8, 'dy': 146, 'rot': 21}, 'shin_l': {'foot_dx': -54}, 'shin_r': {'foot_dx': 46},
+          'torso': {'rot': 33}, 'head': {'rot': 34}, 'coat_b': {'rot': -28},
+          'upper_arm_l': {'rot': -32}, 'forearm_l': {'rot': 32}, 'upper_arm_r': {'rot': 30}, 'forearm_r': {'rot': 54}, 'orb': {'joint_dy': 64, 'sx': 0.28, 'sy': 0.28}}, 0.72, 0.72, None),
+        ({'pelvis': {'dx': 12, 'dy': 164, 'rot': 25}, 'shin_l': {'foot_dx': -60}, 'shin_r': {'foot_dx': 52},
+          'torso': {'rot': 37}, 'head': {'rot': 37}, 'coat_b': {'rot': -32},
+          'upper_arm_l': {'rot': -36}, 'forearm_l': {'rot': 35}, 'upper_arm_r': {'rot': 32}, 'forearm_r': {'rot': 58}, 'orb': {'joint_dy': 74, 'sx': 0.18, 'sy': 0.18}}, 0.66, 0.82, None),
+        ({'pelvis': {'dx': 15, 'dy': 176, 'rot': 28}, 'shin_l': {'foot_dx': -64}, 'shin_r': {'foot_dx': 56},
+          'torso': {'rot': 40}, 'head': {'rot': 39}, 'coat_b': {'rot': -35},
+          'upper_arm_l': {'rot': -39}, 'forearm_l': {'rot': 37}, 'upper_arm_r': {'rot': 34}, 'forearm_r': {'rot': 61}, 'orb': {'joint_dy': 82, 'sx': 0.10, 'sy': 0.10}}, 0.62, 0.89, None),
+        ({'pelvis': {'dx': 17, 'dy': 182, 'rot': 29.5}, 'shin_l': {'foot_dx': -66}, 'shin_r': {'foot_dx': 58},
+          'torso': {'rot': 41.5}, 'head': {'rot': 40}, 'coat_b': {'rot': -36},
+          'upper_arm_l': {'rot': -41}, 'forearm_l': {'rot': 38}, 'upper_arm_r': {'rot': 35}, 'forearm_r': {'rot': 63}, 'orb': {'joint_dy': 86, 'sx': 0.05, 'sy': 0.05}}, 0.59, 0.93, None),
+        ({'pelvis': {'dx': 18, 'dy': 185, 'rot': 30}, 'shin_l': {'foot_dx': -67}, 'shin_r': {'foot_dx': 59},
+          'torso': {'rot': 42}, 'head': {'rot': 40.5}, 'coat_b': {'rot': -37},
+          'upper_arm_l': {'rot': -42}, 'forearm_l': {'rot': 39}, 'upper_arm_r': {'rot': 36}, 'forearm_r': {'rot': 64}, 'orb': {'joint_dy': 88, 'sx': 0.02, 'sy': 0.02}}, 0.57, 0.96, None),
+    ]
+
+    # 3행: 스킬(10프레임) — 과전압 파형 공명(오버드라이브): 지면 자기장 응축 -> 건틀릿 고각 거상 -> 육각 전자기 필드 & 번개 기둥 폭발 -> 복귀
+    skill = [
+        ({'pelvis': {'dy': 10}, 'torso': {'rot': -3}, 'head': {'rot': 3}, 'coat_b': {'rot': 8},
+          'upper_arm_l': {'rot': 10}, 'forearm_l': {'rot': -10},
+          'upper_arm_r': {'rot': -16}, 'forearm_r': {'rot': -10}, 'orb': {'sx': 1.06, 'sy': 1.06}}, 1.04, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX, GY - 6, 48, 11, C_SILVER, C_INK, 2), c)[1]),
+        ({'pelvis': {'dx': -8, 'dy': 18, 'rot': -3}, 'torso': {'rot': -7}, 'head': {'rot': 5}, 'coat_b': {'rot': 18},
+          'upper_arm_l': {'rot': 20}, 'forearm_l': {'rot': -18},
+          'upper_arm_r': {'rot': -34}, 'forearm_r': {'rot': -18}, 'orb': {'sx': 1.16, 'sy': 1.16}}, 1.10, 0.0,
+         lambda c, r: (
+             draw_pixel_ring(ImageDraw.Draw(c), GX, GY - 6, 66, 15, C_IVORY, C_INK, 2),
+             draw_plasma_bolts(c, GX + 54, GY - 210, 10, 32, phase=0.5, n_bolts=5))[1]),
+        ({'pelvis': {'dx': -12, 'dy': 22, 'rot': -4}, 'torso': {'rot': -10}, 'head': {'rot': 6}, 'coat_b': {'rot': 26},
+          'upper_arm_l': {'rot': 26}, 'forearm_l': {'rot': -24},
+          'upper_arm_r': {'rot': -48}, 'forearm_r': {'rot': -22}, 'orb': {'sx': 1.26, 'sy': 1.26}}, 1.16, 0.0,
+         lambda c, r: (
+             draw_pixel_ring(ImageDraw.Draw(c), GX + 48, GY - 220, 38, 38, C_WHITE, C_INK, 3, dashed=True),
+             draw_lightning_arc(ImageDraw.Draw(c), [(GX - 36, GY - 10), (GX - 46, GY - 82), (GX - 28, GY - 160)], C_WHITE, width=3),
+             draw_plasma_bolts(c, GX + 48, GY - 220, 14, 42, phase=1.2, n_bolts=6))[2]),
+        ({'pelvis': {'dx': 12, 'dy': 14, 'rot': 4}, 'shin_r': {'foot_dx': 8}, 'torso': {'rot': 7}, 'head': {'rot': -5}, 'coat_b': {'rot': -16},
+          'upper_arm_l': {'rot': -18}, 'forearm_l': {'rot': 6},
+          'upper_arm_r': {'rot': -56}, 'forearm_r': {'rot': 46}, 'hand_r': {'rot': 8}, 'orb': {'joint_dx': 24, 'joint_dy': 12, 'sx': 1.32, 'sy': 1.32}}, 1.22, 0.0,
+         lambda c, r: (
+             draw_hex_shield(ImageDraw.Draw(c), GX + 52, GY - 155, 52, color=C_WHITE, border=C_SILVER, fill_alpha=70),
+             draw_crescent_slash(c, GX + 44, GY - 165, 64, 58, -75, 55, thick=20, color=C_WHITE, mid_col=C_IVORY))[1]),
+        ({'pelvis': {'dx': 26, 'dy': 18, 'rot': 7}, 'shin_r': {'foot_dx': 14}, 'torso': {'rot': 11}, 'head': {'rot': -8}, 'coat_b': {'rot': -26},
+          'upper_arm_l': {'rot': -28}, 'forearm_l': {'rot': 10},
+          'upper_arm_r': {'rot': -64}, 'forearm_r': {'rot': 60}, 'hand_r': {'rot': 12}, 'orb': {'joint_dx': 48, 'joint_dy': 20, 'sx': 1.38, 'sy': 1.24}}, 1.24, 0.0,
+         lambda c, r: (
+             draw_hex_shield(ImageDraw.Draw(c), GX + 64, GY - 158, 60, color=C_IVORY, border=C_WHITE, fill_alpha=75),
+             draw_railgun_blast(c, GX + 68, GY - 165, CELL - 6, GY - 165, h=20))[1]),
+        ({'pelvis': {'dx': 22, 'dy': 15, 'rot': 5.5}, 'shin_r': {'foot_dx': 10}, 'torso': {'rot': 9}, 'head': {'rot': -6}, 'coat_b': {'rot': -22},
+          'upper_arm_l': {'rot': -22}, 'forearm_l': {'rot': 8},
+          'upper_arm_r': {'rot': -54}, 'forearm_r': {'rot': 50}, 'hand_r': {'rot': -6}, 'orb': {'joint_dx': 36, 'joint_dy': 14, 'sx': 1.20, 'sy': 1.14}}, 1.14, 0.0,
+         lambda c, r: (
+             draw_pixel_ring(ImageDraw.Draw(c), GX, GY - 6, 82, 16, C_WHITE, C_INK, 2, dashed=True),
+             draw_plasma_bolts(c, GX + 84, GY - 165, 16, 46, phase=2.1, n_bolts=6))[1]),
+        ({'pelvis': {'dx': 14, 'dy': 10, 'rot': 3.5}, 'shin_r': {'foot_dx': 6}, 'torso': {'rot': 5}, 'head': {'rot': -3}, 'coat_b': {'rot': -13},
+          'upper_arm_l': {'rot': -14}, 'upper_arm_r': {'rot': -34}, 'forearm_r': {'rot': 30}, 'orb': {'joint_dx': 16, 'sx': 1.06, 'sy': 1.06}}, 1.06, 0.0,
+         lambda c, r: draw_plasma_bolts(c, GX + 66, GY - 172, 10, 28, phase=2.9, n_bolts=4)),
+        ({'pelvis': {'dx': 6, 'dy': 5, 'rot': 1.5}, 'shin_r': {'foot_dx': 2}, 'torso': {'rot': 2}, 'coat_b': {'rot': -6},
+          'upper_arm_l': {'rot': -6}, 'upper_arm_r': {'rot': -15}, 'forearm_r': {'rot': 13}}, 1.02, 0.0, None),
+        ({'pelvis': {'dx': 2, 'dy': 1.5}, 'torso': {'rot': 0.6}, 'coat_b': {'rot': -2},
+          'upper_arm_r': {'rot': -4}, 'forearm_r': {'rot': 3}}, 1.0, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+
+    # 4행: 대기(10프레임 연속 루프) — 양발은 지면에 완전히 고정된 채 무릎·골반·흉곽 호흡, 코트 뒷자락 위상차 흔들림, 건틀릿 팔꿈치·손목 탄력 + 구체 방전
+    idle = []
+    for i in range(N_COLS):
+        th = 2.0 * math.pi * i / N_COLS
+        pose = {
+            'pelvis':      {'dx': 3.2 * math.sin(th), 'dy': 7.0 * (0.5 - 0.5 * math.cos(th)), 'rot': 0.8 * math.sin(th)},
+            'torso':       {'rot': 1.8 * math.sin(th - 0.55)},
+            'head':        {'rot': -1.6 * math.sin(th - 0.85)},
+            'coat_b':      {'rot': 6.0 * math.sin(th - 1.15)},
+            'upper_arm_l': {'rot': -2.8 * math.sin(th - 0.45)},
+            'forearm_l':   {'rot': -3.6 * math.sin(th - 0.95)},
+            'upper_arm_r': {'rot': 3.5 * math.sin(th - 0.35)},
+            'forearm_r':   {'rot': -6.2 * math.sin(th - 0.80)},
+            'hand_r':      {'rot': 4.5 * math.sin(th - 1.20)},
+            'orb':         {'joint_dy': -9.0 * math.sin(th - 1.10), 'sx': 1.0 + 0.05 * math.sin(2 * th), 'sy': 1.0 + 0.05 * math.sin(2 * th)},
+        }
+        ph_i = th + 0.4
+        fx_i = (lambda ph: lambda c, r: draw_plasma_bolts(c, GX + 54, GY - 186, 12, 24, phase=ph, n_bolts=3))(ph_i)
+        idle.append((pose, 1.0 + 0.02 * math.sin(th), 0.0, fx_i))
+
+    return assemble_sheet('rick', rig, atk, hit, death, skill, idle_frames=idle)
+
+
+def lerp_pose_dicts(p0, p1, u):
+    """두 포즈 딕셔너리를 부드러운 스무스스텝(3u^2 - 2u^3)으로 보간한다."""
+    s = u * u * (3.0 - 2.0 * u)
+    bones = set(p0.keys()) | set(p1.keys())
+    out = {}
+    for b in bones:
+        d0, d1 = p0.get(b, {}), p1.get(b, {})
+        keys = set(d0.keys()) | set(d1.keys())
+        bd = {}
+        for k in keys:
+            default = 1.0 if k in ('sx', 'sy') else 0.0
+            v0, v1 = d0.get(k, default), d1.get(k, default)
+            val = v0 + (v1 - v0) * s
+            if abs(val - default) > 1e-4:
+                bd[k] = val
+        if bd:
+            out[b] = bd
+    return out
+
+
+def resample_track(frames, target_n=N_COLS, is_death=False):
+    """6프레임 키프레임 트랙을 10프레임 연속 관절 궤적으로 매끄럽게 리샘플링한다."""
+    if len(frames) == target_n:
+        return frames
+    m = len(frames)
+    # 6프레임 키 위치: [0, 1, 2, 3, 4, 5] -> 10프레임 인덱스 [0..9]에 매핑
+    # 마지막 프레임(9)은 항상 원본 마지막 키프레임(대기 포즈 복귀 또는 사망 완료)과 정확히 일치시킨다
+    fx_map = {}
+    for idx, (_, _, _, fx) in enumerate(frames):
+        if fx is not None:
+            mapped = round(idx * (target_n - 1) / (m - 1))
+            if not is_death and mapped >= target_n - 1:
+                mapped = target_n - 2
+            fx_map[mapped] = fx
+
+    out = []
+    for i in range(target_n):
+        if i == target_n - 1:
+            p, br, ds, fx = frames[-1]
+            out.append((p, br, ds, fx if is_death else None))
+            continue
+        pos = i * (m - 1) / (target_n - 1)
+        k0 = min(m - 2, int(math.floor(pos)))
+        u = pos - k0
+        p0, br0, ds0, _ = frames[k0]
+        p1, br1, ds1, _ = frames[k0 + 1]
+        s = u * u * (3.0 - 2.0 * u)
+        out.append((
+            lerp_pose_dicts(p0, p1, u),
+            br0 + (br1 - br0) * s,
+            ds0 + (ds1 - ds0) * s,
+            fx_map.get(i),
+        ))
+    return out
+
+
+def generate_enemy_idle(name, rig, n_cols=N_COLS):
+    """기체 13종 각각의 관절 해부학에 맞춘 10프레임 연속 대기(idle) 루프를 생성한다."""
     frames = []
-    for i, (x0, y0, x1, y1, ox, oy) in enumerate(boxes):
-        piece = a[y0:y1, x0:x1].copy()
-        piece[owner[y0:y1, x0:x1] != i] = 0
-        im = Image.fromarray(piece)
-        im = im.resize((max(1, round(im.width * scale)), max(1, round(im.height * scale))), Image.Resampling.LANCZOS)
-        cell = Image.new('RGBA', (CELL, CELL), (0, 0, 0, 0))
-        px = round(GX + rel[i][0] * scale)
-        py = round(GY + rel[i][1] * scale)
-        cell.alpha_composite(im, (px, py))
-        frames.append(cell)
-
-    char_raw = Image.open(CHAR_DIR / 'rick.png').convert('RGBA')
-    char_crop = crop_tight(char_raw)
-    target_h = round((rel[5][3] - rel[5][1]) * scale)  # 211px
-    k_char = target_h / char_crop.height
-    idle_rick = char_crop.resize((round(char_crop.width * k_char), target_h), Image.Resampling.LANCZOS)
-
-    ir_arr = np.array(idle_rick)
-    ir_ys, ir_xs = np.nonzero(ir_arr[..., 3] > 20)
-    foot_xs = ir_xs[ir_ys >= ir_ys.max() - 12]
-    foot_cx = (foot_xs.min() + foot_xs.max()) / 2
-
-    def make_idle_cell(orb_dy=0, glow=False):
-        cell = Image.new('RGBA', (CELL, CELL), (0, 0, 0, 0))
-        px = round(GX - foot_cx)
-        py = round(GY - idle_rick.height + orb_dy)
-        cell.alpha_composite(idle_rick, (px, py))
-        if glow:
-            d = ImageDraw.Draw(cell)
-            ox, oy = px + round(idle_rick.width * 0.79), py + round(idle_rick.height * 0.22)
-            draw_pixel_ring(d, ox, oy, 26, 26, C_WHITE, C_INK, width=2, dashed=True)
-        return cell
-
-    orb_patch_raw = char_raw.crop((635, 80, 912, 480))
-    orb_patch = orb_patch_raw.resize(
-        (round(orb_patch_raw.width * k_char), round(orb_patch_raw.height * k_char)),
-        Image.Resampling.LANCZOS,
-    )
-
-    atlas = Image.new('RGBA', (CELL * 6, CELL * 4), (0, 0, 0, 0))
-
-    f0_0 = make_idle_cell(glow=True)
-    f0_1 = frames[1].copy()
-    f0_1.alpha_composite(
-        orb_patch.resize((round(orb_patch.width * 0.72), round(orb_patch.height * 0.72)), Image.Resampling.LANCZOS),
-        (GX + 10, GY - 148),
-    )
-    f0_5 = make_idle_cell(glow=False)
-    for c, cell in enumerate([f0_0, f0_1, frames[2], frames[3], frames[4], f0_5]):
-        atlas.alpha_composite(cell, (c * CELL, 0))
-
-    for c, cell in enumerate([frames[6], frames[7], frames[8], frames[9], frames[10], f0_5]):
-        atlas.alpha_composite(cell, (c * CELL, CELL))
-
-    for c in range(6):
-        atlas.alpha_composite(frames[12 + c], (c * CELL, CELL * 2))
-
-    s0 = make_idle_cell(glow=True)
-    d = ImageDraw.Draw(s0)
-    draw_pixel_ring(d, GX, GY - 6, 48, 12, C_IVORY, C_INK, width=2)
-    draw_pixel_burst(d, GX + 44, GY - 164, (14, 34), C_WHITE, C_INK, n_rays=6)
-
-    s1 = make_idle_cell(orb_dy=-6, glow=True)
-    s1.alpha_composite(orb_patch, (GX + 18, GY - 196))
-    d = ImageDraw.Draw(s1)
-    draw_pixel_ring(d, GX + 6, GY - 105, 58, 22, C_WHITE, C_INK, width=2, dashed=True)
-    draw_lightning_arc(d, [(GX - 28, GY - 20), (GX - 36, GY - 75), (GX - 18, GY - 130), (GX - 30, GY - 185)], C_WHITE)
-    draw_lightning_arc(d, [(GX + 38, GY - 30), (GX + 54, GY - 90), (GX + 36, GY - 150), (GX + 52, GY - 200)], C_IVORY)
-
-    s2 = frames[1].copy()
-    s2.alpha_composite(orb_patch, (GX + 14, GY - 162))
-    d = ImageDraw.Draw(s2)
-    draw_pixel_ring(d, GX + 40, GY - 122, 42, 42, C_BRASS, C_INK, width=3, dashed=True)
-    draw_pixel_burst(d, GX + 40, GY - 122, (18, 48), C_WHITE, C_INK, n_rays=10, angle_offset=0.2)
-
-    s3 = frames[3].copy()
-    d = ImageDraw.Draw(s3)
-    draw_laser_beam(d, GX + 36, GY - 132, GX + 146, GY - 132, color=C_IVORY, core=C_WHITE, h=14)
-    draw_pixel_ring(d, GX + 64, GY - 132, 16, 36, C_WHITE, C_INK, width=3)
-    draw_pixel_ring(d, GX + 108, GY - 132, 22, 48, C_BRASS, C_INK, width=3, dashed=True)
-    draw_lightning_arc(d, [(GX + 35, GY - 148), (GX + 72, GY - 166), (GX + 112, GY - 120), (GX + 148, GY - 144)], C_WHITE)
-
-    s4 = frames[4].copy()
-    d = ImageDraw.Draw(s4)
-    draw_lightning_arc(d, [(GX + 28, GY - 110), (GX + 48, GY - 132), (GX + 68, GY - 118)], C_WHITE, width=2)
-    draw_pixel_burst(d, GX + 34, GY - 108, (8, 24), C_IVORY, C_INK, n_rays=6)
-
-    for c, cell in enumerate([s0, s1, s2, s3, s4, f0_5]):
-        atlas.alpha_composite(cell, (c * CELL, CELL * 3))
-
-    target = GAME_DIR / 'rick_actions.png'
-    atlas.save(target, optimize=True)
-    idle_w = round((rel[5][2] - rel[5][0]) * scale)
-    meta = {'iw': idle_w, 'ih': target_h}
-    print(target.relative_to(ROOT), target.stat().st_size, meta)
-    return meta
+    pnames = set(rig.part_names)
+    has_ik = bool(rig.ik_legs)
+    for i in range(n_cols):
+        th = 2.0 * math.pi * i / n_cols
+        s0 = math.sin(th)
+        s1 = math.sin(th - 0.7)
+        s2 = math.sin(th - 1.3)
+        c0 = 0.5 - 0.5 * math.cos(th)
+        pose = {}
+        if has_ik and 'pelvis' in pnames:
+            # 지면 보행 기체(가디언·살포기·센티넬): 발은 땅에 완전히 고정된 채 무릎·골반·상체·방패·포드가 살아 숨쉰다
+            pose['pelvis'] = {'dx': 3.5 * s0, 'dy': 10.0 * c0, 'rot': 1.0 * s0}
+            if 'torso' in pnames:
+                pose['torso'] = {'rot': 2.5 * s1}
+            if 'head' in pnames:
+                pose['head'] = {'rot': -2.8 * s2}
+            for sh in ('shoulder_l', 'pod_l', 'nozzle_l'):
+                if sh in pnames:
+                    pose[sh] = {'rot': 3.5 * s1}
+            for sh in ('shoulder_r', 'pod_r', 'nozzle_r'):
+                if sh in pnames:
+                    pose[sh] = {'rot': -3.5 * s1}
+            for sub in ('buckler_l', 'shield_r', 'fins'):
+                if sub in pnames:
+                    pose[sub] = {'rot': 4.0 * s2}
+        elif name == 'drone':
+            pose['body'] = {'dy': -6.0 * s0, 'rot': 2.0 * s1}
+            pose['wing_ul'] = {'rot': 9.0 * s0}
+            pose['wing_ur'] = {'rot': -9.0 * s0}
+            pose['wing_ll'] = {'rot': -7.0 * s1}
+            pose['wing_lr'] = {'rot': 7.0 * s1}
+            pose['claw_l'] = {'rot': 5.0 * s2}
+            pose['claw_r'] = {'rot': -5.0 * s2}
+        elif name == 'sludge':
+            pose['base'] = {'sx': 1.0 + 0.03 * s0, 'sy': 1.0 - 0.025 * s0}
+            pose['body'] = {'rot': 2.5 * s1, 'sy': 1.0 + 0.035 * s1}
+            pose['core'] = {'joint_dx': -6.0 * s0, 'joint_dy': -4.0 * s1, 'sx': 1.0 + 0.05 * s0, 'sy': 1.0 + 0.05 * s0}
+            pose['spikes_tl'] = {'rot': -5.0 * s2}
+            pose['spikes_tr'] = {'rot': 5.0 * s2}
+        elif name == 'omnis':
+            pose['shell'] = {'dy': -5.0 * s0, 'rot': 2.0 * s1}
+            pose['gimbal'] = {'rot': -6.5 * s0}
+            pose['eye'] = {'joint_dx': -5.0 * s1, 'sx': 1.0 + 0.04 * s2, 'sy': 1.0 + 0.04 * s2}
+            pose['cables_l'] = {'rot': 5.0 * s2}
+            pose['cables_r'] = {'rot': -5.0 * s2}
+        elif name == 'claude':
+            pose['monolith'] = {'dy': -3.5 * s0}
+            pose['bust'] = {'rot': 2.0 * s1}
+            pose['shield_far_l'] = {'joint_dy': -8.0 * s0, 'rot': 3.5 * s1}
+            pose['shield_near_l'] = {'joint_dy': 7.0 * s1, 'rot': -3.0 * s2}
+            pose['shield_near_r'] = {'joint_dy': -7.0 * s2, 'rot': 3.0 * s0}
+            pose['shield_far_r'] = {'joint_dy': 8.0 * s0, 'rot': -3.5 * s1}
+        elif name == 'gemini':
+            pose['torso'] = {'dy': -5.0 * s0, 'rot': 1.8 * s1}
+            pose['halo'] = {'rot': 6.0 * s0}
+            pose['head_light'] = {'rot': -2.5 * s1}
+            pose['head_dark'] = {'rot': 2.5 * s1}
+            pose['arm_l'] = {'rot': 4.5 * s1}
+            pose['forearm_l'] = {'rot': 5.5 * s2}
+            pose['arm_r'] = {'rot': -4.5 * s1}
+            pose['forearm_r'] = {'rot': -5.5 * s2}
+            pose['cables_f'] = {'rot': 4.0 * s2}
+            pose['cables_b'] = {'rot': -4.0 * s2}
+        elif name == 'codex':
+            pose['core'] = {'dy': -5.0 * s0, 'rot': 1.8 * s1}
+            pose['ring'] = {'rot': 5.0 * s0}
+            pose['arm_l'] = {'rot': 5.0 * s1}
+            pose['arm_r'] = {'rot': -5.0 * s1}
+            pose['cables_b'] = {'rot': 4.0 * s2}
+        elif name == 'zero':
+            pose['torso'] = {'dy': -5.5 * s0, 'rot': 1.8 * s1}
+            pose['wing_l'] = {'rot': 5.5 * s0}
+            pose['wing_r'] = {'rot': -5.5 * s0}
+            pose['arm_l'] = {'rot': 4.5 * s1}
+            pose['arm_r'] = {'rot': -4.5 * s1}
+            pose['legs'] = {'rot': -3.0 * s2}
+        elif name == 'arm':
+            pose['shoulder'] = {'rot': 3.5 * s0}
+            pose['upper_arm'] = {'rot': -6.0 * s1}
+            pose['forearm'] = {'rot': 8.0 * s2}
+        else:
+            # compiler, holo 등
+            root = rig.part_names[-1]
+            pose[root] = {'dy': -4.5 * s0, 'rot': 1.8 * s1}
+            for arm_k in ('arm', 'arm_l', 'pod_r'):
+                if arm_k in pnames:
+                    pose[arm_k] = {'rot': 5.0 * s1}
+            if 'arm_r' in pnames:
+                pose['arm_r'] = {'rot': -5.0 * s1}
+        frames.append((pose, 1.0, 0.0, None))
+    return frames
 
 
-def assemble_sheet(name, rig, atk_frames, hit_frames, death_frames, skill_frames):
-    atlas = Image.new('RGBA', (CELL * 6, CELL * 4), (0, 0, 0, 0))
-    for r, row_specs in enumerate([atk_frames, hit_frames, death_frames, skill_frames]):
+def assemble_sheet(name, rig, atk_frames, hit_frames, death_frames, skill_frames, idle_frames=None):
+    atk_10 = resample_track(atk_frames, N_COLS, is_death=False)
+    hit_10 = resample_track(hit_frames, N_COLS, is_death=False)
+    death_10 = resample_track(death_frames, N_COLS, is_death=True)
+    skill_10 = resample_track(skill_frames, N_COLS, is_death=False)
+    idle_10 = idle_frames if idle_frames is not None else generate_enemy_idle(name, rig, N_COLS)
+
+    all_rows = [atk_10, hit_10, death_10, skill_10, idle_10]
+    atlas = Image.new('RGBA', (CELL * N_COLS, CELL * len(all_rows)), (0, 0, 0, 0))
+    for r, row_specs in enumerate(all_rows):
         for c, (pose, br, desat, fx_fn) in enumerate(row_specs):
             cell = rig.render_pose(pose, brightness=br, desat=desat)
             if fx_fn:
@@ -1732,6 +2081,341 @@ def build_claude():
 
     return assemble_sheet('claude', rig, atk, hit, death, skill)
 
+
+def build_codex():
+    """코테크(Codex/Cotech) — 2층 보스: 상부 링·케이블 서스펜션 + 중앙 메인프레임 코어 + 좌우 컴파일러 암."""
+    parts_spec = [
+        {'name': 'ring',     'poly': [(330, 25), (745, 25), (745, 175), (330, 175)], 'pivot': (535, 95),  'parent': 'core', 'blur': 14, 'weld_radius': 35},
+        {'name': 'cables_u', 'polys': [[(195, 0), (470, 0), (430, 235), (195, 235)],
+                                       [(520, 0), (985, 0), (985, 495), (725, 495), (705, 215), (520, 215)]], 'pivot': (540, 180), 'parent': 'core', 'blur': 18, 'weld_radius': 55},
+        {'name': 'arm_l',    'poly': [(120, 485), (320, 485), (335, 745), (275, 875), (120, 875)], 'pivot': (285, 535), 'parent': 'core', 'blur': 16, 'weld_radius': 55},
+        {'name': 'arm_r',    'poly': [(595, 455), (885, 455), (885, 910), (605, 910)],             'pivot': (665, 520), 'parent': 'core', 'blur': 16, 'weld_radius': 60},
+        {'name': 'cables_b', 'poly': [(395, 725), (635, 725), (635, 865), (395, 865)],             'pivot': (515, 740), 'parent': 'core', 'blur': 14, 'weld_radius': 40},
+        {'name': 'core',     'poly': None, 'pivot': (485, 470), 'parent': None, 'blur': 18},
+    ]
+    chains = [
+        ['cables_u'],
+        ['cables_b'],
+        ['arm_l'],
+        ['core'],
+        ['ring'],
+        ['arm_r'],
+    ]
+    rig = SkinnedEnemy('codex', parts_spec, chains=chains, base_size=238, blur_radius=16)
+
+    atk = [
+        ({'core': {'rot': 5, 'dx': 10, 'dy': -6}, 'ring': {'rot': -4}, 'cables_u': {'rot': -4},
+          'arm_l': {'rot': 16}, 'arm_r': {'rot': -18}, 'cables_b': {'rot': -8}}, 1.0, 0.0, None),
+        ({'core': {'rot': 10, 'dx': 18, 'dy': -12}, 'ring': {'rot': -8}, 'cables_u': {'rot': -7},
+          'arm_l': {'rot': 28}, 'arm_r': {'rot': -32}, 'cables_b': {'rot': -14}}, 1.05, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 42, GY - 135, (8, 22), C_RED_HI, C_INK, 6), c)[1]),
+        ({'core': {'rot': -8, 'dx': -16, 'dy': 8}, 'ring': {'rot': 6}, 'cables_u': {'rot': 5},
+          'arm_l': {'rot': -24}, 'arm_r': {'rot': 26}, 'cables_b': {'rot': 12}}, 1.08, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 52, GY - 125, 26, 36, C_RED_HI, C_INK, 3), c)[1]),
+        ({'core': {'rot': -12, 'dx': -24, 'dy': 12}, 'ring': {'rot': 10}, 'cables_u': {'rot': 8},
+          'arm_l': {'rot': -34}, 'arm_r': {'rot': 38}, 'cables_b': {'rot': 18}}, 1.12, 0.0,
+         lambda c, r: (
+             draw_laser_beam(ImageDraw.Draw(c), GX - 44, GY - 128, 10, GY - 118, C_RED, C_WHITE, h=16),
+             draw_pixel_burst(ImageDraw.Draw(c), 22, GY - 118, (12, 38), C_WHITE, C_INK, 8), c)[2]),
+        ({'core': {'rot': -4, 'dx': -8, 'dy': 4}, 'arm_l': {'rot': -12}, 'arm_r': {'rot': 14}}, 1.02, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    hit = [
+        ({'core': {'rot': 8, 'dx': 14, 'dy': -6}, 'ring': {'rot': -10}, 'arm_l': {'rot': 18}, 'arm_r': {'rot': 16}, 'cables_b': {'rot': -14}}, 1.22, 0.0,
+         lambda c, r: draw_hit_spark(c, GX - 32, GY - 128, is_red=True)),
+        ({'core': {'rot': 14, 'dx': 24, 'dy': -10}, 'ring': {'rot': -16}, 'arm_l': {'rot': 28}, 'arm_r': {'rot': 26}, 'cables_b': {'rot': -22}}, 1.10, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 10, GY - 135, (10, 26), C_IVORY, C_INK, 7), c)[1]),
+        ({'core': {'rot': 18, 'dx': 28, 'dy': -12}, 'ring': {'rot': -20}, 'arm_l': {'rot': 32}, 'arm_r': {'rot': 30}, 'cables_b': {'rot': -26}}, 0.96, 0.0, None),
+        ({'core': {'rot': 9, 'dx': 14, 'dy': -5}, 'ring': {'rot': -10}, 'arm_l': {'rot': 16}, 'arm_r': {'rot': 14}}, 0.99, 0.0, None),
+        ({'core': {'rot': 3, 'dx': 5}, 'ring': {'rot': -4}, 'arm_l': {'rot': 6}, 'arm_r': {'rot': 5}}, 1.0, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    death = [
+        ({'core': {'rot': 8, 'dy': 14}, 'ring': {'rot': -12, 'joint_dy': 8}, 'arm_l': {'rot': 14}, 'arm_r': {'rot': -14}}, 1.14, 0.10,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 20, GY - 125, (12, 40), C_RED_HI, C_INK, 8), c)[1]),
+        ({'core': {'rot': -8, 'dy': 42}, 'ring': {'rot': 14, 'joint_dy': 20}, 'arm_l': {'rot': -18}, 'arm_r': {'rot': 18}}, 0.92, 0.28,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX - 10, GY - 95, 42, 6, C_SMOKE, C_SILVER), c)[1]),
+        ({'core': {'rot': -14, 'dy': 72}, 'ring': {'rot': 22, 'joint_dy': 34}, 'arm_l': {'rot': -28}, 'arm_r': {'rot': 26}}, 0.82, 0.48,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX - 10, GY - 55, 54, 7, C_SMOKE, C_BRASS), c)[1]),
+        ({'core': {'rot': -18, 'dy': 96}, 'ring': {'rot': 28, 'joint_dy': 44}, 'arm_l': {'rot': -34}, 'arm_r': {'rot': 32}}, 0.72, 0.68, None),
+        ({'core': {'rot': -21, 'dy': 110}, 'ring': {'rot': 32, 'joint_dy': 50}, 'arm_l': {'rot': -38}, 'arm_r': {'rot': 36}}, 0.64, 0.84, None),
+        ({'core': {'rot': -22, 'dy': 116}, 'ring': {'rot': 34, 'joint_dy': 52}, 'arm_l': {'rot': -40}, 'arm_r': {'rot': 38}}, 0.58, 0.92, None),
+    ]
+    skill = [
+        ({'core': {'dy': -8}, 'ring': {'rot': 8}, 'arm_l': {'rot': 18}, 'arm_r': {'rot': -18}}, 1.05, 0.0, None),
+        ({'core': {'dy': -16}, 'ring': {'rot': 16}, 'arm_l': {'rot': 30}, 'arm_r': {'rot': -30}}, 1.12, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 24, GY - 125, 58, 58, C_RED, C_INK, 3, dashed=True), c)[1]),
+        ({'core': {'dy': -20}, 'ring': {'rot': 24}, 'arm_l': {'rot': 36}, 'arm_r': {'rot': -36}}, 1.18, 0.0,
+         lambda c, r: (draw_hex_shield(ImageDraw.Draw(c), GX - 64, GY - 115, 44, color=C_IVORY, border=C_RED, fill_alpha=65), c)[1]),
+        ({'core': {'rot': -6, 'dx': -12, 'dy': -8}, 'ring': {'rot': -12}, 'arm_l': {'rot': -26}, 'arm_r': {'rot': 28}}, 1.20, 0.0,
+         lambda c, r: (
+             draw_hex_shield(ImageDraw.Draw(c), GX - 72, GY - 115, 50, color=C_RED_HI, border=C_IVORY, fill_alpha=75),
+             draw_lightning_arc(ImageDraw.Draw(c), [(GX - 30, GY - 150), (GX - 70, GY - 120), (GX - 115, GY - 135)], C_WHITE), c)[2]),
+        ({'core': {'dy': -4}, 'arm_l': {'rot': -10}, 'arm_r': {'rot': 10}}, 1.04, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    return assemble_sheet('codex', rig, atk, hit, death, skill)
+
+
+def build_zero():
+    """아키텍트 제로(Architect Zero) — 보안 등급 6 진보스: 좌우 파편 링 날개 + 신경 케이블 체구 + 가슴 붉은 육각 케이지."""
+    parts_spec = [
+        {'name': 'wing_l', 'poly': [(65, 80), (390, 80), (355, 315), (310, 625), (365, 845), (65, 845)],   'pivot': (365, 330), 'parent': 'torso', 'blur': 16, 'weld_radius': 0},
+        {'name': 'wing_r', 'poly': [(615, 65), (965, 65), (965, 865), (645, 865), (675, 565), (615, 295)], 'pivot': (625, 320), 'parent': 'torso', 'blur': 16, 'weld_radius': 0},
+        {'name': 'head',   'poly': [(425, 65), (560, 65), (560, 225), (425, 225)],                         'pivot': (490, 210), 'parent': 'torso', 'blur': 14},
+        {'name': 'arm_l',  'poly': [(305, 275), (405, 275), (410, 615), (305, 615)],                       'pivot': (395, 295), 'parent': 'torso', 'blur': 16, 'weld_radius': 48},
+        {'name': 'arm_r',  'poly': [(565, 245), (675, 245), (675, 635), (575, 635)],                       'pivot': (585, 285), 'parent': 'torso', 'blur': 16, 'weld_radius': 48},
+        {'name': 'legs',   'poly': [(365, 560), (610, 560), (610, 1005), (365, 1005)],                     'pivot': (485, 575), 'parent': 'torso', 'blur': 18},
+        {'name': 'torso',  'poly': None, 'pivot': (485, 415), 'parent': None, 'blur': 18},
+    ]
+    chains = [
+        ['wing_l'],
+        ['wing_r'],
+        ['torso', 'head', 'legs'],
+        ['arm_l'],
+        ['arm_r'],
+    ]
+    rig = SkinnedEnemy('zero', parts_spec, chains=chains, base_size=240, blur_radius=16)
+
+    atk = [
+        ({'torso': {'rot': 4, 'dx': 8, 'dy': -8}, 'head': {'rot': -4}, 'wing_l': {'rot': 14}, 'wing_r': {'rot': -16},
+          'arm_l': {'rot': 18}, 'arm_r': {'rot': -16}, 'legs': {'rot': -6}}, 1.0, 0.0, None),
+        ({'torso': {'rot': 8, 'dx': 16, 'dy': -16}, 'head': {'rot': -8}, 'wing_l': {'rot': 26}, 'wing_r': {'rot': -28},
+          'arm_l': {'rot': 32}, 'arm_r': {'rot': -28}, 'legs': {'rot': -10}}, 1.06, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 18, GY - 152, (8, 24), C_RED_HI, C_INK, 6), c)[1]),
+        ({'torso': {'rot': -8, 'dx': -16, 'dy': 6}, 'head': {'rot': 6}, 'wing_l': {'rot': -20}, 'wing_r': {'rot': 22},
+          'arm_l': {'rot': 42}, 'arm_r': {'rot': 18}, 'legs': {'rot': 10}}, 1.10, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 36, GY - 145, 30, 44, C_RED_HI, C_INK, 3), c)[1]),
+        ({'torso': {'rot': -12, 'dx': -24, 'dy': 10}, 'head': {'rot': 10}, 'wing_l': {'rot': -30}, 'wing_r': {'rot': 32},
+          'arm_l': {'rot': 50}, 'arm_r': {'rot': 26}, 'legs': {'rot': 14}}, 1.14, 0.0,
+         lambda c, r: (
+             draw_laser_beam(ImageDraw.Draw(c), GX - 26, GY - 148, 8, GY - 135, C_RED, C_WHITE, h=18),
+             draw_lightning_arc(ImageDraw.Draw(c), [(GX - 24, GY - 170), (GX - 78, GY - 145), (18, GY - 160)], C_WHITE),
+             draw_pixel_burst(ImageDraw.Draw(c), 20, GY - 135, (12, 42), C_WHITE, C_INK, 8), c)[3]),
+        ({'torso': {'rot': -4, 'dx': -8, 'dy': 3}, 'wing_l': {'rot': -10}, 'wing_r': {'rot': 12}, 'arm_l': {'rot': 18}}, 1.03, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    hit = [
+        ({'torso': {'rot': 8, 'dx': 14, 'dy': -4}, 'head': {'rot': 10}, 'wing_l': {'rot': -16}, 'wing_r': {'rot': 18},
+          'arm_l': {'rot': 20}, 'arm_r': {'rot': -22}, 'legs': {'rot': -8}}, 1.22, 0.0,
+         lambda c, r: draw_hit_spark(c, GX - 18, GY - 148, is_red=True)),
+        ({'torso': {'rot': 14, 'dx': 24, 'dy': -8}, 'head': {'rot': 16}, 'wing_l': {'rot': -26}, 'wing_r': {'rot': 28},
+          'arm_l': {'rot': 32}, 'arm_r': {'rot': -34}, 'legs': {'rot': -14}}, 1.10, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX, GY - 155, (10, 28), C_IVORY, C_INK, 7), c)[1]),
+        ({'torso': {'rot': 18, 'dx': 28, 'dy': -10}, 'head': {'rot': 20}, 'wing_l': {'rot': -30}, 'wing_r': {'rot': 32},
+          'arm_l': {'rot': 36}, 'arm_r': {'rot': -38}, 'legs': {'rot': -16}}, 0.96, 0.0, None),
+        ({'torso': {'rot': 8, 'dx': 12, 'dy': -4}, 'head': {'rot': 8}, 'wing_l': {'rot': -14}, 'wing_r': {'rot': 16},
+          'arm_l': {'rot': 16}, 'arm_r': {'rot': -18}}, 0.99, 0.0, None),
+        ({'torso': {'rot': 3, 'dx': 4}, 'wing_l': {'rot': -5}, 'wing_r': {'rot': 6}}, 1.0, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    death = [
+        ({'torso': {'rot': 8, 'dy': 12}, 'head': {'rot': 12}, 'wing_l': {'rot': -18}, 'wing_r': {'rot': 18}}, 1.16, 0.10,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 14, GY - 145, (14, 44), C_WHITE, C_INK, 8), c)[1]),
+        ({'torso': {'rot': -6, 'dy': 45}, 'head': {'rot': -14}, 'wing_l': {'rot': -32, 'joint_dy': 20}, 'wing_r': {'rot': 32, 'joint_dy': 20},
+          'arm_l': {'rot': -18}, 'arm_r': {'rot': 18}, 'legs': {'rot': 14}}, 0.96, 0.28,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX, GY - 110, 44, 6, C_IVORY, C_WHITE), c)[1]),
+        ({'torso': {'rot': -12, 'dy': 85}, 'head': {'rot': -22}, 'wing_l': {'rot': -44, 'joint_dy': 36}, 'wing_r': {'rot': 44, 'joint_dy': 36},
+          'arm_l': {'rot': -26}, 'arm_r': {'rot': 26}, 'legs': {'rot': 24}}, 0.86, 0.48, None),
+        ({'torso': {'rot': -18, 'dy': 122}, 'head': {'rot': -28}, 'wing_l': {'rot': -54, 'joint_dy': 48}, 'wing_r': {'rot': 54, 'joint_dy': 48},
+          'arm_l': {'rot': -32}, 'arm_r': {'rot': 32}, 'legs': {'rot': 30}}, 0.76, 0.68, None),
+        ({'torso': {'rot': -22, 'dy': 146}, 'head': {'rot': -32}, 'wing_l': {'rot': -60, 'joint_dy': 56}, 'wing_r': {'rot': 60, 'joint_dy': 56},
+          'arm_l': {'rot': -36}, 'arm_r': {'rot': 36}, 'legs': {'rot': 34}}, 0.68, 0.84, None),
+        ({'torso': {'rot': -24, 'dy': 158}, 'head': {'rot': -34}, 'wing_l': {'rot': -64, 'joint_dy': 60}, 'wing_r': {'rot': 64, 'joint_dy': 60},
+          'arm_l': {'rot': -38}, 'arm_r': {'rot': 38}, 'legs': {'rot': 36}}, 0.62, 0.92, None),
+    ]
+    skill = [
+        ({'torso': {'dy': -10}, 'wing_l': {'rot': 16}, 'wing_r': {'rot': -16}, 'arm_l': {'rot': 20}, 'arm_r': {'rot': -20}}, 1.06, 0.0, None),
+        ({'torso': {'dy': -20}, 'wing_l': {'rot': 30}, 'wing_r': {'rot': -30}, 'arm_l': {'rot': 34}, 'arm_r': {'rot': -34}}, 1.14, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 12, GY - 148, 68, 68, C_RED_HI, C_INK, 3, dashed=True), c)[1]),
+        ({'torso': {'dy': -26}, 'wing_l': {'rot': 40}, 'wing_r': {'rot': -40}, 'arm_l': {'rot': 42}, 'arm_r': {'rot': -42}}, 1.20, 0.0,
+         lambda c, r: (draw_hex_shield(ImageDraw.Draw(c), GX - 56, GY - 140, 48, color=C_RED_HI, border=C_WHITE, fill_alpha=70), c)[1]),
+        ({'torso': {'rot': -6, 'dx': -14, 'dy': -12}, 'wing_l': {'rot': -22}, 'wing_r': {'rot': 22}, 'arm_l': {'rot': 48}, 'arm_r': {'rot': 20}}, 1.22, 0.0,
+         lambda c, r: (
+             draw_hex_shield(ImageDraw.Draw(c), GX - 72, GY - 140, 56, color=C_WHITE, border=C_RED, fill_alpha=75),
+             draw_lightning_arc(ImageDraw.Draw(c), [(GX - 18, GY - 175), (GX - 68, GY - 140), (GX - 120, GY - 155)], C_RED_HI), c)[2]),
+        ({'torso': {'dy': -5}, 'wing_l': {'rot': -8}, 'wing_r': {'rot': 8}}, 1.05, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    return assemble_sheet('zero', rig, atk, hit, death, skill)
+
+
+def build_compiler():
+    """컴파일 드론(Compiler Drone) — 2층 일반: 본체 + 우측 추진 팩 + 하부 데이터 블록 사출 암."""
+    parts_spec = [
+        {'name': 'arm',   'poly': [(125, 555), (625, 555), (625, 935), (125, 935)], 'pivot': (500, 595), 'parent': 'body', 'blur': 14, 'weld_radius': 50},
+        {'name': 'pod_r', 'poly': [(595, 255), (930, 255), (930, 655), (595, 655)], 'pivot': (640, 435), 'parent': 'body', 'blur': 16, 'weld_radius': 55},
+        {'name': 'body',  'poly': None, 'pivot': (475, 420), 'parent': None, 'blur': 16},
+    ]
+    chains = [['body'], ['pod_r'], ['arm']]
+    rig = SkinnedEnemy('compiler', parts_spec, chains=chains, base_size=224, blur_radius=15)
+
+    atk = [
+        ({'body': {'rot': 6, 'dx': 12, 'dy': -10}, 'pod_r': {'rot': -6}, 'arm': {'rot': -16}}, 1.0, 0.0, None),
+        ({'body': {'rot': 12, 'dx': 20, 'dy': -18}, 'pod_r': {'rot': -12}, 'arm': {'rot': -28}}, 1.05, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 56, GY - 115, (8, 20), C_RED_HI, C_INK, 6), c)[1]),
+        ({'body': {'rot': -10, 'dx': -18, 'dy': 8}, 'pod_r': {'rot': 10}, 'arm': {'rot': 22}}, 1.08, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 68, GY - 48, 22, 22, C_WHITE, C_INK, 2), c)[1]),
+        ({'body': {'rot': -14, 'dx': -28, 'dy': 14}, 'pod_r': {'rot': 14}, 'arm': {'rot': 34}}, 1.12, 0.0,
+         lambda c, r: (
+             draw_laser_beam(ImageDraw.Draw(c), GX - 58, GY - 112, 12, GY - 98, C_RED, C_WHITE, h=12),
+             draw_pixel_burst(ImageDraw.Draw(c), 24, GY - 98, (10, 32), C_WHITE, C_INK, 8), c)[2]),
+        ({'body': {'rot': -5, 'dx': -10, 'dy': 4}, 'arm': {'rot': 12}}, 1.02, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    hit = [
+        ({'body': {'rot': 10, 'dx': 16, 'dy': -6}, 'pod_r': {'rot': 10}, 'arm': {'rot': -18}}, 1.22, 0.0,
+         lambda c, r: draw_hit_spark(c, GX - 48, GY - 115, is_red=True)),
+        ({'body': {'rot': 16, 'dx': 26, 'dy': -12}, 'pod_r': {'rot': 16}, 'arm': {'rot': -28}}, 1.10, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 12, GY - 125, (10, 26), C_IVORY, C_INK, 7), c)[1]),
+        ({'body': {'rot': 20, 'dx': 30, 'dy': -14}, 'pod_r': {'rot': 20}, 'arm': {'rot': -32}}, 0.95, 0.0, None),
+        ({'body': {'rot': 9, 'dx': 14, 'dy': -5}, 'pod_r': {'rot': 8}, 'arm': {'rot': -14}}, 0.99, 0.0, None),
+        ({'body': {'rot': 3, 'dx': 5}, 'arm': {'rot': -5}}, 1.0, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    death = [
+        ({'body': {'rot': 10, 'dy': 12}, 'pod_r': {'rot': 12}, 'arm': {'rot': -18}}, 1.14, 0.10,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 10, GY - 110, (12, 38), C_RED_HI, C_INK, 8), c)[1]),
+        ({'body': {'rot': -10, 'dy': 48}, 'pod_r': {'rot': -12}, 'arm': {'rot': 16}}, 0.92, 0.28,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX, GY - 85, 38, 6, C_SMOKE, C_SILVER), c)[1]),
+        ({'body': {'rot': -18, 'dy': 92}, 'pod_r': {'rot': -18}, 'arm': {'rot': 26}}, 0.82, 0.48, None),
+        ({'body': {'rot': -24, 'dy': 128}, 'pod_r': {'rot': -22}, 'arm': {'rot': 32}}, 0.72, 0.68, None),
+        ({'body': {'rot': -28, 'dy': 148}, 'pod_r': {'rot': -26}, 'arm': {'rot': 36}}, 0.64, 0.84, None),
+        ({'body': {'rot': -30, 'dy': 158}, 'pod_r': {'rot': -28}, 'arm': {'rot': 38}}, 0.58, 0.92, None),
+    ]
+    skill = [
+        ({'body': {'dy': -8}, 'arm': {'rot': 12}}, 1.05, 0.0, None),
+        ({'body': {'dy': -16}, 'arm': {'rot': 24}}, 1.12, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 64, GY - 48, 28, 28, C_WHITE, C_INK, 2, dashed=True), c)[1]),
+        ({'body': {'dy': -20}, 'arm': {'rot': 34}}, 1.18, 0.0,
+         lambda c, r: (draw_hex_shield(ImageDraw.Draw(c), GX - 68, GY - 54, 34, color=C_WHITE, border=C_SILVER, fill_alpha=70), c)[1]),
+        ({'body': {'rot': -8, 'dx': -16, 'dy': -10}, 'arm': {'rot': 42}}, 1.20, 0.0,
+         lambda c, r: (
+             draw_hex_shield(ImageDraw.Draw(c), GX - 78, GY - 60, 40, color=C_IVORY, border=C_RED, fill_alpha=75),
+             draw_pixel_burst(ImageDraw.Draw(c), GX - 78, GY - 60, (10, 32), C_WHITE, C_INK, 6), c)[2]),
+        ({'body': {'dy': -4}, 'arm': {'rot': 14}}, 1.04, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    return assemble_sheet('compiler', rig, atk, hit, death, skill)
+
+
+def build_holo():
+    """홀로그램 잔상(Hologram Afterimage) — 3층 일반: 스캔라인 안드로이드 환영."""
+    parts_spec = [
+        {'name': 'head',  'poly': [(380, 95), (595, 95), (595, 295), (380, 295)],   'pivot': (485, 285), 'parent': 'torso', 'blur': 14},
+        {'name': 'arm_l', 'poly': [(290, 325), (395, 325), (395, 685), (290, 685)], 'pivot': (385, 355), 'parent': 'torso', 'blur': 14, 'weld_radius': 45},
+        {'name': 'arm_r', 'poly': [(565, 305), (725, 305), (725, 695), (565, 695)], 'pivot': (590, 350), 'parent': 'torso', 'blur': 14, 'weld_radius': 45},
+        {'name': 'legs',  'poly': [(380, 565), (630, 565), (630, 930), (380, 930)], 'pivot': (495, 575), 'parent': 'torso', 'blur': 16},
+        {'name': 'torso', 'poly': None, 'pivot': (485, 455), 'parent': None, 'blur': 16},
+    ]
+    chains = [['torso', 'head', 'legs'], ['arm_l'], ['arm_r']]
+    rig = SkinnedEnemy('holo', parts_spec, chains=chains, base_size=220, blur_radius=14)
+
+    atk = [
+        ({'torso': {'rot': 6, 'dx': 12, 'dy': -6}, 'head': {'rot': -4}, 'arm_l': {'rot': 18}, 'arm_r': {'rot': -18}, 'legs': {'rot': -6}}, 1.0, 0.0, None),
+        ({'torso': {'rot': 12, 'dx': 22, 'dy': -12}, 'head': {'rot': -8}, 'arm_l': {'rot': 32}, 'arm_r': {'rot': -32}, 'legs': {'rot': -12}}, 1.06, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX + 8, GY - 120, 38, 68, C_SILVER, C_INK, 2, dashed=True), c)[1]),
+        ({'torso': {'rot': -12, 'dx': -22, 'dy': 6}, 'head': {'rot': 8}, 'arm_l': {'rot': 46}, 'arm_r': {'rot': 20}, 'legs': {'rot': 12}}, 1.10, 0.0,
+         lambda c, r: (draw_lightning_arc(ImageDraw.Draw(c), [(GX - 22, GY - 155), (GX - 68, GY - 135), (GX - 110, GY - 145)], C_WHITE), c)[1]),
+        ({'torso': {'rot': -16, 'dx': -32, 'dy': 10}, 'head': {'rot': 12}, 'arm_l': {'rot': 56}, 'arm_r': {'rot': 28}, 'legs': {'rot': 16}}, 1.14, 0.0,
+         lambda c, r: (
+             draw_laser_beam(ImageDraw.Draw(c), GX - 26, GY - 162, 12, GY - 132, C_RED, C_WHITE, h=12),
+             draw_pixel_burst(ImageDraw.Draw(c), 22, GY - 132, (10, 34), C_WHITE, C_INK, 8), c)[2]),
+        ({'torso': {'rot': -6, 'dx': -12, 'dy': 3}, 'arm_l': {'rot': 22}}, 1.03, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    hit = [
+        ({'torso': {'rot': 10, 'dx': 18, 'dy': -4}, 'head': {'rot': 12}, 'arm_l': {'rot': 22}, 'arm_r': {'rot': -24}, 'legs': {'rot': -10}}, 1.24, 0.0,
+         lambda c, r: draw_hit_spark(c, GX - 18, GY - 135, is_red=True)),
+        ({'torso': {'rot': 16, 'dx': 28, 'dy': -8}, 'head': {'rot': 18}, 'arm_l': {'rot': 34}, 'arm_r': {'rot': -36}, 'legs': {'rot': -16}}, 1.10, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX + 16, GY - 125, 34, 62, C_WHITE, C_INK, 2, dashed=True), c)[1]),
+        ({'torso': {'rot': 20, 'dx': 34, 'dy': -10}, 'head': {'rot': 22}, 'arm_l': {'rot': 38}, 'arm_r': {'rot': -40}, 'legs': {'rot': -18}}, 0.94, 0.0, None),
+        ({'torso': {'rot': 10, 'dx': 16, 'dy': -4}, 'head': {'rot': 10}, 'arm_l': {'rot': 18}, 'arm_r': {'rot': -20}}, 0.98, 0.0, None),
+        ({'torso': {'rot': 4, 'dx': 6}, 'arm_l': {'rot': 6}, 'arm_r': {'rot': -6}}, 1.0, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    death = [
+        ({'torso': {'rot': 8, 'dy': 14}, 'head': {'rot': 14}, 'arm_l': {'rot': -20}, 'arm_r': {'rot': 20}}, 1.16, 0.10,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX, GY - 125, (12, 38), C_WHITE, C_INK, 8), c)[1]),
+        ({'torso': {'rot': -8, 'dy': 52, 'sx': 1.08, 'sy': 0.86}, 'arm_l': {'rot': -28}, 'arm_r': {'rot': 28}}, 0.92, 0.28, None),
+        ({'torso': {'rot': -14, 'dy': 98, 'sx': 1.14, 'sy': 0.68}, 'arm_l': {'rot': -36}, 'arm_r': {'rot': 36}}, 0.82, 0.48, None),
+        ({'torso': {'rot': -18, 'dy': 138, 'sx': 1.18, 'sy': 0.52}}, 0.72, 0.68, None),
+        ({'torso': {'rot': -20, 'dy': 164, 'sx': 1.22, 'sy': 0.38}}, 0.64, 0.84, None),
+        ({'torso': {'rot': -22, 'dy': 178, 'sx': 1.25, 'sy': 0.28}}, 0.58, 0.92, None),
+    ]
+    skill = [
+        ({'torso': {'dx': -12, 'dy': -8}, 'arm_l': {'rot': 20}, 'arm_r': {'rot': -20}}, 1.08, 0.0, None),
+        ({'torso': {'dx': 16, 'dy': -14}, 'arm_l': {'rot': 32}, 'arm_r': {'rot': -32}}, 1.14, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 18, GY - 120, 42, 74, C_WHITE, C_INK, 2, dashed=True), c)[1]),
+        ({'torso': {'dx': -18, 'dy': -18}, 'arm_l': {'rot': 40}, 'arm_r': {'rot': -40}}, 1.20, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX + 18, GY - 120, 42, 74, C_RED_HI, C_INK, 2, dashed=True), c)[1]),
+        ({'torso': {'dx': 10, 'dy': -10}, 'arm_l': {'rot': 30}, 'arm_r': {'rot': -30}}, 1.22, 0.0,
+         lambda c, r: (draw_hex_shield(ImageDraw.Draw(c), GX - 48, GY - 120, 42, color=C_WHITE, border=C_SILVER, fill_alpha=65), c)[1]),
+        ({'torso': {'dy': -4}, 'arm_l': {'rot': 12}, 'arm_r': {'rot': -12}}, 1.05, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    return assemble_sheet('holo', rig, atk, hit, death, skill)
+
+
+def build_arm():
+    """코테크 작업 팔(Cotech Work Arm) — 2층 정예: 천장 마운트 -> 어깨 -> 상완 -> 전완+집게 4단 다관절 체인."""
+    parts_spec = [
+        {'name': 'mount',     'poly': [(535, 95), (870, 95), (870, 250), (535, 250)],   'pivot': (680, 155), 'parent': None,        'blur': 14},
+        {'name': 'shoulder',  'poly': [(335, 215), (785, 215), (785, 455), (335, 455)], 'pivot': (650, 245), 'parent': 'mount',     'blur': 16},
+        {'name': 'upper_arm', 'poly': [(480, 385), (765, 385), (765, 625), (480, 625)], 'pivot': (565, 365), 'parent': 'shoulder',  'blur': 16},
+        {'name': 'forearm',   'poly': None,                                             'pivot': (665, 610), 'parent': 'upper_arm', 'blur': 16},
+    ]
+    chains = [['mount', 'shoulder', 'upper_arm', 'forearm']]
+    rig = SkinnedEnemy('arm', parts_spec, chains=chains, base_size=234, blur_radius=16)
+
+    atk = [
+        ({'shoulder': {'rot': 6}, 'upper_arm': {'rot': -14}, 'forearm': {'rot': 18}}, 1.0, 0.0, None),
+        ({'shoulder': {'rot': 12}, 'upper_arm': {'rot': -26}, 'forearm': {'rot': 34}}, 1.05, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX - 34, GY - 150, (8, 22), C_RED_HI, C_INK, 6), c)[1]),
+        ({'shoulder': {'rot': -8}, 'upper_arm': {'rot': 16}, 'forearm': {'rot': -20}}, 1.08, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 78, GY - 48, 28, 28, C_WHITE, C_INK, 3), c)[1]),
+        ({'shoulder': {'rot': -14}, 'upper_arm': {'rot': 26}, 'forearm': {'rot': -32}}, 1.12, 0.0,
+         lambda c, r: (
+             draw_laser_beam(ImageDraw.Draw(c), GX - 38, GY - 148, 12, GY - 85, C_RED, C_WHITE, h=14),
+             draw_pixel_burst(ImageDraw.Draw(c), GX - 86, GY - 42, (12, 38), C_WHITE, C_INK, 8), c)[2]),
+        ({'shoulder': {'rot': -5}, 'upper_arm': {'rot': 10}, 'forearm': {'rot': -12}}, 1.02, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    hit = [
+        ({'shoulder': {'rot': 10}, 'upper_arm': {'rot': -18}, 'forearm': {'rot': -14}}, 1.22, 0.0,
+         lambda c, r: draw_hit_spark(c, GX - 32, GY - 148, is_red=True)),
+        ({'shoulder': {'rot': 18}, 'upper_arm': {'rot': -28}, 'forearm': {'rot': -24}}, 1.10, 0.0,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX, GY - 135, (10, 26), C_IVORY, C_INK, 7), c)[1]),
+        ({'shoulder': {'rot': 22}, 'upper_arm': {'rot': -34}, 'forearm': {'rot': -28}}, 0.95, 0.0, None),
+        ({'shoulder': {'rot': 10}, 'upper_arm': {'rot': -16}, 'forearm': {'rot': -12}}, 0.99, 0.0, None),
+        ({'shoulder': {'rot': 4}, 'upper_arm': {'rot': -6}, 'forearm': {'rot': -4}}, 1.0, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    death = [
+        ({'mount': {'dy': 6}, 'shoulder': {'rot': 10}, 'upper_arm': {'rot': -16}, 'forearm': {'rot': -14}}, 1.14, 0.10,
+         lambda c, r: (draw_pixel_burst(ImageDraw.Draw(c), GX + 10, GY - 160, (12, 40), C_RED_HI, C_INK, 8), c)[1]),
+        ({'mount': {'dy': 26}, 'shoulder': {'rot': -12}, 'upper_arm': {'rot': 14}, 'forearm': {'rot': -18}}, 0.92, 0.28,
+         lambda c, r: (draw_spores(ImageDraw.Draw(c), GX, GY - 110, 42, 6, C_SMOKE, C_SILVER), c)[1]),
+        ({'mount': {'dy': 58}, 'shoulder': {'rot': -22}, 'upper_arm': {'rot': 26}, 'forearm': {'rot': -30}}, 0.82, 0.48, None),
+        ({'mount': {'dy': 88}, 'shoulder': {'rot': -30}, 'upper_arm': {'rot': 34}, 'forearm': {'rot': -38}}, 0.72, 0.68, None),
+        ({'mount': {'dy': 108}, 'shoulder': {'rot': -34}, 'upper_arm': {'rot': 38}, 'forearm': {'rot': -42}}, 0.64, 0.84, None),
+        ({'mount': {'dy': 118}, 'shoulder': {'rot': -36}, 'upper_arm': {'rot': 40}, 'forearm': {'rot': -44}}, 0.58, 0.92, None),
+    ]
+    skill = [
+        ({'shoulder': {'rot': 8}, 'upper_arm': {'rot': -16}, 'forearm': {'rot': 14}}, 1.05, 0.0, None),
+        ({'shoulder': {'rot': 16}, 'upper_arm': {'rot': -28}, 'forearm': {'rot': 26}}, 1.12, 0.0,
+         lambda c, r: (draw_pixel_ring(ImageDraw.Draw(c), GX - 72, GY - 65, 36, 36, C_RED, C_INK, 3, dashed=True), c)[1]),
+        ({'shoulder': {'rot': 20}, 'upper_arm': {'rot': -34}, 'forearm': {'rot': 34}}, 1.18, 0.0,
+         lambda c, r: (draw_hex_shield(ImageDraw.Draw(c), GX - 76, GY - 72, 42, color=C_IVORY, border=C_RED, fill_alpha=70), c)[1]),
+        ({'shoulder': {'rot': -10}, 'upper_arm': {'rot': 18}, 'forearm': {'rot': -22}}, 1.20, 0.0,
+         lambda c, r: (
+             draw_hex_shield(ImageDraw.Draw(c), GX - 82, GY - 54, 48, color=C_RED_HI, border=C_WHITE, fill_alpha=75),
+             draw_pixel_burst(ImageDraw.Draw(c), GX - 82, GY - 54, (12, 36), C_WHITE, C_INK, 8), c)[2]),
+        ({'shoulder': {'rot': -4}, 'upper_arm': {'rot': 8}, 'forearm': {'rot': -8}}, 1.04, 0.0, None),
+        ({}, 1.0, 0.0, None),
+    ]
+    return assemble_sheet('arm', rig, atk, hit, death, skill)
+
 def update_art_js(metas):
     body = ', '.join(f"{n}:{{ iw:{m['iw']}, ih:{m['ih']} }}" for n, m in metas.items())
     block = (
@@ -1748,6 +2432,7 @@ def main():
     metas = {}
     metas['rick'] = build_rick()
     metas['sentinel'] = build_sentinel()
+    metas['codex'] = build_codex()
     metas['sludge'] = build_sludge()
     metas['drone'] = build_drone()
     metas['guardian'] = build_guardian()
@@ -1755,6 +2440,10 @@ def main():
     metas['gemini'] = build_gemini()
     metas['omnis'] = build_omnis()
     metas['claude'] = build_claude()
+    metas['zero'] = build_zero()
+    metas['compiler'] = build_compiler()
+    metas['holo'] = build_holo()
+    metas['arm'] = build_arm()
     update_art_js(metas)
 
 
