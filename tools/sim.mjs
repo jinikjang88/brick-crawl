@@ -65,9 +65,9 @@ for (let run = 0; run < N; run++){
   const entered = new Set();
   const els = {}, L = {}, store = CAREER ? careerStore : {};
   // SIM_TREE: 스킬 트리를 찍은 계정으로 돌린다(심연·엔드게임 밸런스 확인용)
-  // all = 전부, main = 본편 완주 포인트(35)로 찍을 법한 조합(공격 줄기·방어 줄기·핵심 하나)
-  const TREE_SET = { all:['a1','a2','a3','a4','a5','a6','d1','d2','d3','d4','d5','d6','o1','o2','o3','o4','o5','o6','e1','e2','e3','e4','e5','e6'],
-    main:['a1','a2','a5','a6','d1','d2','d3','d4','o1'] }[process.env.SIM_TREE];
+  // all = 전부, main = 본편 완주 포인트(35)로 찍을 법한 조합(공격 줄기 + 오른쪽 가지 핵심, 방어 줄기)
+  const TREE_SET = { all:['a', 'd', 'o', 'e'].flatMap(k => [1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => k + i)),
+    main:['a1','a2','a3','a7','a8','a9','d1','d2','d3'] }[process.env.SIM_TREE];
   const abyss = !!process.env.SIM_ABYSS;
   // SIM_ASC=n: 고난 n단계가 열려 있고 골라 둔 계정(본편 완주 기록 포함)
   const ASCN = +process.env.SIM_ASC || 0;

@@ -345,11 +345,12 @@ img.orbPortrait{image-rendering:auto;object-fit:contain}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion: reduce){ .toast{transition:none} }
 
-/* ── 스킬 트리: 노드가 24개라 상자를 정사각형으로 넓히고, 노드 크기는 상자 폭에 맞춰 줄인다(겹치지 않게) */
+/* ── 스킬 트리: 노드가 9칸 격자(간격 11.1cqw)라 상자를 정사각형으로 넓히고, 노드 크기는 간격보다 작게 줄인다(겹치지 않게).
+   핵심 노드는 45° 돌린 정사각형이라 가로·세로 폭이 한 변의 1.41배다: 한 변을 더 작게 둔다 */
 .treeBox{max-width:340px;aspect-ratio:1/1;container-type:inline-size;margin:14px 0}
-.tNode{width:clamp(30px,13cqw,44px);height:clamp(30px,13cqw,44px);font-size:13px;border-width:2px}
-.tNode.key{width:clamp(28px,12cqw,40px);height:clamp(28px,12cqw,40px);border-width:4px}
-.tNode.root{width:clamp(34px,14cqw,48px);height:clamp(34px,14cqw,48px)}
+.tNode{width:clamp(26px,9.5cqw,34px);height:clamp(26px,9.5cqw,34px);font-size:12px;border-width:2px}
+.tNode.key{width:clamp(22px,8cqw,29px);height:clamp(22px,8cqw,29px);border-width:4px}
+.tNode.root{width:clamp(30px,10.5cqw,38px);height:clamp(30px,10.5cqw,38px)}
 .tBranch{font-size:11px;letter-spacing:.15em}
 /* ── 이야기(작업 05): 문단을 줄바꿈 그대로, 읽기 편하게 왼쪽 정렬 */
 #cSub.story{white-space:pre-line;text-align:left;font-size:16px;line-height:1.7;color:var(--ink);max-width:340px}

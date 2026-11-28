@@ -27,7 +27,7 @@ const garageLv = i => lvFromXp((META.g.oxp && META.g.oxp[i]) || 0);
 
 // ── 부품 드롭: 전투 결과(node.t)와 기체(node.mon)로 정한다. rand('reward')만 쓴다(새로고침해도 같은 드롭)
 // 회로 드롭률 보너스: 부품 감별 모듈 +5%p, 보안 등급마다 +2%p, 심층부 층마다 +1%p(깊이 갈 이유)
-const dropBonus = () => (tree('o2') ? 5 : 0) + (RUN.abyss ? RUN.s + 1 : (RUN.asc || 0) * 2);
+const dropBonus = () => (tree('o2') ? 3 : 0) + (tree('o5') ? 3 : 0) + (RUN.abyss ? RUN.s + 1 : (RUN.asc || 0) * 2);
 function randomCirc(){
   const w = {}; for (const k of DROP_CIRCS) w[k] = RARITY[ORBS[k].rar].w;
   return pickW(w, 'reward');
