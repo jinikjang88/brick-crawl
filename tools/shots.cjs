@@ -1,6 +1,6 @@
-// 화면 캡처·넘침 검사: 실제 브라우저(file://)로 주요 화면을 9개 화면비 × 다크·라이트에서 열어
+// 화면 캡처·넘침 검사: 실제 브라우저(file://)로 주요 화면을 9개 화면비에서 열어(화면은 어둡게 하나뿐, 2026-11-29)
 // (1) 콘솔 예외, (2) 가로 스크롤, (3) 화면 밖으로 밀린 버튼을 찾고, 눈으로 볼 캡처를 남긴다.
-// 실행: node tools/shots.cjs [저장 폴더] [--all]   (기본은 390×844만 캡처, --all이면 9개 화면비 전부 캡처)
+// 실행: node tools/shots.cjs [저장 폴더] [--all] [--fz=1.3]   (기본은 390×844만 캡처, --all이면 9개 화면비 전부 캡처, --fz는 글자 크기 옵션 배율)
 // 연출 무작위가 캡처마다 달라지지 않게 동작 줄이기로 띄운다.
 const path = require('node:path');
 const fs = require('node:fs');
@@ -11,6 +11,7 @@ try { ({ chromium } = require('playwright')); } catch (e) { console.log('SKIP: p
 const VIEWS = [[360, 640], [360, 800], [390, 844], [430, 932], [768, 1024], [1024, 1366], [844, 390], [1024, 768], [1440, 900]];
 const out = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : null;
 const ALL = process.argv.includes('--all');
+const FZ = +((process.argv.find(a => a.startsWith('--fz=')) || '--fz=1').slice(5));
 // 화면 이름 → 그 화면을 띄우는 코드(브라우저 안에서 실행). 저장 없는 새 계정에서 시작한다
 const SCREENS = {
   main: () => {},
@@ -30,11 +31,12 @@ const SCREENS = {
   const browser = await chromium.launch();
   const bad = [];
   if (out) fs.mkdirSync(out, { recursive:true });
-  for (const theme of ['dark', 'light']) for (const [w, h] of VIEWS){
+  const theme = 'dark';
+  for (const [w, h] of VIEWS){
     const shoot = out && (ALL || (w === 390 && h === 844));
     const page = await browser.newPage({ viewport:{ width:w, height:h }, deviceScaleFactor:shoot ? 2 : 1, reducedMotion:'reduce', hasTouch:w < 900 });
     page.on('pageerror', e => bad.push(`${theme} ${w}x${h}: 예외 ${e.message}`));
-    await page.addInitScript(t => { try { localStorage.setItem('brickquest:theme:v1', t); } catch (e){} }, theme);
+    if (FZ !== 1) await page.addInitScript(f => { try { localStorage.setItem('brickquest:ui:v1', JSON.stringify({ fz:f })); } catch (e){} }, FZ);
     await page.goto(pathToFileURL(path.resolve(__dirname, '../index.html')).href);
     await page.waitForFunction(() => typeof artImg === 'function' && artImg('rick') && artImg('orb_basic'));
     for (const [name, fn] of Object.entries(SCREENS)){
@@ -62,6 +64,6 @@ const SCREENS = {
     await page.close();
   }
   await browser.close();
-  console.log(bad.length ? '문제 ' + bad.length + '건\n' + bad.join('\n') : `PASS: ${Object.keys(SCREENS).length}개 화면 × ${VIEWS.length}개 화면비 × 2개 테마, 예외·가로 스크롤·잘린 버튼·작은 버튼·동작 줄이기 누락 0건`);
+  console.log(bad.length ? '문제 ' + bad.length + '건\n' + bad.join('\n') : `PASS: ${Object.keys(SCREENS).length}개 화면 × ${VIEWS.length}개 화면비 · 글자 ${FZ}배, 예외·가로 스크롤·잘린 버튼·작은 버튼·동작 줄이기 누락 0건`);
   process.exitCode = bad.length ? 1 : 0;
 })();

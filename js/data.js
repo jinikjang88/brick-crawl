@@ -163,7 +163,7 @@ const ORBS = {
   // 회로
   venom:  { part:'circ', short:'부식', name:'부식 회로',     rar:1, desc:'천장을 칠 때마다 기체에게 독 +1', up:'천장을 칠 때마다 기체에게 독 +2' },
   toxin:  { part:'circ', short:'바이러스', name:'바이러스 회로', rar:3, desc:'천장을 치면 이번 전투 기체 독이 줄지 않는다', up:'+ 독이 방어도도 깎는다' },
-  guard:  { part:'circ', short:'차폐', name:'차폐 회로',     rar:1, desc:'벽돌을 부술 때마다 방어도 +1', up:'벽돌을 부술 때마다 방어도 +2' },
+  guard:  { part:'circ', short:'차폐', name:'차폐 회로',     rar:1, desc:'벽돌을 2개 부술 때마다 방어도 +1', up:'벽돌을 부술 때마다 방어도 +1' },
   mirror: { part:'circ', short:'반사', name:'반사 회로',     rar:3, desc:'쏜 턴에 기체 공격 피해의 절반(올림)을 되돌린다', up:'쏜 턴에 기체 공격 피해를 그대로 되돌린다' },
   herb:   { part:'circ', short:'수리', name:'수리 회로',     rar:1, desc:'처음 천장을 칠 때 체력 +1', up:'처음 천장을 칠 때 체력 +2' },
   vamp:   { part:'circ', short:'사이펀', name:'사이펀 회로', rar:2, desc:'천장을 2번 칠 때마다 체력 +1', up:'천장을 칠 때마다 체력 +1' },

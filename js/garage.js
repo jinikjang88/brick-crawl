@@ -134,12 +134,12 @@ function showGarage(back, inRun){
       desc:orbDesc(full), onPick:() => showOrbEdit(i, back, inRun) };
   });
   const pairs = Object.keys(g.circs).filter(k => !k.endsWith('+') && g.circs[k] >= 2).length;
-  showChoice({ mode:'garage', title:'차고',
+  showChoice({ mode:'garage', memo:'list', title:'차고',
     sub:`릭 Lv${META.lv} · 장전 ${g.load.length}/${slots} · 보관함: 코어 ${countAll(g.cores)} · 회로 ${countAll(g.circs)} · 고철 ${g.scrap}`,
     cards, buttons:[
       { label:'새 구슬 조립', disabled:!countAll(g.cores), onClick:() => showNewOrb(back, inRun) },
       { label:'회로 합성', disabled:!pairs, onClick:() => showSynth(back, inRun) },
-      { label:'돌아가기', primary:true, onClick:back }] });
+      { label:'돌아가기', primary:true, back:inRun ? '윤의 정비소' : '터미널', onClick:back }] });
 }
 // 구슬 하나 고치기(조립대): 구슬과 회로 칸을 그림으로 보여 주고, 아래 보관함에서 회로를 눌러 고른다.
 // 설명은 고른 부품 하나만 아래 칸에 띄운다(전에는 끼우기·빼기·분해가 같은 카드로 쌓여 눈이 머물 곳이 없었다).
@@ -158,7 +158,7 @@ function showOrbEdit(i, back, inRun){
   const pickBtn = (cls, p, label, kind) => {
     const b = el('button', cls + (same(p) ? ' pick' : ''));
     b.append(orbPortrait(kind), el('span', '', label));
-    b.setAttribute('aria-pressed', same(p) ? 'true' : 'false');
+    b.setAttribute('aria-pressed', same(p) ? 'true' : 'false'); b.dataset.k = p.at + ':' + p.k;   // 다시 그려도 누른 칸에 초점이 남게
     b.onclick = live(() => { benchPick = same(p) ? null : p; sfx('pick'); again(); });
     return b;
   };
@@ -188,7 +188,7 @@ function showOrbEdit(i, back, inRun){
 
   // 아래: 고른 것 하나의 설명과 할 일
   const info = el('div', 'treeInfo benchInfo'), act = (label, f, off) => {
-    const b = el('button', 'btn primary', label); b.disabled = !!off; b.onclick = live(f); info.append(b); };
+    const b = el('button', 'btn primary', label); b.disabled = !!off; b.dataset.k = 'act'; b.onclick = live(f); info.append(b); };
   const p = benchPick;
   if (p && p.at === 'slot' && keys.includes(p.k)){
     info.append(el('b', '', circLabel(p.k)), el('span', '', circText(p.k)));
@@ -218,17 +218,17 @@ function showOrbEdit(i, back, inRun){
   const parts = [head, stats];
   if (ks.length) parts.push(el('div', 'benchLabel', '보관함 회로'), tray);
   parts.push(info);
-  showChoice({ mode:'garage', title:orbName(lo), sub:`구슬 Lv${lv}` + (ORB_XP[lv + 1] ? ` · 경험치 ${g.oxp[i] || 0}/${ORB_XP[lv + 1]}` : ' · 최고 레벨'),
+  showChoice({ mode:'garage', memo:'orb' + i, title:orbName(lo), sub:`구슬 Lv${lv}` + (ORB_XP[lv + 1] ? ` · 경험치 ${g.oxp[i] || 0}/${ORB_XP[lv + 1]}` : ' · 최고 레벨'),
     bench:parts, cards:[], buttons:[
       { label:(loaded ? '장전 풀기' : '장전하기') + ` (${g.load.length}/${slots})`, disabled:loaded ? g.load.length <= 1 : g.load.length >= slots,
         onClick:() => { if (loaded) g.load = g.load.filter(x => x !== i); else g.load.push(i); sfx('pick'); done(); } },
       { label:'분해…', disabled:g.orbs.length <= 1, onClick:() => { benchPick = { at:'scrap' }; sfx('pick'); again(); } },
-      { label:'차고로', primary:true, onClick:() => { benchOrb = -1; showGarage(back, inRun); } }] });
+      { label:'차고로', primary:true, back:'차고', onClick:() => { benchOrb = -1; showGarage(back, inRun); } }] });
 }
 // 새 구슬: 보관함의 코어 하나로 빈 구슬을 만든다. 자리가 있으면 바로 장전
 function showNewOrb(back, inRun){
   const g = META.g;
-  showChoice({ mode:'garage', title:'코어를 고른다', sub:'코어가 구슬의 움직임을 정한다. 회로는 다음 화면에서 끼운다',
+  showChoice({ mode:'garage', memo:'new', title:'코어를 고른다', sub:'코어가 구슬의 움직임을 정한다. 회로는 다음 화면에서 끼운다',
     cards:Object.keys(g.cores).map(k => ({ name:ORBS[k].name, orb:k, tag:`보관 ${g.cores[k]}개 · 회로 칸 ${ORBS[k].slots}`,
       desc:ORBS[k].desc + ` · 과열 ${ORBS[k].heat}`,
       onPick:() => {
@@ -237,7 +237,7 @@ function showNewOrb(back, inRun){
         if (g.load.length < loadSlots(inRun)) g.load.push(i);
         sfx('badge'); saveMeta(); if (inRun) syncRunDeck(); showOrbEdit(i, back, inRun);
       } })),
-    buttons:[{ label:'차고로', primary:true, onClick:() => showGarage(back, inRun) }] });
+    buttons:[{ label:'차고로', primary:true, back:'차고', onClick:() => showGarage(back, inRun) }] });
 }
 // 회로 합성: 같은 회로 Ⅰ 두 개 + 고철 10 → Ⅱ 하나(효과가 한 단계 오른다)
 // 고철 10 → 20: 1·2단계 동안 쌓인 고철로 Ⅱ 회로가 한꺼번에 쏟아지지 않게
@@ -251,11 +251,11 @@ function synthCirc(k){
 function showSynth(back, inRun){
   const g = META.g;
   const ks = Object.keys(g.circs).filter(k => !k.endsWith('+') && g.circs[k] >= 2);
-  showChoice({ mode:'garage', title:'회로 합성', sub:`같은 회로 2개 + 고철 ${SYNTH_SCRAP} → Ⅱ 회로. 지금 고철 ${g.scrap}`,
+  showChoice({ mode:'garage', memo:'synth', title:'회로 합성', sub:`같은 회로 2개 + 고철 ${SYNTH_SCRAP} → Ⅱ 회로. 지금 고철 ${g.scrap}`,
     cards:ks.map(k => ({ name:`${ORBS[k].name}Ⅱ 만들기`, orb:k, tag:`${ORBS[k].short} 2개 + 고철 ${SYNTH_SCRAP}`, desc:partDesc(k, true),
       disabled:g.scrap < SYNTH_SCRAP,
       onPick:() => { if (synthCirc(k)){ sfx('badge'); toast(`합성 · ${ORBS[k].name}Ⅱ`); saveMeta(); } showSynth(back, inRun); } })),
-    buttons:[{ label:'차고로', primary:true, onClick:() => showGarage(back, inRun) }] });
+    buttons:[{ label:'차고로', primary:true, back:'차고', onClick:() => showGarage(back, inRun) }] });
 }
 
 // ── 시뮬레이터 봇용 자동 조립: 합성할 수 있으면 하고, 회로는 빈 칸이 있는 장전 구슬부터(Ⅱ·높은 등급 먼저),

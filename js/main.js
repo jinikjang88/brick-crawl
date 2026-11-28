@@ -12,14 +12,12 @@ function openMenu(){
   $('pMainSub').textContent = prevMode === 'play' ? '침투는 저장된다 · 이번 전투는 처음부터' : '진행은 저장되어 있다';
   $('pGiveup').textContent = '침투 포기'; $('pGiveup').dataset.arm = '';
   $('ovPause').classList.add('on'); $('pResume').focus();
+  syncNav();
 }
-// 메뉴에서 테마를 바꿨다면 돌아갈 때 지도를 다시 그린다: 지도 아이콘·길은 그릴 때의 색을 박아 둬 옛 테마 색이 남는다
-let themeDirty = false;
 function closeMenu(){
   if (mode !== 'pause') return;
   $('ovPause').classList.remove('on'); mode = prevMode;
-  if (themeDirty && mode === 'map') showMap();
-  themeDirty = false;
+  syncNav();
 }
 $('btnMenu').onclick = () => mode === 'pause' ? closeMenu() : openMenu();
 $('pResume').onclick = closeMenu;
@@ -52,17 +50,14 @@ function renderSound(){
   });
 }
 SND_BTNS.forEach(([id, k]) => $(id).onclick = () => { unlockAudio(); setAudio(k, !AUDIO[k]); renderSound(); });
-// 테마 전환: 어둡게 → 밝게 → 자동. 캔버스·로고·지도 아이콘은 색 토큰을 읽어 그리므로 바꾼 뒤 다시 읽고 다시 그린다
-const THEME_LABEL = { auto:'화면 자동', light:'화면 밝게', dark:'화면 어둡게' };
-function renderTheme(){ ['mTheme', 'pTheme'].forEach(id => { $(id).textContent = THEME_LABEL[THEME]; $(id).setAttribute('aria-label', `화면 테마: ${THEME_LABEL[THEME]}. 눌러서 바꾸기`); }); }
-['mTheme', 'pTheme'].forEach(id => $(id).onclick = () => {
-  THEME = THEMES[(THEMES.indexOf(THEME) + 1) % THEMES.length];
-  try { localStorage.setItem(THEME_KEY, THEME); } catch(e){}
-  applyTheme(); readColors(); renderTheme();
-  if (mode === 'main') drawLogo($('logoCv'));
-  if (mode === 'pause') themeDirty = true;
+// 글자 크기: 보통 → 크게 → 아주 크게(설정·적용은 js/config.js)
+function renderFz(){ const name = FZ_STEPS.find(f => f[0] === UI.fz)[1]; ['mText', 'pText'].forEach(id => { $(id).textContent = name; $(id).setAttribute('aria-label', `${name}. 눌러서 바꾸기`); }); }
+['mText', 'pText'].forEach(id => $(id).onclick = () => {
+  const i = FZ_STEPS.findIndex(f => f[0] === UI.fz); UI.fz = FZ_STEPS[(i + 1) % FZ_STEPS.length][0];
+  try { localStorage.setItem(UI_KEY, JSON.stringify(UI)); } catch(e){}
+  applyFz(); renderFz(); sfx('pick');
 });
-renderTheme();
+renderFz();
 document.addEventListener('pointerdown', unlockAudio, true);
 document.addEventListener('keydown', unlockAudio, true);
 // 일부 모바일 브라우저는 터치의 사용자 활성화를 pointerdown이 아니라 pointerup·click에서 준다.
@@ -70,17 +65,50 @@ document.addEventListener('keydown', unlockAudio, true);
 document.addEventListener('pointerup', unlockAudio, true);
 document.addEventListener('click', unlockAudio, true);
 
+$('hpSkip').onclick = heatSkip;
+$('hpForce').onclick = heatForce;
 // ── 입력: 조준선은 스스로 움직이고, 플레이어는 타이밍에 맞춰 누르기만 한다
 cv.addEventListener('pointerdown', e => { if (mode === 'play'){ e.preventDefault(); fire(); } });
 addEventListener('keydown', e => {
   if (PORTRAIT_LOCK && PORTRAIT_LOCK.matches) return;   // 세로 안내가 가린 동안 Esc로 전투가 다시 돌거나 Space로 쏘지 않게
-  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape'){ mode === 'pause' ? closeMenu() : openMenu(); return; }
+  // Esc = 돌아가기(위쪽 "‹ 터미널" 버튼과 같다. 침투 화면에서는 일시정지). P는 예전처럼 일시정지만. 이름 입력 중의 p는 글자다
+  if (e.key === 'Escape' && DEV && $('devPanel') && !$('devPanel').hidden){ devClose(); return; }
+  if (e.key === 'Escape'){ e.preventDefault(); goBack(); return; }
+  if ((e.key === 'p' || e.key === 'P') && !(e.target && e.target.tagName === 'INPUT')){ mode === 'pause' ? closeMenu() : openMenu(); return; }
   // 장갑 슬롯 고르기: 숫자 1~5(작업 08)
   if (mode === 'play' && /^[1-5]$/.test(e.key)){ pickSlot(+e.key - 1); return; }
+  // 과열 선택 창이 떠 있으면 Space·Enter는 초점이 있는 창 버튼이 받는다(전투 발사로 가로채지 않게)
+  if (mode === 'play' && G && G.allHot && G.phase === 'aim') return;
   if (mode === 'play' && (e.key === ' ' || e.key === 'Enter')){ if (!e.repeat) fire(); e.preventDefault(); }
   // 대화창: 초점이 버튼 밖(상자를 눌러 넘긴 뒤)이어도 Space·Enter로 넘긴다. 버튼 위면 버튼이 알아서 눌린다
   if (mode === 'story' && (e.key === ' ' || e.key === 'Enter') && !(e.target && e.target.tagName === 'BUTTON')){ if (!e.repeat) talkStep(); e.preventDefault(); }
 });
+
+// ── 박자 연출(2026-11-29): 화면 뒤 이퀄라이저·HUD 꺾쇠·박자 램프·시작 버튼·지도 칸이 BGM 박에 맞춰 쿵(1·3박) 짝(2·4박) 뛴다.
+// 박이 바뀔 때만 .app[data-beat](0~3)를 바꾸고 움직임은 CSS가 맡는다(매 프레임 스타일을 건드리지 않게). 이웃한 박은 값이 늘 달라 애니메이션이 다시 걸린다.
+// 음악이 꺼졌거나 소리가 아직 열리지 않았거나 동작 줄이기면 data-beat를 떼어 멈춘다(소리 없이 박만 뛰면 어색하다). 게임 결과와는 무관하다
+const CALM_MQ = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)'); } catch(e){ return null; } })();
+// 이퀄라이저 막대: 왼쪽이 저음. 쿵(킥)에는 왼쪽이, 짝(스네어)에는 가운데~오른쪽이 솟는다. 높이는 고정 무늬(연출이라 Math.random도 되지만 매번 같은 모양이 낫다)
+(function buildEq(){
+  const eq = $('eq'), N = 28;
+  for (let i = 0; i < N; i++){
+    const x = i / (N - 1), w = ((i * 37) % 11) / 11 * .18, b = document.createElement('i');
+    b.style.setProperty('--b', (.05 + .07 * Math.exp(-x * 2) + w * .2).toFixed(3));
+    b.style.setProperty('--k', Math.min(1, .2 + .8 * Math.exp(-x * 3.2) + w).toFixed(3));
+    b.style.setProperty('--s', Math.min(1, .15 + .6 * Math.exp(-(((x - .62) / .24) ** 2)) + w).toFixed(3));
+    eq.append(b);
+  }
+})();
+let beatLast = -1;
+function beatTick(){
+  // DEV_BEAT: 개발 도구에서 음악 없이 박자 연출만 본다
+  const p = DEV_BEAT ? performance.now() / 1000 * TRACK_BEAT.bpm / 60 : CALM_MQ && CALM_MQ.matches ? null : beatPos();
+  const b = p === null || p < 0 ? -1 : Math.floor(p) % 4;
+  if (b === beatLast) return;
+  beatLast = b;
+  const app = $('app');
+  if (b < 0) delete app.dataset.beat; else app.dataset.beat = b;
+}
 
 // ── 메인 루프
 // 전투는 고정 시간 간격(STEP)으로만 나아간다. 화면 주사율(60·90·120Hz)이나 프레임 끊김에 따라 구슬이 나뉘어 움직이는
@@ -94,13 +122,15 @@ function frame(now){
     // 타격 정지(hit stop): 맞는 순간 아주 잠깐 멈춰 무게를 준다. 멈춘 동안은 시간을 모으지 않는다(뒤에 몰아서 흐르지 않게)
     if (G.stop > 0) G.stop -= dt;
     else {
-      stepAcc = Math.min(stepAcc + dt, STEP * STEP_MAX);
+      // DEV_SPEED: 개발 도구 배속. 같은 STEP을 더 많이 돌릴 뿐이라 결과는 같다
+      stepAcc = Math.min(stepAcc + dt * DEV_SPEED, STEP * STEP_MAX * DEV_SPEED);
       while (stepAcc >= STEP && G && mode === 'play' && !(G.stop > 0)){ update(STEP); stepAcc -= STEP; }
     }
   } else stepAcc = 0;
   // 가려진 전투판과 장면은 다시 보일 때 그린다. 일시정지 중에는 두 캔버스가 모두 메뉴 뒤에 있다.
   if (mode === 'play') draw();
   else if (mode !== 'pause') drawScene(dt);
+  beatTick();
   // 전투 중에는 코인 그림(::before)이 "코인"을 대신해 글자를 줄인다(한 줄 헤더에서 몬스터 이름 자리를 지키려고). 읽기 프로그램용 이름은 따로 단다
   if (G && mode === 'play'){ const h = $('hCoin'), t = `${RUN.coins} · ${G.turn}턴`;
     if (h.textContent !== t){ h.textContent = t; h.setAttribute('aria-label', `크레딧 ${RUN.coins}, ${G.turn}턴`); } }

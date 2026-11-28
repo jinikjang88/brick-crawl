@@ -14,15 +14,89 @@ function setRealm(abyss){
 }
 // 장면별 음악: 심연은 따로 곡을 둔다(같은 규칙이어도 다른 곳에 왔다는 걸 귀로 먼저 알게)
 const calmSong = () => isAbyss() ? 'abyss' : 'calm';
-function show(id){ OVERLAYS.forEach(o => $(o).classList.toggle('on', o === id)); }
-function setMode(m, overlay){
-  mode = m; $('app').dataset.mode = m; show(overlay); refreshHud();
+// ── 화면 위치 기억(2026-11-29): 다른 화면에 다녀오면 스크롤과 고른 항목(초점)이 그대로여야 한다(아카이브에서 이야기를 보고 오면 그 이야기 줄로).
+// 화면을 떠날 때(show) 그 화면 키로 스크롤·초점 키(data-k, 없으면 id)를 적어 두고, 돌아온 화면이 memRestore로 되살린다.
+// 누른 항목은 클릭을 가로채 따로 적는다: Safari는 버튼을 눌러도 초점을 주지 않아 activeElement만으로는 놓친다
+const MEM = {};
+let memAt = null;   // 지금 보이는 화면 { key, ov }
+const memOf = el => el && el.dataset ? (el.dataset.k || el.id || null) : null;
+// 화면을 다시 그리는 함수는 내용을 지우기 전에 먼저 부른다(짧은 내용으로 바뀐 뒤에 재면 스크롤이 잘린 값으로 남는다). 한 번 전환에 한 번만 적는다
+function memKeep(){
+  if (!memAt || memAt.kept) return;
+  memAt.kept = true;
+  const o = $(memAt.ov), a = document.activeElement, m = MEM[memAt.key] || (MEM[memAt.key] = {});
+  m.top = o.scrollTop || 0;
+  if (a && a !== document.body && o.contains && o.contains(a) && memOf(a)) m.k = memOf(a);
+}
+const shownEl = el => !!el && !el.disabled && typeof el.getClientRects === 'function' && el.getClientRects().length > 0;
+// focusMem = false: 스크롤만 되살리고 초점은 fallback에 준다(탭을 바꿀 때 초점이 탭에 남게)
+function memRestore(key, ov, fallback, focusMem = true){
+  const m = MEM[key], o = $(ov);
+  if (m) o.scrollTop = m.top;
+  let el = focusMem && m && m.k && o.querySelector ? o.querySelector(`[data-k="${m.k}"]`) || document.getElementById(m.k) : null;
+  if (!shownEl(el) || !(o.contains && o.contains(el))) el = fallback;
+  if (el && el.focus) el.focus({ preventScroll:true });
+}
+try { document.addEventListener('click', e => {
+  const t = e.target && e.target.closest && e.target.closest('[data-k],button[id]');
+  if (t && memAt && $(memAt.ov).contains(t)) (MEM[memAt.key] || (MEM[memAt.key] = {})).k = memOf(t);
+}, true); } catch(e){}
+function show(id, key){
+  memKeep();
+  OVERLAYS.forEach(o => $(o).classList.toggle('on', o === id));
+  memAt = id ? { key:key || id, ov:id } : null;
+}
+function setMode(m, overlay, key){
+  mode = m; $('app').dataset.mode = m; show(overlay, key); refreshHud();
   if (overlay !== 'ovChoose') setScene(null);
   // 무전 띠는 전투 위에서만 뜬다. 보상·결과 화면으로 넘어가면 바로 거둔다
   if (m !== 'play') radio(null);
   // 메인·결과 화면에서는 메뉴가 열리지 않으니 버튼도 감춘다(자리는 남겨 헤더가 흔들리지 않게)
   $('btnMenu').style.visibility = m === 'main' || m === 'result' || m === 'tree' || m === 'badge' ? 'hidden' : '';
+  syncNav();
 }
+
+// ── 돌아가기: 위쪽 "‹ 터미널" 버튼·Esc·기기(브라우저·안드로이드) 뒤로 가기가 모두 지금 화면의 돌아가기 버튼([data-back] = 돌아갈 곳 이름)을 누른 것과 같다.
+// 돌아갈 곳이 없는 침투 화면(지도·전투·보상)에서는 일시정지를 열고, 일시정지에서는 닫는다
+function backBtn(){
+  if (mode === 'pause' || !memAt) return null;
+  const ov = $(memAt.ov);
+  if (!ov.querySelectorAll) return null;   // 시뮬레이터의 가짜 DOM
+  return [...ov.querySelectorAll('[data-back]')].find(shownEl) || null;
+}
+function goBack(){
+  if (mode === 'pause') return closeMenu();
+  if (mode === 'main'){
+    if (!$('renameForm').hidden) return $('nameCancel').click();
+    if (!$('deleteForm').hidden) return $('deleteCancel').click();
+  }
+  const b = backBtn();
+  if (b){ sfx('pick'); return b.click(); }
+  openMenu();
+}
+function syncNav(){
+  const b = backBtn(), nb = $('navBack');
+  nb.hidden = !b;
+  if (b){ $('navTo').textContent = b.dataset.back; nb.setAttribute('aria-label', `${b.dataset.back}로 돌아가기`); }
+  syncGuard();
+}
+$('navBack').onclick = goBack;
+// 기기 뒤로 가기: 터미널 밖에서는 방문 기록 한 칸을 깔아 두고, 눌리면 페이지를 떠나는 대신 앱 안에서 한 단계 돌아간다
+// (침투 중에 뒤로 가기를 눌러 게임이 통째로 닫히던 문제). 터미널로 돌아오면 깔아 둔 칸을 거둬 다음 뒤로 가기는 원래대로 떠난다
+let navGuard = false, navSkip = false;
+function syncGuard(){
+  if (typeof history === 'undefined' || !history.pushState) return;
+  const want = mode !== 'main' || $('ovRank').classList.contains('on');
+  try {
+    if (want && !navGuard){ history.pushState({ bc:1 }, ''); navGuard = true; }
+    else if (!want && navGuard){ navGuard = false; navSkip = true; history.back(); }
+  } catch(e){}
+}
+addEventListener('popstate', () => {
+  if (navSkip){ navSkip = false; return; }
+  if (!navGuard) return;
+  navGuard = false; goBack(); syncGuard();
+});
 
 // 대화 초상화 엘리먼트 생성(로드 실패 시 깔끔하게 숨김)
 function dlgPortrait(port){
@@ -33,8 +107,11 @@ function dlgPortrait(port){
   return im;
 }
 
+// 등급색 클래스: 고급(2)·희귀(3)·전설(4)만. 일반·기본은 무채색 그대로
+const tierCls = t => t >= 2 && t <= 4 ? ' tier' + t : '';
 // 선택 화면(보상·휴식·상점·덜어내기·이야기 대화)을 하나의 틀로 그린다
 function showChoice(o){
+  memKeep();
   // 덜어내기·강화는 상점·휴식 안에서 이어지는 화면이라 장면을 그대로 둔다
   setScene(o.scene !== undefined ? o.scene : ['remove', 'upgrade'].includes(o.mode) ? SCENE : null);
   $('cTitle').textContent = o.title; $('cTitle').className = 'big';
@@ -45,11 +122,12 @@ function showChoice(o){
   // 조립대(차고의 구슬 하나): 카드 목록 대신 그림으로 보여 줄 덩어리. 다른 화면에서는 비운다
   const bench = $('cBench'); bench.textContent = ''; bench.hidden = !o.bench; if (o.bench) bench.append(...o.bench);
   const box = $('cCards'); box.textContent = '';
-  for (const c of o.cards){
+  o.cards.forEach((c, i) => {
     const b = document.createElement('button');
-    b.className = 'rCard' + (c.rare ? ' rare' : ''); b.disabled = !!c.disabled;
+    // tier = 등급(RARITY 번호). 고급 이상은 등급색 카드(css "등급색")
+    b.className = 'rCard' + tierCls(c.tier); b.disabled = !!c.disabled; b.dataset.k = 'c' + i;
     const t = document.createElement('b'); t.append(c.name);
-    if (c.tag){ const em = document.createElement('em'); em.textContent = c.tag; t.append(em); }
+    if (c.tag){ const em = document.createElement('em'); em.textContent = c.tag; em.className = tierCls(c.tier).trim(); t.append(em); }
     const d = document.createElement('span'); d.textContent = c.desc;
     const kind = c.orb ? orbKind(c.orb) : Object.keys(ORBS).find(k => ORBS[k].name === c.name);
     if (c.res){ b.classList.add('orbCard'); b.append(resPortrait(c.res, 'orbPortrait')); }
@@ -59,16 +137,20 @@ function showChoice(o){
     b.append(body);
     b.onclick = () => { if (mode !== o.mode) return; sfx('pick'); c.onPick(); };
     box.append(b);
-  }
+  });
   const row = $('cBtns'); row.textContent = '';
-  for (const bt of (o.buttons || [])){
+  (o.buttons || []).forEach((bt, i) => {
     const b = document.createElement('button');
-    b.className = 'btn' + (bt.primary ? ' primary' : ''); b.textContent = bt.label; b.disabled = !!bt.disabled;
+    b.className = 'btn' + (bt.primary ? ' primary' : ''); b.textContent = bt.label; b.disabled = !!bt.disabled; b.dataset.k = 'b' + i;
+    // back = 돌아갈 곳 이름. 위쪽 돌아가기 버튼·Esc·기기 뒤로 가기가 이 버튼을 누른다
+    if (bt.back) b.dataset.back = bt.back;
     b.onclick = () => { if (mode !== o.mode) return; bt.onClick(); };
     row.append(b);
-  }
-  setMode(o.mode, 'ovChoose');
-  const first = box.querySelector('button:not(:disabled)') || row.querySelector('button'); if (first) first.focus();
+  });
+  // memo = 위치를 기억할 화면 이름(차고처럼 다녀오는 화면). 보상·상점처럼 매번 새로 뽑는 화면은 첫 카드에 초점
+  setMode(o.mode, 'ovChoose', o.memo ? o.mode + ':' + o.memo : null);
+  const first = box.querySelector('button:not(:disabled)') || row.querySelector('button');
+  if (o.memo) memRestore(o.mode + ':' + o.memo, 'ovChoose', first); else if (first) first.focus();
 }
 
 function radioRow(ln){
@@ -91,6 +173,8 @@ function showTalk(o){
   $('tTitle').textContent = o.title;
   for (const id of ['tPL', 'tPR']){ const im = $(id); im.dataset.port = ''; im.className = 'tPort ' + (id === 'tPL' ? 'l' : 'r'); }
   setHeader('', '');
+  // 아카이브에서 다시 보는 이야기는 돌아갈 곳이 있다: 위쪽 "‹ 아카이브"·Esc·뒤로 가기 = 건너뛰기
+  if (o.back) $('tSkip').dataset.back = o.back; else delete $('tSkip').dataset.back;
   setMode('story', 'ovTalk');
   talkStep();
   $('tNext').focus();
@@ -187,7 +271,8 @@ function showMain(){
   setHeader('', '');
   setMode('main', 'ovMain');
   bgm('calm'); renderSound();
-  if (INPUT_SEEN) (saved ? c : nw).focus();
+  // 차고·모듈·아카이브·순위표에서 돌아오면 누르고 갔던 버튼과 스크롤 그대로. 앱을 막 열었을 때는 초점 테를 그리지 않는다
+  memRestore('ovMain', 'ovMain', INPUT_SEEN ? (saved ? c : nw) : null, INPUT_SEEN);
   refreshBoard();
 }
 $('mContinue').onclick = () => { const r = loadRun(); if (!r) return showMain(); RUN = r; resumeRun(); };
@@ -256,8 +341,6 @@ function renderAsc(){
 // 메인 전체를 다시 만들면(배경 전투·랭킹 요청까지) 연타 한 번마다 서버 요청이 나갔다: 버튼 글자만 바꾼다
 $('mAsc').onclick = () => { if (mode !== 'main') return; META.ascPick = (META.ascPick + 1) % (META.asc + 1); saveMeta(); sfx('pick'); renderAsc(); };
 $('mAbyss').onclick = e => { if (abyssOpen()) confirmStart(e, true); };
-// 로고는 DOM 캔버스라 색 토큰이 바뀌면(다크 모드 전환) 다시 그려야 한다
-try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (mode === 'main') drawLogo($('logoCv')); else if (mode === 'map') showMap(); else if (mode === 'pause') themeDirty = true; }); } catch(e){}
 let startRadio = false;
 function startNewRun(abyss){
   RUN = freshRun(abyss, abyss ? 0 : META.ascPick); applyTreeStart(RUN); RUN.deck.forEach(o => Object.keys(orbFeats(o)).filter(k => hasKey(ORBS, k)).forEach(k => markSeen('orb', k))); META.runs++; saveMeta(); saveRun(); ticketRun(RUN);
@@ -271,9 +354,9 @@ function storyOnce(id, next){
   META.story[id] = 1; saveMeta();
   showStory(id, next);
 }
-function showStory(id, next){
+function showStory(id, next, back){
   const st = STORY[id];
-  showTalk({ title:st.title, lines:st.lines, onDone:next });
+  showTalk({ title:st.title, lines:st.lines, onDone:next, back });
 }
 // 스킬 트리 중 원정 시작 때 한 번 정해지는 효과
 function applyTreeStart(r){
@@ -390,7 +473,7 @@ function showTree(back){
   }
   for (const n of TREE){
     const st = treeState(n), b = document.createElement('button');
-    b.className = `tNode ${st}${n.key ? ' key' : ''}${n.id === 'root' ? ' root' : ''}${treePick === n.id ? ' pick' : ''}`;
+    b.className = `tNode ${st}${n.key ? ' key' : ''}${n.id === 'root' ? ' root' : ''}${treePick === n.id ? ' pick' : ''}`; b.dataset.k = 'n:' + n.id;
     b.style.left = n.x + '%'; b.style.top = n.y + '%';
     const t = document.createElement('span'); t.textContent = n.id === 'root' ? '★' : st === 'own' ? '✓' : n.cost; b.append(t);
     b.setAttribute('aria-label', `${n.name}: ${n.desc}. ${st === 'own' ? '설치됨' : st === 'lock' ? '앞 모듈을 먼저 설치해야 열린다' : `커밋 ${n.cost}`}`);
@@ -404,7 +487,7 @@ function showTree(back){
     h.textContent = n.name + (n.key ? ' · 코어 모듈' : ''); d.textContent = n.desc;
     info.append(h, d);
     if (st === 'open' || st === 'poor'){
-      const buy = document.createElement('button'); buy.className = 'btn primary'; buy.disabled = st === 'poor';
+      const buy = document.createElement('button'); buy.className = 'btn primary'; buy.disabled = st === 'poor'; buy.dataset.k = 'buy';
       buy.textContent = st === 'poor' ? `설계도 ${n.cost} 필요` : `설치하기 (설계도 ${n.cost})`;
       buy.onclick = () => { if (mode !== 'tree' || treeState(n) !== 'open') return;
         META.pts -= n.cost; META.tree[n.id] = 1; saveMeta(); sfx('coin'); showTree(); };
@@ -412,12 +495,14 @@ function showTree(back){
     } else if (st === 'lock'){ const l = document.createElement('small'); l.textContent = '앞 모듈을 먼저 설치해야 열린다'; info.append(l); }
   } else { const d = document.createElement('span'); d.textContent = '모듈을 눌러 효과를 본다. 갈래는 두 가지로 갈라지고, 가지 끝 마름모는 코어 모듈이다. 공격 코어 모듈은 피해를 몇 배로 키운다.'; info.append(d); }
   setMode('tree', 'ovTree');
+  // 노드를 누르면 화면을 다시 그린다: 초점이 사라지지 않게 누른 노드(설치한 뒤에는 그 노드)로 돌려놓는다
+  memRestore('ovTree', 'ovTree', treePick ? box.querySelector(`[data-k="n:${treePick}"]`) : null);
 }
 $('mTree').onclick = () => { treePick = null; showTree(showMain); };
 $('mGarage').onclick = () => showGarage(showMain, false);
 $('treeBack').onclick = () => { if (mode === 'tree') treeBack(); };
 
-// ── 배지: 메달 도트(ICON 글리프를 둥근 테 안에). 못 딴 배지는 흐린 테와 ?로, 조건은 보여 줘 목표가 되게 한다
+// ── 트로피: 메달 도트(ICON 글리프를 둥근 테 안에). 못 받은 트로피도 같은 글리프를 흐린 색으로 그려 무엇을 받을지 보이게 한다(2026-11-29, ? 대신)
 function badgeIcon(b, owned){
   const c = document.createElement('canvas'); c.width = 11; c.height = 11;
   c.className = 'bIc'; c.setAttribute('aria-hidden', 'true');
@@ -425,79 +510,136 @@ function badgeIcon(b, owned){
   g.fillStyle = col;
   const ring = ['...#####...', '..#.....#..', '.#.......#.', '#.........#', '#.........#', '#.........#', '#.........#', '#.........#', '.#.......#.', '..#.....#..', '...#####...'];
   ring.forEach((row, y) => [...row].forEach((v, x) => { if (v === '#') g.fillRect(x, y, 1, 1); }));
-  const m = owned ? ICON[b.icon] : ['..###..','.#...#.','.....#.','....#..','...#...','.......','...#...'];
+  const m = ICON[b.icon];
   for (let r = 0; r < 7; r++) for (let k = 0; k < 7; k++) if (m[r][k] === '#') g.fillRect(2 + k, 2 + r, 1, 1);
   return c;
 }
-// 도감 한 칸: 모은 것은 그림·이름·설명, 못 모은 것은 흐린 ?와 등급만(잠긴 구슬은 해금 조건을 보여 줘 목표가 되게)
-function bookRow(icon, name, tag, desc, own){
-  const li = document.createElement('li'); li.className = 'bCard' + (own ? ' own' : '');
+// 아카이브 한 칸: 모은 것은 그림·이름·설명, 못 모은 것은 흐린 ?와 등급만(얻는 곳을 보여 줘 목표가 되게).
+// tag = 'button'이면 누를 수 있는 칸(이야기 다시 보기)
+// tier = 등급: 태그는 늘 등급색 띠, 칸 바탕·테두리는 모은 칸만 등급색(못 모은 칸은 무엇인지 몰라도 얼마나 귀한지는 보이게)
+function bookRow(icon, name, tag, desc, own, el = 'li', tier = 0){
+  const li = document.createElement(el); li.className = 'bCard' + (own ? ' own' + tierCls(tier) : '');
   const t = document.createElement('b'); t.textContent = name;
-  if (tag){ const em = document.createElement('em'); em.textContent = tag; t.append(em); }
+  if (tag){ const em = document.createElement('em'); em.textContent = tag; em.className = tierCls(tier).trim(); t.append(em); }
   const d = document.createElement('span'); d.textContent = desc;
   const body = document.createElement('div'); body.append(t, d);
   li.append(icon, body); li.setAttribute('aria-label', `${name}, ${tag}: ${desc}`);
   return li;
 }
-function bookHead(text){ const li = document.createElement('li'); li.className = 'bHead'; li.textContent = text; return li; }
-const UNKNOWN = { icon:'dots' };
-function showBadges(){
-  const box = $('badgeBox'); box.textContent = '';
-  const orbs = [...CORES, ...CIRCS], relics = Object.keys(RELICS);
-  const gotB = BADGES.filter(b => META.badges[b.id]).length;
-  $('badgeSub').textContent = `코어·회로 ${orbs.filter(k => META.seen.orb[k]).length}/${orbs.length} · 칩 ${seenCount('relic')}/${relics.length} · 트로피 ${gotB}/${BADGES.length}`;
-  // 등급 순(기본 → 전설)으로 늘어놓는다: 아래로 갈수록 귀한 것
-  // 코어 다음 회로, 각각 등급 순(기본 → 전설): 아래로 갈수록 귀한 것
-  box.append(bookHead('코어·회로'));
-  for (const k of orbs.slice().sort((a, b) => (ORBS[a].part === ORBS[b].part ? 0 : ORBS[a].part === 'core' ? -1 : 1) || ORBS[a].rar - ORBS[b].rar)){
-    const o = ORBS[k], own = !!META.seen.orb[k];
-    const icon = own ? orbPortrait(k, 'bIc') : badgeIcon(UNKNOWN, false);
-    box.append(bookRow(icon, own ? o.name : '???', (o.part === 'core' ? '코어 · ' : '회로 · ') + RARITY[o.rar].name,
-      own ? o.desc + (o.lore ? ' — ' + o.lore : '') : o.part === 'core' ? '정예·보스가 떨어뜨린다' : '기체가 떨어뜨리거나 정비소에서 판다', own));
+// ── 아카이브 탭(2026-11-29): 한 목록에 다 쌓여 보기 힘들어 분류마다 나눈다. 순서는 소유자가 말한 순서(트로피·이야기·코어…).
+// 고른 탭·탭마다의 스크롤·고른 줄은 다른 화면(이야기 대화·터미널)에 다녀와도 그대로다(MEM 'badge:탭')
+const ARC_TABS = [['trophy', '트로피'], ['story', '이야기'], ['core', '코어'], ['circ', '회로'], ['res', '공명'], ['chip', '칩']];
+let arcTab = 'trophy';
+// 탭 하나의 칸들과 모은 수 [가진 수, 전체 수]
+function arcTabRows(id){
+  // 못 모은 칸은 ? 대신 그 칸의 그림을 흐린 무채색으로 깐다(.bIc.lock): 무엇을 모을지 보여 목표가 되게(2026-11-29 소유자 요청)
+  const rows = [];
+  if (id === 'trophy'){
+    for (const b of BADGES){
+      const n = META.badges[b.id] || 0, li = bookRow(badgeIcon(b, n > 0), b.name, n > 1 ? `×${n}` : n ? '받음' : '', b.desc, n > 0);
+      li.setAttribute('aria-label', `${b.name}${n ? ` 받음 ${n}회` : ' 아직 못 받음'}: ${b.desc}`);
+      rows.push(li);
+    }
+    return { rows, got:BADGES.filter(b => META.badges[b.id]).length, all:BADGES.length };
   }
-  // 공명(작업 08 3단계): 찾은 것은 조합까지, 못 찾은 것은 코어만 보여 준다("이 코어로 뭔가 된다"는 목표)
-  box.append(bookHead('공명'));
-  for (const r of RESONANCE){
-    const own = !!META.res[r.id];
-    box.append(bookRow(own ? resPortrait(r.id, 'bIc') : badgeIcon(UNKNOWN, false), own ? r.name : '???',
-      own ? `${ORBS[r.core].short} + ${r.circs.map(c => ORBS[c].short).join(' + ')}` : `${ORBS[r.core].name} + ?`,
-      own ? r.desc : '차고에서 맞는 회로를 끼우면 드러난다', own));
+  if (id === 'story'){
+    // 아직 열리지 않은 이야기는 줄을 만들지 않는다(2026-11-29 소유자 요청: 볼 수 없는 장면이 미리 보이지 않게). 남은 수는 탭 숫자와 막대로만
+    for (const sid of STORY_ORDER.filter(k => META.story[k])){
+      const st = STORY[sid];
+      const first = (st.lines || []).find(l => l.port), icon = dlgPortrait(first ? first.port : 'rick'); icon.className = 'bIc dlgIc';
+      const btn = bookRow(icon, st.title, '다시 보기', st.text.replace(/\n+/g, ' '), true, 'button');
+      btn.classList.add('bStory'); btn.dataset.k = 'st:' + sid; btn.type = 'button';
+      btn.onclick = () => { if (mode !== 'badge') return; sfx('pick'); showStory(sid, () => showBadges('story'), '아카이브'); };
+      const li = document.createElement('li'); li.append(btn); rows.push(li);
+    }
+    const got = STORY_ORDER.filter(k => META.story[k]).length;
+    if (got < STORY_ORDER.length){ const li = document.createElement('li'); li.className = 'bEmpty';
+      li.textContent = got ? `남은 이야기 ${STORY_ORDER.length - got}편은 침투하며 열린다` : '아직 본 이야기가 없다. 침투를 시작하면 열린다'; rows.push(li); }
+    return { rows, got, all:STORY_ORDER.length };
   }
-  box.append(bookHead('칩'));
-  for (const k of relics.slice().sort((a, b) => RELICS[a].t - RELICS[b].t)){
+  if (id === 'core' || id === 'circ'){
+    // 등급 순(기본 → 전설): 아래로 갈수록 귀한 것
+    const ks = (id === 'core' ? CORES : CIRCS).slice().sort((a, b) => ORBS[a].rar - ORBS[b].rar);
+    for (const k of ks){
+      const o = ORBS[k], own = !!META.seen.orb[k];
+      rows.push(bookRow(own ? orbPortrait(k, 'bIc') : orbPortrait(k, 'bIc lock'), own ? o.name : '???', RARITY[o.rar].name,
+        own ? o.desc + (o.lore ? ' — ' + o.lore : '') : id === 'core' ? '정예·보스가 떨어뜨린다' : '기체가 떨어뜨리거나 정비소에서 판다', own, 'li', o.rar));
+    }
+    return { rows, got:ks.filter(k => META.seen.orb[k]).length, all:ks.length };
+  }
+  if (id === 'res'){
+    // 공명(작업 08 3단계): 찾은 것은 조합까지, 못 찾은 것은 코어만 보여 준다("이 코어로 뭔가 된다"는 목표)
+    for (const r of RESONANCE){
+      const own = !!META.res[r.id];
+      rows.push(bookRow(own ? resPortrait(r.id, 'bIc') : resPortrait(r.id, 'bIc lock'), own ? r.name : '???',
+        own ? `${ORBS[r.core].short} + ${r.circs.map(c => ORBS[c].short).join(' + ')}` : `${ORBS[r.core].name} + ?`,
+        own ? r.desc : '차고에서 맞는 회로를 끼우면 드러난다', own));
+    }
+    return { rows, got:RESONANCE.filter(r => META.res[r.id]).length, all:RESONANCE.length };
+  }
+  const ks = Object.keys(RELICS).sort((a, b) => RELICS[a].t - RELICS[b].t);
+  for (const k of ks){
     const r = RELICS[k], own = !!META.seen.relic[k];
-    box.append(bookRow(own ? relicPortrait(k, 'bIc') : badgeIcon(UNKNOWN, false), own ? r.name : '???', RARITY[r.t].name, own ? r.desc : '아직 손에 넣지 못했다', own));
+    rows.push(bookRow(own ? relicPortrait(k, 'bIc') : relicPortrait(k, 'bIc lock'), own ? r.name : '???', RARITY[r.t].name, own ? r.desc : '아직 손에 넣지 못했다', own, 'li', r.t));
   }
-  box.append(bookHead('이야기'));
-  for (const id of STORY_ORDER){
-    const st = STORY[id], own = !!META.story[id];
-    const first = (st.lines || []).find(l => l.port), pId = first ? first.port : 'rick';
-    const icon = dlgPortrait(pId); icon.className = 'bIc dlgIc';
-    const row = bookRow(icon, st.title, own ? '대화 보기' : '미열람 · 눌러서 보기',
-      st.text.replace(/\n+/g, ' '), true);
-    row.style.cursor = 'pointer';
-    row.onclick = () => { sfx('pick'); showStory(id, showBadges); };
-    box.append(row);
-  }
-  box.append(bookHead('트로피'));
-  for (const b of BADGES){
-    const n = META.badges[b.id] || 0, li = document.createElement('li');
-    li.className = 'bCard' + (n ? ' own' : '');
-    const t = document.createElement('b'); t.textContent = b.name;
-    if (n > 1){ const em = document.createElement('em'); em.textContent = `×${n}`; t.append(em); }
-    const d = document.createElement('span'); d.textContent = b.desc;
-    const body = document.createElement('div'); body.append(t, d);
-    li.append(badgeIcon(b, n > 0), body);
-    li.setAttribute('aria-label', `${b.name}${n ? ` 받음 ${n}회` : ' 아직 못 받음'}: ${b.desc}`);
-    box.append(li);
-  }
-  setMode('badge', 'ovBadge');
-  $('badgeBack').focus();
+  return { rows, got:seenCount('relic'), all:ks.length };
 }
-$('mBadge').onclick = showBadges;
+// tab을 주면 그 탭으로 바꾼다. 탭을 바꿀 때는 초점을 탭에 두고(키보드로 이어서 넘기게) 스크롤만 그 탭의 기억으로 되살린다
+function showBadges(tab){
+  const switching = typeof tab === 'string' && tab !== arcTab && ARC_TABS.some(t => t[0] === tab);
+  memKeep();
+  if (switching) arcTab = tab;
+  const tabs = $('badgeTabs'), box = $('badgeBox'); tabs.textContent = ''; box.textContent = '';
+  let got = 0, all = 0, cur = null;
+  for (const [id, name] of ARC_TABS){
+    const P = arcTabRows(id), on = id === arcTab;
+    got += P.got; all += P.all;
+    const t = document.createElement('button');
+    t.className = 'tab'; t.id = 'arcT-' + id; t.type = 'button'; t.dataset.k = 't:' + id;
+    t.setAttribute('role', 'tab'); t.setAttribute('aria-selected', String(on)); t.setAttribute('aria-controls', 'arcP-' + id);
+    t.tabIndex = on ? 0 : -1;
+    const sm = document.createElement('small'); sm.textContent = `${P.got}/${P.all}`;
+    t.append(name, sm);
+    t.setAttribute('aria-label', `${name} ${P.got}/${P.all}`);
+    t.onclick = () => { if (mode === 'badge' && arcTab !== id){ sfx('pick'); showBadges(id); } };
+    tabs.append(t);
+    if (on) cur = t;
+    // 패널은 모두 만들어 두고 고른 것만 보인다(읽기 프로그램이 탭과 패널을 짝지어 읽는다)
+    const ul = document.createElement('ul'); ul.className = 'bList'; ul.id = 'arcP-' + id; ul.hidden = !on;
+    ul.setAttribute('role', 'tabpanel'); ul.setAttribute('aria-labelledby', t.id);
+    // 모은 정도: 칸마다 하나씩 켜지는 막대(이름 옆 숫자와 같은 값)
+    const meter = document.createElement('li'); meter.className = 'bMeter'; meter.setAttribute('aria-hidden', 'true');
+    const bar = document.createElement('i'); bar.style.setProperty('--p', (P.all ? P.got / P.all * 100 : 0) + '%');
+    const lb = document.createElement('span'); lb.textContent = `${name} ${P.got} / ${P.all}`;
+    meter.append(lb, bar); ul.append(meter, ...P.rows);
+    box.append(ul);
+  }
+  $('badgeSub').textContent = `모은 기록 ${got} / ${all}`;
+  setMode('badge', 'ovBadge', 'badge:' + arcTab);
+  memRestore('badge:' + arcTab, 'ovBadge', switching ? cur : $('badgeBack'), !switching);
+}
+// 탭 키보드: ←/→로 이웃 탭, Home/End로 처음·끝(WAI-ARIA 탭 패턴)
+$('badgeTabs').addEventListener('keydown', e => {
+  const i = ARC_TABS.findIndex(t => t[0] === arcTab), n = ARC_TABS.length;
+  const j = e.key === 'ArrowRight' ? (i + 1) % n : e.key === 'ArrowLeft' ? (i + n - 1) % n : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1;
+  if (j < 0 || mode !== 'badge') return;
+  e.preventDefault(); sfx('pick'); showBadges(ARC_TABS[j][0]);
+});
+// 옆으로 밀기: 목록을 가로로 크게 밀면 이웃 탭(세로 스크롤과 헷갈리지 않게 가로가 세로의 두 배 넘을 때만)
+let arcSwipe = null;
+$('badgeBox').addEventListener('pointerdown', e => { arcSwipe = { x:e.clientX, y:e.clientY }; });
+$('badgeBox').addEventListener('pointerup', e => {
+  const s = arcSwipe; arcSwipe = null;
+  if (!s || mode !== 'badge') return;
+  const dx = e.clientX - s.x, dy = e.clientY - s.y;
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return;
+  const i = ARC_TABS.findIndex(t => t[0] === arcTab), j = i + (dx < 0 ? 1 : -1);
+  if (j >= 0 && j < ARC_TABS.length){ sfx('pick'); showBadges(ARC_TABS[j][0]); }
+});
+$('mBadge').onclick = () => showBadges();
 $('badgeBack').onclick = () => { if (mode === 'badge') showMain(); };
-$('mRank').onclick = () => { rankTab = null; RANK_BOARD = null; show('ovRank'); $('rankBack').focus(); refreshBoard(); };
-$('rankBack').onclick = () => { show('ovMain'); $('mRank').focus(); };
+$('mRank').onclick = () => { rankTab = null; RANK_BOARD = null; show('ovRank'); syncNav(); $('rankBack').focus(); refreshBoard(); };
+$('rankBack').onclick = () => { show('ovMain'); memRestore('ovMain', 'ovMain', $('mRank')); syncNav(); };
 function resumeRun(){
   setRealm(RUN.abyss);
   // 출발 선물 시절 저장(선물 고르기 전): 선물 없이 지도로
@@ -711,7 +853,7 @@ function victory(){
       + ` 송신 부품 ${sent.parts}개 · 고철 ${sent.scrap}. 이번 침투 설계도 +${RUN.pts || 0}.` + (got.length ? ` 트로피: ${got.join(', ')}.` : '')
       + (firstClear ? ' 터미널에 심층부로 가는 길이 열렸다.' : '')
       + (opened ? ` 이제 보안 등급 ${META.asc}(${ASC[META.asc].name})까지 고를 수 있다.` : ''),
-    cards:[], buttons:[{ label:'터미널', primary:true, onClick:showMain }],
+    cards:[], buttons:[{ label:'터미널', primary:true, back:'터미널', onClick:showMain }],
   });
   // 이야기: 진 엔딩 > 고난 n 첫 완주 조각 > 첫 완주 결말
   if (king) return storyOnce('end', result);
@@ -735,7 +877,7 @@ function runOver(){
       // 쓰러진 곳이 심연이면 다시 심연으로(버튼이 인자 없이 부르므로 감싼다)
       { label:RUN.abyss ? '다시 심층부로' : '새 침투', primary:true, onClick:() => startNewRun(RUN.abyss) },
       { label:'모듈', onClick:() => { treePick = null; showTree(showMain); } },
-      { label:'터미널', onClick:showMain },
+      { label:'터미널', back:'터미널', onClick:showMain },
     ],
   });
   $('cTitle').className = 'big lose';

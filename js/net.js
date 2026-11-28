@@ -7,6 +7,7 @@ const API_HOME = 'https://brick-crawl.pages.dev';
 const API_BASE = (() => {
   try {
     if (typeof fetch !== 'function' || typeof location === 'undefined') return null;
+    if (DEV) return null;   // 개발 도구(?dev)의 시험 침투가 순위표에 섞이지 않게
     if (location.protocol === 'http:' || location.protocol === 'https:') return location.origin;
     if (location.protocol === 'file:') return API_HOME;
   } catch(e){}

@@ -65,16 +65,44 @@ function replaceInRow0(n, make){
 
 // 슬롯 고르기(작업 08): 고정 순서 대신 매 턴 장갑 슬롯에서 쏠 구슬을 고른다. 과열 중인 슬롯은 못 고른다.
 // 턴이 시작되면 직전에 쓴 슬롯이 식었으면 그대로, 아니면 식은 첫 슬롯을 고른다(한 번만 탭해도 쏘던 조작 그대로).
-// 모든 슬롯이 과열이면 가장 먼저 식을 슬롯을 바로 식힌다: 아무것도 못 쏘는 턴은 없다
+// 모든 슬롯이 과열이면(allHot) 플레이어가 고른다(2026-11-29 소유자 결정, 예전에는 가장 먼저 식을 슬롯을 저절로 식혀 못 쏘는 턴이 없었다):
+//  넘기기 = 쏘지 않고 기체 턴으로(과열은 그대로 한 턴 식는다) / 과열 사격 = 체력 HEAT_COST를 내고 가장 먼저 식을 슬롯을 풀어 평소처럼 조준해 쏜다.
+// 장전한 구슬이 하나뿐이면 예전처럼 저절로 식는다(소유자 결정): 번개 구슬에 회로 하나만 끼워도 과열 1이라, 초반 계정이 한 턴 걸러 쉬게 되어
+// 조준 봇 이어 하기 첫 1층 돌파가 11~20회 → 31~40회로 밀렸다. 과열은 센 구슬을 여러 개 가졌을 때의 고민이다
 function drawOrb(){
   const h = G.heat;
+  G.allHot = false;
   if (h[G.sel] > 0){
     let i = h.findIndex(v => v === 0);
-    if (i < 0){ i = h.indexOf(Math.min(...h)); h[i] = 0; }
+    if (i < 0){ i = h.indexOf(Math.min(...h)); if (h.length >= 2) G.allHot = true; else h[i] = 0; }
     G.sel = i;
   }
   G.orb = G.orbs[G.sel] || G.orbs[0] || 'basic';
-  renderOrbBar();
+  renderOrbBar(); renderHeatPick();
+}
+const HEAT_COST = 1;
+const heatPickOn = () => !!(G && mode === 'play' && G.phase === 'aim' && G.allHot);
+function heatSkip(){
+  if (!heatPickOn()) return;
+  G.allHot = false; pop(PX, 42, '', C.ink3, 'dots'); sfx('pick');
+  renderHeatPick(); endPlayerTurn(); renderOrbBar();
+}
+function heatForce(){
+  const g = G;
+  if (!heatPickOn() || g.p.hp <= HEAT_COST) return;
+  // 방어도를 무시하고 체력에서 바로 낸다(독처럼): 방어도를 쌓아 두면 공짜가 되는 것을 막는다
+  g.p.hp -= HEAT_COST; g.p.flash = 0.18; g.p.recoil = 0.001; burst(PX, 66, C.accent, 8); pop(PX, 30, '-' + HEAT_COST, C.accent, 'heart'); sfx('hurt');
+  g.heat[g.sel] = 0; g.allHot = false; g.aimT = 0;   // aimT: 고른 직후의 탭이 바로 쏘지 않게(fire의 0.2초 문턱)
+  renderHeatPick(); renderOrbBar();
+}
+function renderHeatPick(){
+  const el = $('heatPick'); if (!el || !('hidden' in el)) return;
+  const on = heatPickOn(); el.hidden = !on;
+  if (!on) return;
+  const f = $('hpForce'), poor = G.p.hp <= HEAT_COST;
+  f.disabled = poor; $('hpForceSub').textContent = poor ? '체력이 모자라다' : `체력 −${HEAT_COST} · ${G.sel + 1}번 구슬`;
+  // 안전한 쪽(넘기기)에 초점: Space·Enter를 연타하다 체력을 잃지 않게
+  if (INPUT_SEEN) $('hpSkip').focus({ preventScroll:true });
 }
 function pickSlot(i){
   if (mode !== 'play' || !G || G.phase !== 'aim' || !(i in G.orbs) || G.heat[i] > 0 || G.sel === i) return;
@@ -236,7 +264,12 @@ function onBreak(b){
 }
 // 구슬 효과는 코어·회로를 가리지 않고 b.f(효과 목록)로 본다: b.f.guard === undefined면 차폐 없음, true면 Ⅱ
 function ballBreak(b, br){
-  if (b.f.guard !== undefined){ const v = defGain(b.f.guard ? 2 : 1); G.p.def += v; pop(PX + 12, 88, '+' + v, C.ink2, 'shield'); }
+  // 차폐: Ⅰ = 이번 전투에서 차폐 구슬로 부순 벽돌 2개마다, Ⅱ = 1개마다 방어도 +1.
+  // 2026-11-29 소유자 결정(C안)으로 반으로 줄였다: 일반 회로가 고급 철거 회로보다 훨씬 셌다(시뮬레이터 180회 평균 3.93칸 대 2.69칸)
+  if (b.f.guard !== undefined){
+    G.guardN = (G.guardN || 0) + 1;
+    if (b.f.guard || G.guardN % 2 === 0){ const v = defGain(1); G.p.def += v; pop(PX + 12, 88, '+' + v, C.ink2, 'shield'); }
+  }
   if (b.kind === 'bomb' && !b.bombed){
     b.bombed = true; G.shake = Math.max(G.shake, 4); sfx('boom');
     const ex = OX + br.c * CW + CW / 2, ey = br.y + BRH / 2;
@@ -442,7 +475,7 @@ function orbCeil(b){
 function fire(){
   const g = G;
   // 턴 시작 직후 0.2초는 무시: 이전 턴에 연타한 입력이 새 턴을 바로 쏘지 않게
-  if (mode !== 'play' || !g || g.phase !== 'aim' || g.aimT < 0.2) return;
+  if (mode !== 'play' || !g || g.phase !== 'aim' || g.aimT < 0.2 || g.allHot) return;
   const isSkillOrb = orbKind(g.orb) !== 'basic' || orbUp(g.orb);
   artPose(g.p, isSkillOrb ? 'skill' : 'attack');
   g.p.lunge = 0.001;

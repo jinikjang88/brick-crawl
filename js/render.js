@@ -402,7 +402,7 @@ function renderAbil(){
   const ids = Object.keys(RUN.relics);
   if (!ids.length){ const n = document.createElement('span'); n.className = 'none'; n.textContent = '칩 없음'; box.append(n); return; }
   for (const id of ids){
-    const c = document.createElement('span');
+    const c = document.createElement('span'); c.className = tierCls(RELICS[id].t).trim();
     c.textContent = RELICS[id].name + (RUN.relics[id] > 1 ? ' ' + RUN.relics[id] : '');
     c.append(relicPortrait(id, 'relicMini'));
     c.title = RELICS[id].desc;

@@ -69,25 +69,13 @@ function artTint(name, col){
   return ART.tint[key] = c;
 }
 
-let artDarkKey = '', artDark = false;
-// 일러스트는 밝은 상아색이라 다크 모드에서는 배경만 어둡게 덮는다. 테마 판정은 --bg 밝기로 한다
-function isDarkTheme(){
-  if (artDarkKey !== C.bg){
-    artDarkKey = C.bg;
-    const m = /^#?([0-9a-f]{6})$/i.exec(C.bg || '');
-    const v = m ? parseInt(m[1], 16) : 0xffffff;
-    artDark = (((v >> 16) & 255) * .299 + ((v >> 8) & 255) * .587 + (v & 255) * .114) < 128;
-  }
-  return artDark;
-}
-
 function drawBgArt(){
   const im = artImg('chasm'); if (!im) return false;
   ctx.drawImage(im, 0, 0, W, H);
   // 벽돌판은 조준선·숫자가 올라가는 곳이라 바닥 무늬를 눌러 대비를 확보한다.
-  // 갱도 그림은 원래 어두워 다크에서는 조금만, 라이트에서는 밝은 토큰으로 많이 덮는다(어두운 그림 위 검은 조준선이 묻히지 않게)
-  ctx.globalAlpha = isDarkTheme() ? .25 : .62; ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, BT);
-  ctx.globalAlpha = isDarkTheme() ? .55 : .86; ctx.fillStyle = C.field; ctx.fillRect(0, BT, W, H - BT);
+  // 갱도 그림은 원래 어두워 조금만 덮는다(화면은 어둡게 하나뿐)
+  ctx.globalAlpha = .25; ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, BT);
+  ctx.globalAlpha = .55; ctx.fillStyle = C.field; ctx.fillRect(0, BT, W, H - BT);
   ctx.globalAlpha = 1;
   return true;
 }
