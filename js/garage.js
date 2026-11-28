@@ -141,33 +141,89 @@ function showGarage(back, inRun){
       { label:'회로 합성', disabled:!pairs, onClick:() => showSynth(back, inRun) },
       { label:'돌아가기', primary:true, onClick:back }] });
 }
-// 구슬 하나 고치기: 장전·회로 끼우기/빼기·분해. 회로 칸은 구슬 레벨 3에 하나 늘어난다
+// 구슬 하나 고치기(조립대): 구슬과 회로 칸을 그림으로 보여 주고, 아래 보관함에서 회로를 눌러 고른다.
+// 설명은 고른 부품 하나만 아래 칸에 띄운다(전에는 끼우기·빼기·분해가 같은 카드로 쌓여 눈이 머물 곳이 없었다).
+// 회로 칸은 구슬 레벨 3에 하나 늘어난다: 그 전에는 잠긴 칸으로 보여 줘 무엇을 노리는지 알게 한다
+// benchPick = 고른 것: { at:'slot'|'tray', k:회로 키 } 또는 { at:'scrap' }(분해 확인). 다른 구슬로 가면 비운다
+let benchPick = null, benchOrb = -1;
 function showOrbEdit(i, back, inRun){
-  const g = META.g, o = g.orbs[i], slots = loadSlots(inRun), lv = garageLv(i);
-  const done = () => { checkResonance(g.orbs[i]); saveMeta(); if (inRun) syncRunDeck(); showOrbEdit(Math.min(i, g.orbs.length - 1), back, inRun); };
+  const g = META.g, o = g.orbs[i], slots = loadSlots(inRun), lv = garageLv(i), lo = withLv(o, lv);
+  if (benchOrb !== i){ benchPick = null; benchOrb = i; }
+  const again = () => showOrbEdit(i, back, inRun);
+  const done = () => { benchPick = null; checkResonance(g.orbs[i]); saveMeta(); if (inRun) syncRunDeck(); again(); };
   const core = orbKind(o), keys = orbSegs(o).slice(1), bases = keys.map(segKind), cap = orbSlots(core, lv), loaded = g.load.includes(i);
-  const cards = [];
-  cards.push({ name:loaded ? '장전 풀기' : '장전하기', tag:`장전 ${g.load.length}/${slots}`,
-    desc:loaded ? '장갑 슬롯에서 뺀다(차고에는 남는다)' : '장갑 슬롯에 넣어 들고 나간다',
-    disabled:loaded ? g.load.length <= 1 : g.load.length >= slots,
-    onPick:() => { if (loaded) g.load = g.load.filter(x => x !== i); else g.load.push(i); sfx('pick'); done(); } });
-  for (const k of keys) cards.push({ name:`${circLabel(k)} 빼기`, orb:circBase(k), tag:'보관함으로', desc:circText(k),
-    onPick:() => { g.orbs[i] = orbMake(core, keys.filter(x => x !== k)); bump(g.circs, k); sfx('pick'); done(); } });
-  if (keys.length < cap)
-    for (const k of Object.keys(g.circs).filter(k => !bases.includes(circBase(k))))
-      cards.push({ name:`${circLabel(k)} 끼우기`, orb:circBase(k), tag:`보관 ${g.circs[k]}개 · 과열 +1`, desc:circText(k),
-        onPick:() => { g.orbs[i] = orbMake(core, keys.concat(k)); bump(g.circs, k, -1); sfx('badge'); done(); } });
-  cards.push({ name:'분해하기', tag:'코어·회로를 보관함으로', desc:'구슬을 풀어 부품으로 돌려받는다(구슬 레벨은 사라진다)',
-    disabled:g.orbs.length <= 1,
-    onPick:() => {
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+  const live = f => () => { if (mode === 'garage') f(); };   // 화면이 바뀐 뒤 늦게 눌린 버튼은 무시(showChoice와 같은 규칙)
+  const same = p => !!benchPick && benchPick.at === p.at && benchPick.k === p.k;
+  const pickBtn = (cls, p, label, kind) => {
+    const b = el('button', cls + (same(p) ? ' pick' : ''));
+    b.append(orbPortrait(kind), el('span', '', label));
+    b.setAttribute('aria-pressed', same(p) ? 'true' : 'false');
+    b.onclick = live(() => { benchPick = same(p) ? null : p; sfx('pick'); again(); });
+    return b;
+  };
+
+  // 위: 구슬 + 회로 칸 + 수치
+  const head = el('div', 'benchHead');
+  const big = orbPortrait(core); big.classList.add('benchCore'); head.append(big);
+  const sockets = el('div', 'sockets');
+  for (let s = 0; s < cap; s++){
+    if (keys[s]){ const b = pickBtn('socket', { at:'slot', k:keys[s] }, circLabel(keys[s]), circBase(keys[s])); b.setAttribute('aria-label', `${circLabel(keys[s])}: 끼운 회로`); sockets.append(b); }
+    else { const e = el('div', 'socket empty', '빈 칸'); e.setAttribute('role', 'img'); e.setAttribute('aria-label', '빈 회로 칸'); sockets.append(e); }
+  }
+  if (lv < 3){ const e = el('div', 'socket lock', 'Lv3'); e.setAttribute('role', 'img'); e.setAttribute('aria-label', '구슬 레벨 3에 열리는 회로 칸'); sockets.append(e); }
+  head.append(sockets);
+  const stats = el('div', 'benchStats');
+  if (orbBonus(lo)) stats.append(el('span', '', `피해 ⚔+${orbBonus(lo)}`));
+  stats.append(el('span', '', `과열 ${orbHeat(lo)}턴`), el('span', '', `회로 ${keys.length}/${cap}`), el('span', '', loaded ? '장전됨' : '보관 중'));
+
+  // 가운데: 보관함 회로. 이미 같은 종류가 끼워진 회로는 흐리게(고르면 이유를 알려 준다)
+  const ks = Object.keys(g.circs).sort((a, b) => ORBS[circBase(b)].rar - ORBS[circBase(a)].rar || a.localeCompare(b));
+  const tray = el('div', 'tray');
+  for (const k of ks){
+    const b = pickBtn('part' + (bases.includes(circBase(k)) ? ' dup' : ''), { at:'tray', k }, circLabel(k), circBase(k));
+    b.append(el('i', '', '×' + g.circs[k])); b.setAttribute('aria-label', `${circLabel(k)} ${g.circs[k]}개`);
+    tray.append(b);
+  }
+
+  // 아래: 고른 것 하나의 설명과 할 일
+  const info = el('div', 'treeInfo benchInfo'), act = (label, f, off) => {
+    const b = el('button', 'btn primary', label); b.disabled = !!off; b.onclick = live(f); info.append(b); };
+  const p = benchPick;
+  if (p && p.at === 'slot' && keys.includes(p.k)){
+    info.append(el('b', '', circLabel(p.k)), el('span', '', circText(p.k)));
+    act('빼기 (보관함으로)', () => { g.orbs[i] = orbMake(core, keys.filter(x => x !== p.k)); bump(g.circs, p.k); sfx('pick'); done(); });
+  } else if (p && p.at === 'tray' && g.circs[p.k]){
+    const dup = bases.includes(circBase(p.k)), full = keys.length >= cap;
+    info.append(el('b', '', circLabel(p.k)), el('span', '', circText(p.k)));
+    act(dup ? '같은 회로가 이미 끼워져 있다' : full ? '빈 칸이 없다' : '끼우기 · 과열 +1',
+      () => { g.orbs[i] = orbMake(core, keys.concat(p.k)); bump(g.circs, p.k, -1); sfx('badge'); done(); }, dup || full);
+  } else if (p && p.at === 'scrap'){
+    info.append(el('b', '', '분해하기'), el('span', '', `코어와 회로를 보관함으로 돌려받는다. 구슬 레벨(Lv${lv})은 사라진다`));
+    act('분해한다', () => {
       bump(g.cores, core); for (const k of keys) bump(g.circs, k);
       g.orbs.splice(i, 1); g.oxp.splice(i, 1);
       g.load = g.load.filter(x => x !== i).map(x => x > i ? x - 1 : x);
       if (!g.load.length) g.load = [0];
+      benchPick = null; benchOrb = -1;
       saveMeta(); if (inRun) syncRunDeck(); sfx('pick'); showGarage(back, inRun);
-    } });
-  showChoice({ mode:'garage', title:orbName(withLv(o, lv)), sub:orbDesc(withLv(o, lv)) + ` · 회로 칸 ${keys.length}/${cap}`,
-    cards, buttons:[{ label:'차고로', primary:true, onClick:() => showGarage(back, inRun) }] });
+    });
+  } else {
+    benchPick = null;
+    const r = resOf(o);
+    info.append(el('b', '', r ? `[공명] ${r.name}` : ORBS[core].name), el('span', '', r ? r.desc : partDesc(core, false)),
+      el('small', '', ks.length ? '회로를 누르면 효과가 보인다. 빈 칸에 끼울 때마다 과열 +1' : '보관함에 회로가 없다. 전투에서 얻어 브로커에서 송신하면 여기로 온다'));
+  }
+
+  const parts = [head, stats];
+  if (ks.length) parts.push(el('div', 'benchLabel', '보관함 회로'), tray);
+  parts.push(info);
+  showChoice({ mode:'garage', title:orbName(lo), sub:`구슬 Lv${lv}` + (ORB_XP[lv + 1] ? ` · 경험치 ${g.oxp[i] || 0}/${ORB_XP[lv + 1]}` : ' · 최고 레벨'),
+    bench:parts, cards:[], buttons:[
+      { label:(loaded ? '장전 풀기' : '장전하기') + ` (${g.load.length}/${slots})`, disabled:loaded ? g.load.length <= 1 : g.load.length >= slots,
+        onClick:() => { if (loaded) g.load = g.load.filter(x => x !== i); else g.load.push(i); sfx('pick'); done(); } },
+      { label:'분해…', disabled:g.orbs.length <= 1, onClick:() => { benchPick = { at:'scrap' }; sfx('pick'); again(); } },
+      { label:'차고로', primary:true, onClick:() => { benchOrb = -1; showGarage(back, inRun); } }] });
 }
 // 새 구슬: 보관함의 코어 하나로 빈 구슬을 만든다. 자리가 있으면 바로 장전
 function showNewOrb(back, inRun){

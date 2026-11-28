@@ -42,6 +42,8 @@ function showChoice(o){
   // 무전 한두 줄(충전소·브로커·쓰러짐): 초상 + 이름 + 대사. 지문은 이름 없이
   const say = $('cSay'); say.textContent = ''; say.hidden = !(o.say && o.say.length);
   for (const ln of (o.say || [])) say.append(radioRow(ln));
+  // 조립대(차고의 구슬 하나): 카드 목록 대신 그림으로 보여 줄 덩어리. 다른 화면에서는 비운다
+  const bench = $('cBench'); bench.textContent = ''; bench.hidden = !o.bench; if (o.bench) bench.append(...o.bench);
   const box = $('cCards'); box.textContent = '';
   for (const c of o.cards){
     const b = document.createElement('button');
