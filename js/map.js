@@ -10,7 +10,7 @@ function freshRun(abyss, asc = 0){
   const seed = Math.floor(Math.random() * 4294967296) >>> 0;
   // deck = 차고에서 장전한 구슬(작업 08). cargo = 적재함: 정비소에서 송신해야 차고에 남는다
   // 최대 체력은 릭 레벨마다 +1(작업 08 6절). load = 장전 슬롯마다 차고 구슬 번호(구슬 경험치를 돌려줄 곳)
-  const hp = 24 + rickLv() - 1, lo = loadout(baseSlots());
+  const hp = START_HP + rickLv() - 1, lo = loadout(baseSlots());
   return { v:5, seed, rng:{ reward:seedOf(seed, 'reward') }, rid:uuid(), abyss:!!abyss, asc:abyss ? 0 : asc, king:false, s:0, hp, maxHp:hp, coins:0, deck:lo.deck, load:lo.load, relics:{},
            cargo:{ cores:{}, circs:{}, scrap:0 },
            map:genMap(0, abyss, seed), pos:null, pending:null, path:[], pendingReward:null, shop:null, revived:false, pts:0 };

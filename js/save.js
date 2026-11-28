@@ -130,7 +130,7 @@ function fixRun(r){
   r.abyss = !!r.abyss;
   r.asc = r.abyss ? 0 : isInt(r.asc, 0, ASC_MAX) ? r.asc : 0;
   r.s = isInt(r.s, 0, r.abyss ? 9999 : SESSIONS - 1) ? r.s : 0;
-  r.maxHp = Math.round(numOr(r.maxHp, 24, 1));
+  r.maxHp = Math.round(numOr(r.maxHp, START_HP, 1));
   r.hp = Math.max(1, Math.min(r.maxHp, Math.round(numOr(r.hp, r.maxHp))));
   r.coins = Math.floor(numOr(r.coins, 0));
   r.pts = Math.floor(numOr(r.pts, 0));
