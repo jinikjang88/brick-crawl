@@ -24,7 +24,7 @@ let code = srcs.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n')
 for (const h of [HOOK_STATE, HOOK_BREAK, HOOK_CEIL, HOOK_FIRE])
   if (code.split(h).length !== 2) throw new Error('훅 삽입 실패: ' + h);
 code = 'globalThis.ST=globalThis.ST||{br:0,ch:0,sh:0};' + code
-  .replace(HOOK_STATE, HOOK_STATE + ' globalThis.__h={st:()=>({RUN,G,mode}),reachable:()=>reachable(),enterNode:n=>enterNode(n),pickSlot:i=>pickSlot(i),sendCargo:()=>sendCargo(),autoGarage:r=>autoGarage(r),orbHeat:o=>orbHeat(o),traitOn:()=>traitOn(),isWeak:o=>isWeak(o)};')
+  .replace(HOOK_STATE, HOOK_STATE + ' globalThis.__h={st:()=>({RUN,G,mode}),reachable:()=>reachable(),enterNode:n=>enterNode(n),pickSlot:i=>pickSlot(i),sendCargo:()=>sendCargo(),autoGarage:r=>autoGarage(r),orbHeat:o=>orbHeat(o),traitOn:()=>traitOn(),isWeak:o=>isWeak(o),heatSkip:()=>heatSkip(),heatForce:()=>heatForce()};')
   .replace(HOOK_BREAK, HOOK_BREAK.replace('br.dead = true;', 'br.dead = true; ST.br++;'))
   .replace(HOOK_CEIL, 'b.hits++; ST.ch++;')
   .replace(HOOK_FIRE, 'ST.sh++; ' + HOOK_FIRE);
@@ -110,6 +110,8 @@ for (let run = 0; run < N; run++){
     }
     if (mode === 'play' && G){
       if (G.phase === 'aim'){
+        // 모든 구슬 과열(2026-11-29): 사람처럼 체력이 절반보다 많으면 과열 사격, 아니면 넘기기
+        if (G.allHot){ if (G.p.hp > G.p.max / 2) __h.heatForce(); else __h.heatSkip(); continue; }
         const key = G.turn + '_' + G.node.r + '_' + RUN.s;
         if (key !== lastTurn){
           // 특성이 켜져 있으면 약점 구슬부터(사람이 머리 위 약점 그림을 보고 고르듯), 아니면 식은 슬롯 중 과열이 가장 긴(= 센) 구슬

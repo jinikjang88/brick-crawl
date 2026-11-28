@@ -273,6 +273,17 @@ function drum(dest, t, kind, vol){
   else if (kind === 'h') noise(dest, t, { dur:0.03, vol:vol * 0.25, freq:7000 });
 }
 
+// 음원 곡의 박: 2026-11-29 헤드리스 Chrome으로 디코딩해 저역 onset을 박 주기로 접어 잰 값(122.00 BPM, 첫 박 0.22초. 매 박 킥).
+// 곡을 바꾸면 다시 잰다(박자 연출이 어긋난다)
+const TRACK_BEAT = { bpm:122, at:0.22 };
+// 지금이 몇 번째 박인지(실수). 들리는 음악이 없으면 null: 화면 박자 연출(js/main.js beatTick)만 쓴다. 게임 결과에는 쓰지 않는다
+function beatPos(){
+  if (!AUDIO.bgm) return null;
+  if (trackOn && trackEl && !trackEl.paused) return (trackEl.currentTime - TRACK_BEAT.at) * TRACK_BEAT.bpm / 60;
+  if (song && actx && actx.state === 'running') return (actx.currentTime - song.t0) / (song.spb * 4);
+  return null;
+}
+
 // 재생 중인 곡: 앞을 조금씩 내다보며 음을 예약한다(setInterval은 부정확해서 실제 시각은 AudioContext 기준)
 let bgmWant = null, song = null;
 function bgm(name){
@@ -293,6 +304,7 @@ function startSong(name){
   const def = SONGS[name]; if (!def) return;
   const g = actx.createGain(); g.gain.value = 1; g.connect(bgmBus);
   const s = { def, gain:g, step:0, next:actx.currentTime + 0.08, spb:60 / def.bpm / 4 };
+  s.t0 = s.next;   // 첫 박 시각(beatPos)
   s.timer = setInterval(() => schedule(s), 25);
   song = s; schedule(s);
 }

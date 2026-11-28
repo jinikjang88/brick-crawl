@@ -14,7 +14,12 @@
 <!-- 세로 고정 게임: 가로로 눕힌 폰에서만 보인다(css/style.css "세로 고정") -->
 <div class="rotateHint" role="alert" aria-live="assertive"><div class="ri" aria-hidden="true"></div><b>기기를 세로로 세워 주세요</b><span>침투는 그 자리에서 멈춰 기다린다</span></div>
 <div class="app" id="app">
-  <div class="brandStrip"><span>BRICK / CRAWL</span><span>마지막 번개</span></div>
+  <!-- 위쪽 줄: 돌아갈 곳이 있으면 왼쪽에 "‹ 터미널" 같은 돌아가기 버튼(Esc·기기 뒤로 가기와 같다), 오른쪽은 BGM 박자 램프 -->
+  <div class="brandStrip">
+    <button class="navBack" id="navBack" type="button" hidden><span class="nbArrow" aria-hidden="true">‹</span><span id="navTo"></span><kbd aria-hidden="true">ESC</kbd></button>
+    <span class="brandName">BRICK / CRAWL</span>
+    <span class="brandSub"><span class="beatLeds" aria-hidden="true"><i></i><i></i><i></i><i></i></span>마지막 번개</span>
+  </div>
   <header class="hud">
     <div>
       <div class="hStage" id="hStage"></div>
@@ -29,10 +34,17 @@
   <div class="abil" id="abil" aria-label="보유 칩"></div>
 
   <div class="stageWrap"><div class="stage">
+    <!-- 화면 뒤 박자 무대: 오버레이 바탕 밑에서 이퀄라이저·지평선·HUD 꺾쇠가 BGM 박(쿵짝)에 맞춰 뛴다(js/main.js beatTick) -->
+    <div class="beatBg" aria-hidden="true"><div class="eq" id="eq"></div><b class="hz"></b><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i></div>
     <canvas id="cv" aria-label="위는 전투 화면, 아래는 벽돌판"></canvas>
     <div class="banner" id="banner"><div class="b1" id="bn1"></div><div class="b2" id="bn2"></div></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <!-- 전투 무전 띠: 전투를 멈추지 않으므로 입력을 가로채지 않는다(pointer-events:none) -->
+    <!-- 모든 구슬 과열: 넘기기 / 과열 사격(체력을 낸다) 중 고른다(js/battle.js heatSkip·heatForce) -->
+    <div class="heatPick" id="heatPick" role="group" aria-labelledby="hpTitle" hidden>
+      <b id="hpTitle">모든 구슬 과열</b>
+      <div class="hpBtns"><button class="btn" id="hpSkip" type="button">넘기기<small>쏘지 않고 기체 턴으로</small></button><button class="btn hpForce" id="hpForce" type="button">과열 사격<small id="hpForceSub"></small></button></div>
+    </div>
     <div class="radio" id="radio" aria-live="polite"><img class="rPort" id="rPort" alt=""><div class="rBody"><b id="rWho"></b><span id="rTxt"></span></div></div>
 
     <div class="ov on ovMain" id="ovMain">
@@ -62,7 +74,7 @@
       </div>
       <div class="board mini" id="mBoard" aria-live="polite"></div>
       <button class="linkbtn" id="mRank">순위표 전체 보기</button>
-      <div class="sndRow"><button class="sndBtn" id="mBgm"></button><button class="sndBtn" id="mSfx"></button><button class="sndBtn" id="mTheme"></button></div>
+      <div class="sndRow"><button class="sndBtn" id="mBgm"></button><button class="sndBtn" id="mSfx"></button><button class="sndBtn" id="mText"></button></div>
       <div class="legalRow"><a class="linkbtn" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a><button class="linkbtn" id="mDelete" aria-expanded="false" aria-controls="deleteForm">내 기록 삭제</button></div>
       <div class="deleteForm" id="deleteForm" hidden>
         <p>순위표에서 순위표 이름과 침투 기록을 지운다. 이 기기의 진행도(모듈·아카이브)는 그대로 남고, 순위표 이름은 새로 정해진다. 되돌릴 수 없다.</p>
@@ -76,7 +88,7 @@
       <div class="rankTabs" id="rankTabs" role="group" aria-label="보안 등급별 순위"></div>
       <p class="sub" id="rankSub"></p>
       <ol class="board" id="rankList"></ol>
-      <button class="btn" id="rankBack">돌아가기</button>
+      <button class="btn" id="rankBack" data-back="터미널">돌아가기</button>
     </div>
 
     <div class="ov ovTree" id="ovTree">
@@ -84,14 +96,16 @@
       <p class="sub" id="treeSub"></p>
       <div class="treeBox" id="treeBox"></div>
       <div class="treeInfo" id="treeInfo" aria-live="polite"></div>
-      <button class="btn" id="treeBack">돌아가기</button>
+      <button class="btn" id="treeBack" data-back="터미널">돌아가기</button>
     </div>
 
     <div class="ov ovBadge" id="ovBadge">
       <div class="big">아카이브</div>
       <p class="sub" id="badgeSub"></p>
-      <ul class="badgeBox" id="badgeBox"></ul>
-      <button class="btn" id="badgeBack">돌아가기</button>
+      <!-- 분류 탭: ←/→ 키·옆으로 밀기로도 넘긴다. 고른 탭과 스크롤 위치는 다시 열어도 그대로 -->
+      <div class="tabs" id="badgeTabs" role="tablist" aria-label="아카이브 분류"></div>
+      <div class="badgeBox" id="badgeBox"></div>
+      <button class="btn" id="badgeBack" data-back="터미널">돌아가기</button>
     </div>
 
     <div class="ov ovMap" id="ovMap">
@@ -126,13 +140,15 @@
     <div class="big">일시정지</div>
     <button class="btn primary" id="pResume">계속하기</button>
     <button class="btn" id="pMain">터미널<small id="pMainSub"></small></button>
-    <div class="sndRow"><button class="sndBtn" id="pBgm"></button><button class="sndBtn" id="pSfx"></button><button class="sndBtn" id="pTheme"></button></div>
+    <div class="sndRow"><button class="sndBtn" id="pBgm"></button><button class="sndBtn" id="pSfx"></button><button class="sndBtn" id="pText"></button></div>
     <button class="linkbtn" id="pGiveup">침투 포기</button>
   </div>
 <p class="playHint" id="playHint">조준선에 맞춰 탭 · Space / Enter 발사</p>
 </div>
 
 <!-- 순서가 곧 의존 관계: 앞 파일의 전역을 뒤 파일이 쓴다. ES 모듈은 file://에서 막혀서 일반 script로 둔다 -->
+<!-- 개발 도구(index.html?dev에서만 켜짐): 저장 키를 바꿔 끼우므로 저장을 읽는 파일(config의 글자 크기부터)보다 앞 -->
+<script src="js/devtool.js"></script>
 <script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/sprites.js"></script>

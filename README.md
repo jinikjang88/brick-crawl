@@ -134,7 +134,7 @@ python -m http.server 8000      # 또는 npx serve .
 ```
 index.html          DOM 골격(HUD·캔버스·오버레이) + 스크립트 로드 순서
 privacy.html        개인정보 처리방침(스토어 등록 URL로도 쓴다. 외부 리소스 없음)
-css/style.css       색 토큰(라이트/다크)과 레이아웃
+css/style.css       색 토큰(어둡게 하나)과 레이아웃·박자 무대
 icons/              앱 아이콘(스토어 1024·512, 웹 192·180·32). 원본 assets/illustrated/icon.png → tools/build_game_assets.py
 fonts/              픽셀 한글 글꼴 Galmuri11(SIL OFL 1.1, fonts/OFL.txt)
 js/config.js        화면 상수(W·H·COLS…), 공용 유틸($·clamp), 시드 난수 rand(s)·rnd·pickW, readColors()
@@ -195,7 +195,7 @@ CLAUDE.md           Claude Code용 진입점(AGENTS.md를 불러옴)
 **기술 제약**
 - 저장소 안의 파일만으로 완결한다. 외부 스크립트·폰트·이미지·CDN, 빌드 단계를 쓰지 않는다.
 - 저장은 `localStorage`만 쓰고 모든 읽기/쓰기를 `try/catch`로 감싼다. 저장이 비었거나 깨져도 정상 동작해야 한다.
-- 저장 구조를 바꾸면 키의 버전(`brickquest:run:v*`, `brickquest:meta:v*`, `brickquest:profile:v*`, `brickquest:audio:v*`, `brickquest:theme:v*`)을 올리고, 이전 저장은 옮기거나(migration) 안전하게 버린다.
+- 저장 구조를 바꾸면 키의 버전(`brickquest:run:v*`, `brickquest:meta:v*`, `brickquest:profile:v*`, `brickquest:audio:v*`)을 올리고, 이전 저장은 옮기거나(migration) 안전하게 버린다.
 - 게임 결과에 영향을 주는 무작위는 원정 시드 흐름 `rand('map'|'reward'|'battle')`, 연출용 무작위는 `Math.random`을 쓴다.
 
 **코드 스타일**
@@ -204,8 +204,8 @@ CLAUDE.md           Claude Code용 진입점(AGENTS.md를 불러옴)
 
 **시각 규칙**
 - 그림체는 **모노크롬 사이버펑크**(카본 블랙·티타늄·백색 발광, 2026-11-04 [작업 07](docs/tasks/07-cyberpunk-visual.md) 안 B). 화면은 어둡게가 기본이고, 갱도 배경·HUD 프레임은 `tools/draw_cyber_assets.py`가 그린다. 캐릭터 프롬프트는 [`docs/ASSET_PROMPTS.md`](docs/ASSET_PROMPTS.md).
-- 배경은 카본 블랙(라이트는 차가운 흰 회색) 무채색이고, 강조색은 화(火) `#C1443C` 하나뿐이다. 붉은색은 항상 "위험"을 뜻한다.
-- 색은 CSS 변수로만 정의한다. 캔버스도 `readColors()`로 같은 토큰을 읽는다. 다크 모드를 지원한다.
+- 배경은 카본 블랙 무채색이고(화면은 어둡게 하나뿐), 강조색은 화(火) `#C1443C` 하나뿐이다. 붉은색은 항상 "위험"을 뜻한다.
+- 색은 CSS 변수로만 정의한다. 캔버스도 `readColors()`로 같은 토큰을 읽는다.
 - 캔버스 논리 해상도는 180×340 도트이고 CSS로 확대한다. 캔버스 안에는 숫자와 아이콘만 그리고, 한글은 DOM에 둔다.
 - 그라디언트·보라색·과장된 그림자는 쓰지 않는다. 모바일 우선이고, 탭 타겟은 44px 이상이다.
 - **설명서 없이 읽히는 게임**을 지향한다. 새 요소는 튜토리얼 문장 대신 아이콘·연출·색으로 전달한다.

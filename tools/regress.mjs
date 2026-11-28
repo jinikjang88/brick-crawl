@@ -6,7 +6,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const srcs = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
 const EXPOSE = 'globalThis.__t={get G(){return G},get RUN(){return RUN},get mode(){return mode},get PROFILE(){return PROFILE},'
-  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollRelics,burst,spawnRow,showShop,resetAim,rollDrops,addCargo,sendCargo,showGarage,pickSlot,autoGarage,orbValid,orbHeat,isWeak,traitOn,endPlayerTurn,ROSTER,lvFromXp,orbBonus,orbFeats,synthCirc,resOf,checkResonance,gainRickXp,baseSlots,rickNeed,saveMeta,'
+  + 'META:()=>META,hurtPlayer,enemyUpdate,battleEnd,newBattle,WALL,reachable,enterNode,saveRun,recordRun,flushRecords,ticketRun,deleteProfile,setLose,openMenu,loadRun,startBattle,trimQueue,genMap,rollRelics,burst,spawnRow,showShop,resetAim,rollDrops,addCargo,sendCargo,showGarage,pickSlot,autoGarage,heatSkip,heatForce,fire,drawOrb,orbValid,orbHeat,isWeak,traitOn,endPlayerTurn,ROSTER,lvFromXp,orbBonus,orbFeats,synthCirc,resOf,checkResonance,gainRickXp,baseSlots,rickNeed,saveMeta,'
   // 화면 내용(카드·버튼)을 가로채 검사한다. 원래 화면 전환도 그대로 일어나게 원본을 함께 부른다
   // 이야기 대화창(showTalk)도 같은 모양({ mode:'story', title, buttons })으로 받아 검사를 하나로 쓴다
   + 'catchChoice:()=>{ const got = [], orig = showChoice, ot = showTalk; showChoice = o => { got.push(o); orig(o); };'
@@ -246,6 +246,24 @@ function seeded(mathSeed, seed = 777){
   G.aimT = 1; G.phase = 'aim';
   ok('작업 08 과열 값: EMP 1 + 회로 1 = 2, 번개 0', t.orbHeat('bomb/venom') === 2 && t.orbHeat('basic') === 0);
   ok('작업 08 슬롯 고르기', picked);
+}
+{ // 모든 구슬 과열(2026-11-29): 저절로 식지 않고 넘기기·과열 사격 중 고른다. 번개 구슬(과열 0)은 과열되지 않는다
+  const t = boot(); click('mNew'); t.RUN.deck = ['bomb', 'bomb/venom']; t.startBattle({ r:0, l:0, t:'battle', mon:'slime' });
+  const G = t.G; G.phase = 'aim'; G.aimT = 1;
+  // 새 턴 시작(1씩 식은 뒤)에도 둘 다 과열인 상황. 2번 슬롯이 먼저 식는다
+  const pick = () => { G.heat = [3, 2]; G.sel = 0; t.drawOrb(); };
+  pick();
+  const chose = G.allHot && G.sel === 1 && G.heat[1] === 2;
+  const blocked = (t.fire(), G.phase === 'aim');
+  const hp0 = G.p.hp; t.heatForce();
+  const forced = G.p.hp === hp0 - 1 && G.heat[G.sel] === 0 && !G.allHot;
+  pick(); G.p.hp = 1; t.heatForce();
+  const poorBlocked = G.p.hp === 1 && G.allHot;
+  t.heatSkip();
+  const twoOk = chose && G.allHot === false && blocked && forced && poorBlocked && G.phase === 'enemy';
+  // 구슬이 하나뿐이면 예전처럼 저절로 식는다
+  G.orbs = ['bomb']; G.heat = [2]; G.sel = 0; G.phase = 'aim'; t.drawOrb();
+  ok('과열: 둘 이상 모두 과열이면 발사 막힘·과열 사격은 체력 1을 내고 풀림·체력 1이면 못 냄·넘기기는 기체 턴으로, 하나뿐이면 저절로 식음', twoOk && !G.allHot && G.heat[0] === 0);
 }
 { // 조립 검사: 칸 수 초과·중복·코어 아님은 쓸 수 없는 구슬
   const t = boot();

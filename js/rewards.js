@@ -46,7 +46,7 @@ function renderReward(kind){
   const pts = RUN.lastPts ? ` 설계도 +${RUN.lastPts}(첫 돌파).` : '';
   const head = (kind === 'boss' ? `${stageName(RUN.s)} 돌파! 최대 체력 +4, 체력 절반 회복, 크레딧 +${RUN.lastGain || 0}.`
     : `승리! 크레딧 +${RUN.lastGain || 0}.`) + pts + (RUN.lastDrop ? ` 부품: ${RUN.lastDrop}.` : '') + (RUN.lastSent ? ' ' + RUN.lastSent : '');
-  const cards = rewardStock.map(id => ({ relic:id, name:RELICS[id].name + (rel(id) ? ` ${rel(id) + 1}단계` : ''), tag:tierTag(relicTier(id)), desc:RELICS[id].desc, rare:relicTier(id) >= 3,
+  const cards = rewardStock.map(id => ({ relic:id, name:RELICS[id].name + (rel(id) ? ` ${rel(id) + 1}단계` : ''), tag:tierTag(relicTier(id)), desc:RELICS[id].desc, tier:relicTier(id),
     onPick:() => takeReward(() => gainRelic(id), kind) }));
   const buttons = [{ label:rerollLeft ? `다시 스캔하기 (${rerollLeft}회)` : '다시 스캔하기 (다 씀)', disabled:!rerollLeft || !cards.length,
                      onClick:() => { RUN.reward.reroll--; RUN.reward.stock = rollReward(kind); saveRun(); renderReward(kind); } }];
@@ -95,9 +95,9 @@ function showShop(){
     const poor = RUN.coins < it.price, tag = it.sold ? '품절' : `크레딧 ${it.price}`;
     const buy = after => { RUN.coins -= it.price; it.sold = true; sfx('coin'); shopSay = pickLine(SHOP_TALK.bought); after(); saveRun(); showShop(); };
     // 산 회로는 적재함으로 간다(송신해야 차고에서 끼울 수 있다)
-    if (it.k === 'circ') return { name:ORBS[it.id].name, orb:it.id, tag:tierTag(ORBS[it.id].rar) + ' · ' + tag, desc:ORBS[it.id].desc, rare:ORBS[it.id].rar >= 3,
+    if (it.k === 'circ') return { name:ORBS[it.id].name, orb:it.id, tag:tierTag(ORBS[it.id].rar) + ' · ' + tag, desc:ORBS[it.id].desc, tier:ORBS[it.id].rar,
       disabled:it.sold || poor, onPick:() => buy(() => addCargo({ scrap:0, cores:[], circs:[it.id] })) };
-    if (it.k === 'relic') return { relic:it.id, name:RELICS[it.id].name, tag:tierTag(relicTier(it.id)) + ' · ' + tag, desc:RELICS[it.id].desc, rare:relicTier(it.id) >= 3,
+    if (it.k === 'relic') return { relic:it.id, name:RELICS[it.id].name, tag:tierTag(relicTier(it.id)) + ' · ' + tag, desc:RELICS[it.id].desc, tier:relicTier(it.id),
       disabled:it.sold || poor, onPick:() => buy(() => gainRelic(it.id)) };
     const herb = 8 + repairBonus();
     return { name:'복구 패치', tag, desc:`체력 ${herb} 회복 (지금 ${RUN.hp}/${RUN.maxHp})`,
