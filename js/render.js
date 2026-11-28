@@ -31,25 +31,124 @@ function drawSkillFx(cx, fx){
   const calm = artCalm && artCalm.matches;
   const p = clamp(1 - fx.t / fx.dur, 0, 1);
   const a0 = ctx.globalAlpha;
-  ctx.fillStyle = fx.col || C.ink;
-  ctx.globalAlpha = a0 * (1 - p * 0.75);
+  const col = fx.col || C.ink;
+  ctx.save();
+  ctx.strokeStyle = col; ctx.fillStyle = col;
+  ctx.globalAlpha = a0 * (1 - p * 0.78);
   if (fx.kind === 'guard'){
-    const w = 22 + (calm ? 0 : Math.round(p * 6)), h = 38;
-    const x = Math.round(cx - w / 2), y = 46;
-    ctx.fillRect(x + 2, y, w - 4, 1); ctx.fillRect(x + 2, y + h, w - 4, 1);
-    ctx.fillRect(x, y + 3, 1, h - 6); ctx.fillRect(x + w - 1, y + 3, 1, h - 6);
-  } else {
-    const r = calm ? 16 : 8 + p * 20, cy = 62;
-    for (let i = 0; i < 8; i++){
-      const ang = i * Math.PI / 4 + (calm ? 0 : p * 1.2);
-      ctx.fillRect(Math.round(cx + Math.cos(ang) * r) - 1, Math.round(cy + Math.sin(ang) * r * 0.7) - 1, 2, 2);
+    // 이중 육각 전자기 방벽
+    for (let ring = 0; ring < 2; ring++){
+      const r = (ring ? 14 : 21) + (calm ? 0 : p * (ring ? 3 : 6));
+      const cy = 62, rot = calm ? 0 : (ring ? -p * 0.6 : p * 0.6);
+      ctx.lineWidth = ring ? 1 : 1.6;
+      ctx.beginPath();
+      for (let k = 0; k <= 6; k++){
+        const a = Math.PI / 6 + k * Math.PI / 3 + rot;
+        const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r * 1.12;
+        if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
     }
+  } else {
+    // 고전압 공명 파동 링 + 솟구치는 플라즈마 아크
+    const r = calm ? 18 : 9 + p * 24, cy = 62;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(cx, 88, r * 1.15, Math.max(2, r * 0.22), 0, 0, Math.PI * 2); ctx.stroke();
     if (!calm){
-      ctx.fillRect(Math.round(cx - 14), Math.round(84 - p * 28), 2, 3);
-      ctx.fillRect(Math.round(cx + 12), Math.round(80 - p * 28), 2, 3);
+      for (let i = 0; i < 6; i++){
+        const ang = i * Math.PI / 3 + p * 2.1;
+        const x0 = cx + Math.cos(ang) * (r * 0.45), y0 = cy + Math.sin(ang) * (r * 0.35);
+        const x1 = cx + Math.cos(ang + 0.25) * (r * 1.05), y1 = cy + Math.sin(ang + 0.25) * (r * 0.8) - p * 10;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo((x0 + x1) * 0.5 + ((i % 2) ? 3 : -3), (y0 + y1) * 0.5 - 4); ctx.lineTo(x1, y1); ctx.stroke();
+      }
     }
   }
+  ctx.restore();
   ctx.globalAlpha = a0;
+}
+
+function drawLightningSeg(x0, y0, x1, y1, jag, segs, col, width){
+  ctx.strokeStyle = col; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0);
+  const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len;
+  for (let i = 1; i < segs; i++){
+    const t = i / segs, off = (Math.sin(i * 3.7 + x0 * 0.3) + (Math.random() - 0.5) * 0.9) * jag * Math.sin(Math.PI * t);
+    ctx.lineTo(x0 + dx * t + nx * off, y0 + dy * t + ny * off);
+  }
+  ctx.lineTo(x1, y1); ctx.stroke();
+}
+
+function drawCombatVfx(g){
+  if (!g.vfx || !g.vfx.length) return;
+  const calm = artCalm && artCalm.matches;
+  const hiCol = C.ink;
+  ctx.save();
+  for (const v of g.vfx){
+    const p = clamp(1 - v.t / v.dur, 0, 1), a = 1 - p;
+    ctx.globalAlpha = a;
+    if (v.kind === 'launch'){
+      const r = calm ? 10 : 5 + p * 18;
+      ctx.strokeStyle = hiCol; ctx.lineWidth = 1.6 * a + 0.5;
+      ctx.beginPath(); ctx.ellipse(v.x, v.y, r, r * 0.42, 0, 0, Math.PI * 2); ctx.stroke();
+      if (!calm){
+        const len = 16 + p * 26, tx = v.x + Math.cos(v.aim) * len, ty = v.y + Math.sin(v.aim) * len;
+        drawLightningSeg(v.x, v.y, tx, ty, 3.5, 4, hiCol, 1.4);
+        if (v.skill) drawLightningSeg(v.x, v.y, v.x + Math.cos(v.aim + 0.24) * (len * 0.75), v.y + Math.sin(v.aim + 0.24) * (len * 0.75), 3, 3, C.ink2, 1.0);
+      }
+    } else if (v.kind === 'aura'){
+      const r = calm ? 14 : 7 + p * 20;
+      ctx.strokeStyle = hiCol; ctx.lineWidth = 1.5 * a + 0.4;
+      ctx.beginPath(); ctx.arc(v.x, v.y, r, -0.9, 0.9); ctx.stroke();
+      if (!calm){
+        drawLightningSeg(v.x - 4, v.y + 8, v.x + 14 + p * 10, v.y - 6, 3.2, 4, hiCol, 1.3);
+      }
+    } else if (v.kind === 'bolt'){
+      const col = v.venom ? C.accent : hiCol;
+      ctx.strokeStyle = col; ctx.lineWidth = 1.6 * a + 0.5;
+      ctx.beginPath(); ctx.ellipse(v.x0, v.y0, calm ? 10 : 5 + p * 16, 3 + p * 4, 0, 0, Math.PI * 2); ctx.stroke();
+      if (!calm && p < 0.75){
+        drawLightningSeg(v.x0, v.y0, v.x1, v.y1, 5.5, 6, col, 1.5 * (1 - p));
+      }
+    } else if (v.kind === 'emp'){
+      const r = calm ? 22 : 6 + p * 34;
+      ctx.strokeStyle = hiCol; ctx.lineWidth = 2.0 * a + 0.5;
+      ctx.beginPath(); ctx.arc(v.x, v.y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = C.ink2; ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.arc(v.x, v.y, r * 0.65, 0, Math.PI * 2); ctx.stroke();
+      if (!calm){
+        for (let k = 0; k < 4; k++){
+          const ang = k * Math.PI / 2 + p * 0.7;
+          drawLightningSeg(v.x, v.y, v.x + Math.cos(ang) * r, v.y + Math.sin(ang) * r, 3.5, 4, hiCol, 1.2);
+        }
+      }
+    } else if (v.kind === 'impact'){
+      const col = v.venom ? C.accent : hiCol;
+      const r = (v.big ? 16 : 11) + (calm ? 0 : p * (v.big ? 18 : 12));
+      ctx.strokeStyle = col; ctx.lineWidth = (v.big ? 2.2 : 1.6) * a + 0.4;
+      ctx.beginPath(); ctx.arc(v.x, v.y, r * 0.75, 0, Math.PI * 2); ctx.stroke();
+      // 날카로운 대각 일섬 궤적
+      const ca = Math.cos(v.ang), sa = Math.sin(v.ang), L = r * 1.35;
+      ctx.lineWidth = (v.big ? 2.6 : 1.8) * a;
+      ctx.beginPath(); ctx.moveTo(v.x - ca * L, v.y - sa * L); ctx.lineTo(v.x + ca * L, v.y + sa * L); ctx.stroke();
+      if (v.big && !calm){
+        const cb = Math.cos(v.ang + 1.35), sb = Math.sin(v.ang + 1.35);
+        ctx.lineWidth = 1.5 * a;
+        ctx.beginPath(); ctx.moveTo(v.x - cb * L * 0.8, v.y - sb * L * 0.8); ctx.lineTo(v.x + cb * L * 0.8, v.y + sb * L * 0.8); ctx.stroke();
+      }
+    } else if (v.kind === 'enemySlash'){
+      // 적 공격 위험 궤적(붉은색 = 위험)
+      const L = calm ? 16 : 10 + p * 18;
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 2.4 * a + 0.5;
+      ctx.beginPath(); ctx.moveTo(v.x + L, v.y - L * 0.85); ctx.lineTo(v.x - L, v.y + L * 0.85); ctx.stroke();
+      ctx.lineWidth = 1.4 * a;
+      ctx.beginPath(); ctx.arc(v.x, v.y, L * 0.75, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 function draw(){
   fitCanvas();
@@ -171,17 +270,24 @@ function draw(){
   // 발사대: 이번에 쏠 구슬의 아이콘을 보여준다
   if (g.phase === 'aim' || (g.phase === 'fire' && g.queue.length)){
     ctx.fillStyle = C.ink2; ctx.fillRect(g.lx - 7, FLOOR - 1, 14, 2);
-    drawOrbSprite(orbKind(g.orb), g.lx, FLOOR - 7, 9);
+    drawOrbSprite(orbKind(g.orb), g.lx, FLOOR - 7, 9, ctx, orbLevel(g.orb));
     // 강화 구슬은 발사대 옆에 +를 붙여, HUD를 안 봐도 이번 구슬이 센 구슬인 걸 알게 한다
     if (orbUp(g.orb)) drawText('+' + orbLv(g.orb), g.lx + 6, FLOOR - 14, C.ink);
   }
   if (g.nextLx !== null){ ctx.fillStyle = C.ink2; ctx.fillRect(Math.round(g.nextLx) - 1, FLOOR - 3, 3, 3); }
   for (const b of g.balls){
     const trail = b.trail || [];
-    for (let i = 0; i < trail.length; i++){
-      ctx.globalAlpha = (i + 1) / trail.length * .3;
-      ctx.fillStyle = b.kind === 'venom' ? C.accent : C.ink2;
-      ctx.fillRect(Math.round(trail[i].x) - 1, Math.round(trail[i].y) - 1, 2, 2);
+    if (trail.length > 1){
+      ctx.save();
+      ctx.lineCap = 'round';
+      for (let i = 1; i < trail.length; i++){
+        const r = i / trail.length;
+        ctx.globalAlpha = r * 0.46;
+        ctx.strokeStyle = b.kind === 'venom' ? C.accent : C.ink;
+        ctx.lineWidth = 1.0 + r * (b.kind === 'heavy' ? 3.2 : 2.2);
+        ctx.beginPath(); ctx.moveTo(trail[i - 1].x, trail[i - 1].y); ctx.lineTo(trail[i].x, trail[i].y); ctx.stroke();
+      }
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
     drawOrbSprite(b.kind, b.x, b.y, b.kind === 'heavy' ? 7 : 5);
@@ -195,10 +301,23 @@ function draw(){
   for (const pr of g.projs){
     const k = clamp(pr.t / pr.dur, 0, 1), e = k * k;
     const x = pr.x0 + (pr.x1 - pr.x0) * e, y = pr.y0 + (pr.y1 - pr.y0) * k - Math.sin(Math.PI * k) * 18;
-    if (pr.kind === 'dmg'){ ctx.fillStyle = pr.venom ? C.accent : C.ink; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
+    if (pr.kind === 'dmg'){
+      const kp = Math.max(0, k - 0.14), ep = kp * kp;
+      const px0 = pr.x0 + (pr.x1 - pr.x0) * ep, py0 = pr.y0 + (pr.y1 - pr.y0) * kp - Math.sin(Math.PI * kp) * 18;
+      const col = pr.venom ? C.accent : C.ink;
+      ctx.save();
+      ctx.strokeStyle = col; ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.45; ctx.lineWidth = 4.2;
+      ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(x, y); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.lineWidth = 2.0;
+      ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(x, y); ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 2.3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
     else if (pr.kind === 'poison') drawIcon('skull', x - 3, y - 3, C.accent);
     else drawIcon(pr.kind === 'atk' ? 'sword' : pr.kind === 'def' ? 'shield' : 'heart', x - 3, y - 3, C.ink);
   }
+  drawCombatVfx(g);
   for (const q of g.parts){
     ctx.globalAlpha = clamp(q.t * 2.5, 0, 1);
     if (q.img){ drawPartArt(q); continue; }   // 그림이 없으면 파편은 생략: 같은 자리에 도트 파티클이 이미 튄다
@@ -250,7 +369,7 @@ function renderOrbBar(){
       const b = document.createElement('button'); b.className = 'slot';
       const hot = G.heat[i] > 0;
       b.disabled = hot || G.phase !== 'aim';
-      b.append(orbPortrait(orbKind(o)));
+      b.append(orbPortrait(orbKind(o), 'orbPortrait', orbLevel(o)));
       if (hot){ const h = document.createElement('i'); h.textContent = G.heat[i]; b.append(h); }
       b.setAttribute('aria-label', `${i + 1}번 슬롯 ${orbName(o)}${hot ? `, 과열 ${G.heat[i]}턴` : ''}`);
       b.onclick = e => { e.stopPropagation(); pickSlot(i); };
@@ -273,7 +392,7 @@ function renderOrbBar(){
     dmg.textContent = hp.div > 1 ? `(${expr}) ÷${hp.div} = ${hp.v}` : `${expr} = ${hp.v}`;
     dmg.title = '천장 타격 피해 = (릭의 공격력 + 구슬 위력) × 코어 모듈' + (hp.div > 1 ? ' ÷ 갈래 수' : '');
     name.append(dmg);
-    label.append(small, name); current.append(orbPortrait(orbKind(G.orb)), label);
+    label.append(small, name); current.append(orbPortrait(orbKind(G.orb), 'orbPortrait', orbLevel(G.orb)), label);
     el.append(current, slots); el.title = orbDesc(G.orb);
   } else el.append(`장전 ${RUN.deck.length}/${deckMax()}: ${deckSummary()}` + (RUN.cargo ? ` · 적재함 ${cargoParts()}/${cargoMax()}` : ''));
 }

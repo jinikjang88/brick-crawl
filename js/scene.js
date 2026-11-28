@@ -83,7 +83,8 @@ function drawRestScene(g, dt, calm){
   // 기사는 불 곁에서 쉰다(숨쉬기만, 불빛 쪽으로 조금 밝게)
   if (knight){
     const kb = calm ? 0 : Math.sin(t * 1.6) * .5;
-    g.drawImage(knight, 40, 30 + kb, 42, 42 * knight.naturalHeight / knight.naturalWidth);
+    const kh = 48, kw = kh * knight.naturalWidth / knight.naturalHeight;
+    g.drawImage(knight, 56 - kw / 2, 76 - kh + kb, kw, kh);
   }
   // 모닥불: 3프레임 띠를 초당 8장으로 돌린다
   if (fire){

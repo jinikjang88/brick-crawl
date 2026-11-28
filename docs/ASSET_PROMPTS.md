@@ -8,8 +8,8 @@
 
 기존 게임의 렌더러(`js/art.js`, `css/style.css`) 및 빌드 파이프라인(`tools/build_game_assets.py`, `tools/build_action_assets.py`)과 완벽히 호환되도록 모든 프롬프트에 아래 시각 규칙이 반영되어 있습니다.
 
-1. **화풍 (Art Style — 미래형 사이버펑크 도트 일러스트)**:
-   - 정교한 미래형 사이버펑크 도트 일러스트(`futuristic cyberpunk pixel-art illustration, crisp angular silhouettes, hard-edge chunky pixel clusters, high-contrast cybernetic depth, 1-pixel dark carbon-charcoal outline, upper-left lighting`).
+1. **화풍 (Art Style — 모노크롬 서브컬처 셀화 사이버펑크, 2026-11-27 개정)**:
+   - 서브컬처 하이엔드 2D 셀화 게임 일러스트(`high-end 2D anime cel-shaded cyberpunk game illustration, Genshin Impact / Zenless Zone Zero / Wuthering Waves style, crisp variable-weight dark ink lineart, clean two-tone and three-tone cel shading, sharp specular rim highlights, upper-left lighting, NO pixel art, NO chibi`).
    - 스팀펑크 요소(둥근 황동 고글, 가죽 주머니, 중세 튜닉 등)는 배제하고 **매트 카본 블랙 테크웨어(Techwear), 브러시드 티타늄/아이보리 장갑판, 각진 HUD 사이버 바이저, 전자기 레일 건틀릿, 고전압 백색 플라즈마 발광 라인**으로 통일합니다.
 2. **색상 팔레트 제약 (`AGENTS.md` 준수)**:
    - 기본 4색: **고전압 백색/상아색(Electric White / Warm Ivory `#F6EEDC`)**, **티타늄 실버/베이지 그레이(Titanium Silver / Cool Beige `#CDBD9C`)**, **매트 카본 블랙/건메탈(Carbon Black / Deep Gunmetal `#1B1A18`)**, **인더스트리얼 텅스텐/황동 메탈(Industrial Alloy `#A07D45`)**.
@@ -29,9 +29,9 @@
 - **비율**: `1:1` 정사각형 (`1024×1024`)
 
 ### 1.1 주인공: 릭 (`rick.png`)
-- **역할**: 플레이어 캐릭터 (15세 지하 구역 해커 겸 수리공, 전자기 레일 건틀릿 + 라이트닝 코어 구슬 + 삼각 디지털 파형 덱)
+- **역할**: 플레이어 캐릭터 (15세 지하 구역 수리공, 4.5등신 인디 액션 도트 비율, 하이칼라 카본 테크웨어 코트 + 단안 사이버 HUD 모노클 + 전자기 레일 건틀릿 + 번개 코어)
 ```text
-Use case: stylized-concept. Asset type: Brick Crawl standalone game character sprite illustration. Style: futuristic cyberpunk pixel-art illustration, crisp angular silhouettes, chunky hard-edge pixel clusters, high-contrast cybernetic depth, matte carbon-black / dark gunmetal / brushed titanium-ivory palette with bright electric-white plasma highlights, upper-left illumination. Subject: Rick, a 15-year-old cyberpunk underground hacker-mechanic boy, compact full-body 3-head chibi-proportioned character facing front three-quarter view toward the RIGHT. Wearing a sleek high-collared matte carbon-black cyberpunk techwear jacket with glowing white circuit-trace seams and angular titanium-ivory shoulder guards, tactical tech-pants with exo-knee braces, and magnetic boots. Spiky dark charcoal hair with a sleek angular futuristic HUD cyber-visor resting across his forehead/eye (emitting a subtle white digital scanline glow), glowing wired cyber-earpiece in ear connected to a geometric triangular digital frequency deck (MP3 waveform emitter) strapped to his chest. On his right arm he wears a heavy futuristic electromagnetic rail-gauntlet (segmented gunmetal and titanium-white plates with exposed magnetic accelerator coils), with a glowing high-density metallic sphere (Lightning Core) levitating above his palm surrounded by crackling electric-white plasma arcs. STRICT RULE: NO steampunk brass goggles, NO leather, NO RED, NO PURPLE anywhere on the character. Single character only, centered full body occupying 75% of a square canvas, generous transparent padding on all sides, no cropping, no text, no floor, no cast shadow, genuine transparent background.
+Use case: stylized-concept. Asset type: Brick Crawl standalone game character sprite illustration. Style: authentic hand-crafted 16/32-bit indie action-game pixel art (SANABI / Katana ZERO / Hyper Light Drifter vibe), crisp stepped pixel clusters, sharp 1-pixel pitch-black (#0B0D10) silhouette outline, cel-shaded 3-4 value ramps, upper-left lighting. Subject: Rick, a lean 4.5-head-tall 15-year-old cyberpunk underground mechanic boy in a dynamic low-center-of-gravity three-quarter combat stance facing RIGHT. Desaturated pale cool-ash / porcelain-ivory skin (#DFD9D0), sharp spiky dark-charcoal hair, stoic dark eyes with a sleek silver-titanium single-eye HUD monocle on one eye and a white wired earpiece leading to a geometric triangular metal MP3 player strapped to his chest. Wearing an asymmetric high-collar matte carbon-black techwear coat with split tails, brushed-titanium pad on his left (screen-left) shoulder, dark cargo pants, and heavy magnetic work boots. Extending his right arm toward the RIGHT in an oversized segmented gunmetal-and-titanium electromagnetic rail-gauntlet wired to his chest player, levitating a metallic Lightning Core sphere crackling with pure electric-white pixel lightning arcs. STRICT RULE: NO chibi proportions, NO cyan/blue, NO warm peach skin, NO brass/gold, NO red, NO purple. Centered full body on clean solid white/transparent background, no floor shadow, no text.
 ```
 
 ### 1.2 일반 적 1: 나노 슬러지 (`sludge.png`)
@@ -172,8 +172,8 @@ Use case: stylized-concept. Asset type: Brick Crawl cyberpunk dialogue portrait 
 
 | 파일명 | 화자 / 상태 | 개별 피사체 프롬프트 (공통 머리말 뒤에 이어 붙임) |
 |---|---|---|
-| `portrait_rick.png` | **릭 (기본)** | `Subject: Rick, 15-year-old cyberpunk hacker-mechanic boy facing three-quarter RIGHT, spiky dark charcoal hair, sleek angular futuristic HUD cyber-visor on forehead emitting subtle white scanline glow, calm focused dark eyes, glowing cyber-earpiece in ear, high-collared matte carbon-black techwear jacket with white circuit seam and triangular digital frequency deck on chest. NO RED, NO PURPLE.` |
-| `portrait_rick_determined.png` | **릭 (결의/최종전)** | `Subject: Cyberpunk Rick facing three-quarter RIGHT, angular HUD cyber-visor lowered over one eye with bright electric-white telemetry glow, intense determined expression, white-hot plasma arc reflections lighting up his cheek, high-collar techwear jacket. NO RED, NO PURPLE.` |
+| `portrait_rick.png` | **릭 (기본)** | `Subject: Rick, 15-year-old cyberpunk mechanic boy facing three-quarter RIGHT, spiky dark-charcoal hair, desaturated pale cool-ash skin, single-eye silver-titanium HUD monocle over right eye, calm stoic dark eyes, white wired earpiece connected to triangular metal MP3 player over high-collar matte carbon-black coat, brushed-titanium shoulder pad on left. NO CYAN, NO RED, NO PURPLE.` |
+| `portrait_rick_determined.png` | **릭 (결의/최종전)** | `Subject: Identical framing and design as portrait_rick facing three-quarter RIGHT, furrowed brows and clenched jaw, single-eye HUD monocle glowing brightly with pure electric-white telemetry light, white plasma rim highlights and sparks. NO CYAN, NO RED, NO PURPLE.` |
 | `portrait_lina.png` | **리나 (병중 — 프롤로그/3장)** | `Subject: Lina, 8-year-old girl in a cyberpunk underground shelter facing three-quarter LEFT, pale gentle face wrapped in a thermal silver-ivory blanket, tired brave dark eyes, holding her grey silicon-petrified left hand (with faint crystalline circuit-like grey hardening on the fingertips) close to her chest. NO RED.` |
 | `portrait_lina_warm.png` | **리나 (해독 후 — 엔딩)** | `Subject: Lina facing three-quarter LEFT, warm healthy complexion, relieved gentle smile, holding a sleek metallic cup with both healthy hands, silicon petrification completely gone. NO RED.` |
 | `portrait_yun.png` | **윤 (브로커)** | `Subject: Yun, grizzled middle-aged cyberpunk hardware broker and ex-defense engineer facing three-quarter LEFT, weathered face with short stubble, angular cybernetic multi-lens optic magnifier flipped up on his forehead, tactical throat-mic headset, dark gunmetal tech-trench coat. NO RED.` |
@@ -286,7 +286,7 @@ Use case: stylized-concept. ONE isolated sci-fi analog hardware relic asset: <RE
 | `relic_wallet.png` | **대용량 지갑** (승리 크레딧+3) | `Heavy ruggedized metal hardware wallet case with a titanium latch and credit chip slot` |
 | `relic_bandage.png` | **절연 테이프** (충전 회복+3) | `Roll of conductive silver-ivory insulation tape with a titanium dispenser clip` |
 | `relic_luckycoin.png` | **할인 토큰** (브로커 -10%) | `Octagonal brushed-titanium hardware token engraved with a binary die pattern` |
-| `relic_callus.png` | **장갑 안감** (첫 오버플로 무시) | `Reinforced mechanic's fingerless leather-and-titanium gauntlet liner with insulated palm plates` |
+| `relic_callus.png` | **장갑 안감** (첫 오버플로 무시) | `Reinforced mechanic's fingerless matte carbon-weave and titanium gauntlet liner with insulated palm plates, NO brown leather` |
 | `relic_mason.png` | **신호 비컨** (특수 벽돌 증가) | `Magnetic signal beacon clamp resting atop a small cracked data block` |
 | `relic_lantern.png` | **진단 램프** (정예 크레딧+10) | `Compact portable vacuum-tube diagnostic lamp in an brushed-titanium cage emitting warm ivory light` |
 | `relic_medkit.png` | **복구 키트** (승리 체력+2) | `Rugged warm-ivory metal field medical case embossed with a dark charcoal cross and titanium clasps` |
@@ -303,7 +303,7 @@ Use case: stylized-concept. ONE isolated sci-fi analog hardware relic asset: <RE
 | `relic_rebound.png` | **반발 패드** (25% 바닥 반동) | `Electromagnetic repulsion pad shaped like a flat titanium coil disc with upward arrows` |
 | `relic_sting.png` | **오염 주입기** (독 부여+1) | `Corrupted data injector needle with a glowing muted-vermilion (#C1443C) tip` |
 | `relic_thorns.png` | **역전류 하네스** (피격 시 반격 1) | `High-voltage feedback harness with short brushed-titanium discharge prongs` |
-| `relic_breath.png` | **방열판** (대기 턴 체력+2) | `Copper-and-titanium heat sink fin array with a small cooling fan` |
+| `relic_breath.png` | **방열판** (대기 턴 체력+2) | `Stacked brushed-titanium heat sink fin array with a dark carbon micro-fan, NO orange copper` |
 | `relic_scout.png` | **스캐너** (지도 적 표시) | `Foldable radar rangefinder scope with an brushed-titanium lens hood` |
 
 ### 5.3 희귀 등급 (10종)
@@ -316,23 +316,23 @@ Use case: stylized-concept. ONE isolated sci-fi analog hardware relic asset: <RE
 | `relic_heart.png` | **백업 전원** (1회 체력 1 생존) | `Mechanical pacemaker core of brushed titanium with a glowing muted-vermilion central chamber` |
 | `relic_alchemy.png` | **분진 응축기** (남은 독만큼 크레딧) | `Glass-and-titanium condenser tube converting dark nano-dust into a titanium credit token` |
 | `relic_twin.png` | **이중 어댑터** (3턴마다 2회 발사) | `Dual-barrel split synchronization adapter holding two ivory contact rings side by side` |
-| `relic_smith.png` | **납땜 인두** (강화 확률+10%p) | `Precision soldering iron and calibration caliper crossed together in brushed titanium and dark steel` |
-| `relic_charm.png` | **잠금 카트리지** (강화 실패 시 단계 유지) | `Locked brushed-titanium memory cartridge with a protective ivory seal latch` |
-| `relic_pouch.png` | **회전 탄창** (큐 +1칸) | `Six-slot revolving titanium ammo cylinder rack with an ivory orb peeking out` |
+| `relic_smith.png` | **납땜 인두** (과열 2 이상 시 과열 -1) | `Precision cybernetic micro-soldering iron with a white-hot tip crossed with a brushed-titanium cooling caliper, NO red, NO yellow` |
+| `relic_charm.png` | **잠금 카트리지** (적재함 +3칸) | `Reinforced dark carbon cargo expansion cartridge with three brushed-titanium and ivory lock latches, NO red` |
+| `relic_pouch.png` | **회전 탄창** (장갑 슬롯 +1칸) | `Six-slot revolving titanium ammo cylinder rack with an ivory orb peeking out` |
 
 ### 5.4 전설 등급 (10종)
 | 파일명 | 화면 이름 (효과) | `<RELIC_DESCRIPTION>` |
 |---|---|---|
-| `relic_kingsword.png` | **마스터 키** (⚔ 벽돌 효과+2) | `Master Root-Key hardware dongle shaped like an ornate brushed-titanium skeleton key with a glowing ivory blade` |
-| `relic_hourglass.png` | **원자 시계** (적 연속 공격 -1) | `Precision atomic-clock vacuum tube hourglass in an brushed-titanium frame` |
-| `relic_ring.png` | **재점화 링** (1회 50% 부활) | `Golden-titanium infinity loop core ring with an unbroken warm-ivory filament` |
+| `relic_kingsword.png` | **마스터 키** (⚔ 벽돌 효과+2) | `Master Root-Key hardware dongle shaped like an ornate brushed-titanium cyber-key with a glowing electric-white blade, NO gold` |
+| `relic_hourglass.png` | **원자 시계** (적 연속 공격 -1) | `Precision atomic-clock vacuum tube hourglass in a brushed-titanium frame trickling white particles` |
+| `relic_ring.png` | **재점화 링** (1회 50% 부활) | `Sleek brushed-titanium infinity loop core ring with an unbroken electric-white plasma filament, NO gold` |
 | `relic_crusher.png` | **유압 분쇄기** (매 턴 하단 벽돌 파괴) | `Heavy industrial hydraulic jaw crusher head in dark gunmetal and titanium` |
 | `relic_plague.png` | **웜** (독이 방어도 깎고 유지) | `Segmented mechanical centipede-worm chip with a glowing muted-vermilion (#C1443C) head` |
-| `relic_giant.png` | **파워 프레임** (분열 피해 감소 없음) | `Heavy exoskeletal power-gauntlet servo frame in dark iron and brushed titanium` |
-| `relic_warp.png` | **정지장 시계** (조준선 0.5초 정지) | `Stasis field pocket chronometer with a frozen bent ivory dial and titanium gears` |
-| `relic_greed.png` | **과열 채굴기** (승리 크레딧+12, 상점+15) | `Overclocked mining rig module overflowing with titanium credit tokens and hot exhaust vents` |
+| `relic_giant.png` | **파워 프레임** (분광 피해 분할 없음) | `Heavy exoskeletal power-gauntlet servo frame in dark iron and brushed titanium` |
+| `relic_warp.png` | **정지장 시계** (조준선 0.5초 정지) | `Stasis field pocket chronometer with a frozen ivory dial and brushed-titanium gears, NO gold` |
+| `relic_greed.png` | **과열 채굴기** (승리 크레딧+12, 상점+15) | `Overclocked dark server mining rig module overflowing with brushed-titanium and ivory credit tokens and white steam vents, NO gold` |
 | `relic_pact.png` | **신경 우회 케이블** (최대 체력-8, 피해+1) | `Unsealed high-voltage neural bypass cable stained with a muted-vermilion (#C1443C) warning seal` |
-| `relic_collector.png` | **기록 수집 드론** (수집 구슬 5종당 시작 ⚔+1) | `Miniature multi-legged archive crawler drone carrying three tiny ivory spheres on its back` |
+| `relic_collector.png` | **기록 수집 드론** (모은 코어·회로 5종당 시작 ⚔+1) | `Miniature multi-legged archive crawler drone carrying three tiny ivory spheres on its back` |
 
 ---
 
@@ -350,9 +350,9 @@ Use case: stylized-concept. Vertical 9:17 game background illustration for Brick
 Game asset sprite sheet: six separate rectangular cyber-bunker barrier tiles for a brick-breaker roguelike, arranged in a clean 3 columns by 2 rows grid with wide even spacing, each brick wide 2:1 proportion, front view with a slight top bevel, upper-left lighting. Style: detailed pixel-art illustration, chunky crisp pixel clusters, restrained ivory / beige / charcoal / brushed titanium palette, 1-pixel dark outline around every brick. Flat plain neutral grey background (#808080).
 Row 1, left (brick_n): weathered beige-grey reinforced concrete-and-circuit data wall block with fine seam lines.
 Row 1, middle (brick_stone): heavy dark gunmetal blast-armor block bolted with two riveted iron straps.
-Row 1, right (brick_atk): polished warm-ivory plate framed by brushed-titanium border, with a large bold raised dark-bronze SWORD / VOLTAGE BOLT emblem in the center, very high contrast.
-Row 2, left (brick_def): polished warm-ivory plate with brushed-titanium border and a large bold raised dark-bronze SHIELD emblem in the center.
-Row 2, middle (brick_heal): polished warm-ivory plate with brushed-titanium border and a large bold raised dark-bronze HEART emblem in the center.
+Row 1, right (brick_atk): polished cool-ivory plate framed by brushed-titanium border, with a large bold raised dark-carbon SWORD / VOLTAGE BOLT emblem in the center, very high contrast, NO bronze.
+Row 2, left (brick_def): polished cool-ivory plate with brushed-titanium border and a large bold raised dark-carbon SHIELD emblem in the center, NO bronze.
+Row 2, middle (brick_heal): polished cool-ivory plate with brushed-titanium border and a large bold raised dark-carbon HEART / CROSS emblem in the center, NO bronze.
 Row 2, right (brick_poison): dark cracked silicon block with glowing muted-vermilion (#C1443C) red nano-veins and a raised vermilion SKULL emblem in the center.
 No text, no labels, no cast shadows on background.
 ```
@@ -362,9 +362,9 @@ No text, no labels, no cast shadows on background.
 Use case: stylized-concept. Game NPC half-body sprite of Yun the Broker standing behind a workbench counter, facing front. Style: detailed pixel-art illustration, restrained ivory / beige / charcoal / brushed titanium palette, upper-left lighting. Subject: grizzled middle-aged mech technician in a dark charcoal work coat, titanium welding goggles on forehead, holding up a glowing warm-ivory vacuum-tube inspection lamp in one hand and a soldering tool in the other. Waist-up composition, genuine transparent background, no text, no red.
 ```
 
-### 6.4 충전소 히터 3프레임 시트 (`assets/illustrated/heater.png` → `assets/game/heater.png` — 가로 3:1 비율, 3열×1행)
+### 6.4 충전소 히터 (`assets/illustrated/items/heater.png` → `assets/game/campfire.png` 3프레임 자동 변환)
 ```text
-Use case: stylized-concept. 3-frame horizontal sprite strip (3 equal columns, 1 row) of an underground bunker thermal coil heater / charging station on a stone floor. Style: detailed pixel-art illustration, restrained charcoal, brushed titanium, and warm ivory-gold glow palette (NO RED). Each frame shows the same compact cylindrical titanium-and-iron induction brazier, with the warm ivory-gold plasma heat waves and rising sparks subtly swaying in 3 sequential animation frames. Genuine transparent background, no text.
+Use case: stylized-concept. Isolated cyberpunk underground bunker thermal coil heater / charging station. Style: futuristic cyberpunk pixel-art illustration, restrained carbon-charcoal, brushed titanium, and pure electric-white / cool-ivory plasma glow palette (STRICTLY NO RED, NO GOLD/ORANGE). Compact cylindrical titanium-and-iron induction brazier emitting crisp cool-ivory plasma heat coils from its top grille. Genuine transparent background, 1px dark carbon outline, no text.
 ```
 
 ### 6.5 앱 아이콘 (`assets/illustrated/icon.png` — `1024×1024` 정사각형, 불투명 배경)
@@ -386,21 +386,20 @@ Mobile game app icon, square full-bleed composition (no rounded corners, no bord
 
 ---
 
-## 8. 생성 현황 (2026-11-12)
+## 8. 생성 현황 (2026-11-27 — 모노크롬 서브컬처 셀화 전면 전환 완료)
 
-`assets/game/`에 실제로 있는 파일 기준이다. 옛 중세 그림(상아·황동·석재)은 2026-11-12에 모두 걷어 냈다. 구슬 부품·칩·벽돌·크레딧·충전소·앱 아이콘은
-`tools/draw_item_assets.py`가 그린 **도트 아이콘**으로 채웠고, 이 문서 4~6절의 프롬프트로 AI 일러스트를 만들어 `assets/illustrated`에 넣으면 그것이 대신 쓰인다.
+과거 미참조 에셋(`docs/assets/*`, `tools/export_assets.py`, `actions/sentinel.png`, `orb_bounce`·`orb_time`·`orb_crown`) 및 옛 블록 도트 에셋을 제거하고, **전 에셋(130종 런타임 PNG + 앱 아이콘 5종 + 700프레임 동작 아틀라스)을 모노크롬 서브컬처 셀화(Cel-Shading) 사이버펑크 화풍으로 통일**했다.
 전체 표와 만드는 순서는 [`docs/art/illustrated-assets.md`](art/illustrated-assets.md).
 
-| 구분 | 지금 쓰는 그림 | AI 일러스트로 바꿀 수 있는 것 |
+| 구분 | 지금 쓰는 그림 (전량 셀화 통일 완료) | 비고 |
 |---|---|---|
-| 1. 캐릭터 | AI 일러스트 9종(`rick`·`sludge`·`drone`·`guardian`·`disperser`·`sentinel`·`gemini`·`omnis`·`claude`) | `codex`·`zero`(지금은 `ART_FALLBACK`으로 센티넬·OMNIS) |
-| 2. 액션 시트 | 9종(릭은 AI 시트, 기체 8종은 원본 한 장을 관절로 움직인 것) | `codex`·`zero`, 릭 피격 줄(구슬이 사라졌다 나타남) |
-| 3. 대화 초상 | 14종 전부(`portrait_*`) | — |
-| 4. 구슬 부품 | 도트: 코어 7·회로 16(`orb_prism` 포함)·공명 효과 3 | 4.1·4.2절. 구슬 레벨 테두리 4·공명 문양 6은 코드 연결도 필요 |
-| 5. 칩 | 도트 40종(IC 실루엣 + 문양) | 5절 |
-| 6. 배경·장면 | 도트: 배경 `chasm`, 벽돌 6종, 충전소 히터(`campfire.png`), 크레딧·불꽃·파편, 앱 아이콘 | 6.1·6.2·6.4·6.5절 |
-| UI 프레임 | `ui_bar`·`ui_panel`·`ui_frame`·`scan`(`tools/draw_cyber_assets.py`) | — |
+| 1. 캐릭터 (14종) | **AI 셀화 릭(`rick`) + 고해상도 2배 슈퍼샘플링 셀화 기체·보스 13종**(`sludge`·`drone`·`compiler`·`holo`·`arm`·`guardian`·`disperser`·`sentinel`·`codex`·`gemini`·`claude`·`omnis`·`zero`) | `tools/draw_cel_characters.py` → `build_game_assets.py` |
+| 2. 액션 시트 (14종) | **14종 전원 50프레임(`*_actions.png`, 10열×5행, 총 700프레임)** — 공격·피격·사망·스킬 + 4행 다관절 대기 루프 | `tools/build_cyber_actions.py` |
+| 3. 대화 초상 (14종) | **AI 셀화(`portrait_rick`·`portrait_rick_determined`·`portrait_yun`) + 셀화 리나 2종·기체/보스 9종** (`192×192` 고해상도 런타임) | `portrait_gemini`·`portrait_zero`까지 14종 완비 |
+| 4. 구슬·레벨·공명 | **4배 슈퍼샘플링(384→96) 셀화 벡터 일러스트 32종**(코어 7·회로 15·레벨 링 4·공명 메달리온 6) | `tools/draw_item_assets.py` |
+| 5. 칩 (40종) | **4배 슈퍼샘플링(384→96) 셀화 16핀 IC 칩 일러스트 40종** | `tools/draw_item_assets.py` |
+| 6. 배경·장면·벽돌 | **2배 슈퍼샘플링(1440×2720→720×1360) 셀화 배경 `chasm.png`** + 셀화 벽돌 6종·충전소 히터(`campfire.png`)·`coin`·`spark`·`rubble`·`merchant`·AI 셀화 앱 아이콘(`icon.png`) | `tools/draw_cyber_assets.py` · `tools/draw_item_assets.py` |
+| UI 프레임 | 2배 슈퍼샘플링 셀화 베벨 `ui_bar`·`ui_panel`·`ui_frame` + `scan` | `tools/draw_cyber_assets.py` |
 
 AI 그림을 받으면 넣기 전에 확인한다(생성형 그림에서 자주 나오는 결함):
 1. 몸에 둘러싸인 안쪽의 배경이 지워졌는가(고리 안, 케이블 사이). 남았으면 `tools/clean_matte.py`의 `TARGETS`에 더한다.

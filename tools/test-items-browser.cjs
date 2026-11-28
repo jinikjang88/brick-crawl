@@ -16,7 +16,11 @@ try { ({ chromium } = require('playwright')); } catch (e) {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.goto(pathToFileURL(path.resolve(__dirname, '../index.html')).href);
-    await page.waitForFunction(() => Object.keys(ORBS).every(k => artImg('orb_' + k)) && Object.keys(RELICS).every(k => artImg('relic_' + k)));
+    await page.waitForFunction(() =>
+      Object.keys(ORBS).filter(k => ORBS[k].part !== 'res').every(k => artImg('orb_' + k))
+      && [2, 3, 4, 5].every(lv => artImg('orb_lv_' + lv))
+      && RESONANCE.every(r => artImg('res_' + r.id))
+      && Object.keys(RELICS).every(k => artImg('relic_' + k)));
     assert.equal(await page.locator('#ovMain').evaluate(e => e.classList.contains('on')), true);
     await page.locator('#mNew').click();
     // 첫 원정은 프롤로그(이야기)가 먼저 뜬다(작업 05)
@@ -39,6 +43,7 @@ try { ({ chromium } = require('playwright')); } catch (e) {
     await page.evaluate(() => {
       for (const k of Object.keys(ORBS)) META.seen.orb[k] = true;
       for (const k of Object.keys(RELICS)) META.seen.relic[k] = true;
+      for (const r of RESONANCE) META.res[r.id] = 1;
       showBadges();
     });
     // 부품·칩에 더해 공명·이야기 줄도 그림을 쓴다. 부품 + 칩 수보다 적으면 그림이 빠진 것이다

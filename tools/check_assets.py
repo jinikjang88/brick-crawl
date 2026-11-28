@@ -60,7 +60,8 @@ def load(name):
 art = (ROOT / 'js' / 'art.js').read_text(encoding='utf8')
 data = (ROOT / 'js' / 'data.js').read_text(encoding='utf8')
 block = lambda src, name: re.search(r'const ' + name + r' = \{(.*?)\n\};', src, re.S).group(1)
-orbs = re.findall(r'^\s{2}(\w+):\s*\{ part:', block(data, 'ORBS'), re.M)
+orbs = [k for k, p in re.findall(r"^\s{2}(\w+):\s*\{ part:'(\w+)'", block(data, 'ORBS'), re.M) if p != 'res']
+res_ids = re.findall(r"id:'(\w+)'", re.search(r'const RESONANCE = \[(.*?)\];', data, re.S).group(1))
 relics = re.findall(r'^\s{2}(\w+):\s*\{ t:', block(data, 'RELICS'), re.M)
 chars = re.findall(r"'(\w+)'", re.search(r'const ART_CHARS = \[(.*?)\]', art, re.S).group(1))
 # 아직 그림이 없어 다른 그림으로 대신하는 캐릭터(ART_FALLBACK)는 파일이 없어도 된다
@@ -70,14 +71,15 @@ acts = re.findall(r"'(\w+)'", re.search(r'const ART_ACTIONS_LIST = \[(.*?)\]', a
 ports = sorted(set(re.findall(r"port:'(\w+)'", data)))
 want = set(['chasm', 'coin', 'spark', 'rubble', 'merchant', 'campfire', 'ui_bar', 'ui_frame', 'ui_panel', 'scan'])
 want |= set(chars) | {a + '_actions' for a in acts} | {'orb_' + k for k in orbs} | {'relic_' + k for k in relics}
+want |= {f'orb_lv_{lv}' for lv in (2, 3, 4, 5)} | {'res_' + r for r in res_ids}
 want |= {'brick_' + k for k in ('n', 'stone', 'atk', 'def', 'heal', 'poison')} | {'portrait_' + p for p in ports}
 have = {p.stem for p in GAME.glob('*.png')}
 ok(f'목록: 필요한 그림 {len(want)}장이 모두 있다', not (want - have), '없음: ' + ', '.join(sorted(want - have)))
 ok('목록: 안 쓰는 그림이 없다', not (have - want), '남음: ' + ', '.join(sorted(have - want)))
 
 # ── 2. 흰 배경 잔여물 ────────────────────────────────────────────────────────────────────
-# 게임용 축소본(최대 256px) 기준. 클라드 가슴 발광처럼 원래 흰 부분은 예외로 적는다
-WHITE_OK = {'claude': 600, 'rick': 120, 'omnis': 120}   # OMNIS 눈 한가운데의 빛
+# 게임용 축소본(최대 256px) 기준. 클라드 가슴 발광·코테크 모니터·홀로그램 주사선·작업 팔 데이터 블록처럼 원래 흰 부위는 예외로 적는다
+WHITE_OK = {'claude': 600, 'rick': 200, 'omnis': 120, 'codex': 260, 'holo': 900, 'arm': 320, 'zero': 260, 'compiler': 180}
 bad = []
 for n in chars:
     a = load(n)
@@ -88,23 +90,27 @@ for n in chars:
 ok('흰 배경 잔여물: 캐릭터 안에 큰 순백 덩어리가 없다', not bad, ', '.join(bad))
 
 # ── 3~6. 동작 시트 ──────────────────────────────────────────────────────────────────────
-# 원래 떨어져 있는 부품이 있는 캐릭터(클라드의 떠 있는 패널)는 조각 수를 따로 적는다
-PARTS = {'claude': 3}
+# 원래 떨어져 있는 부품이 있는 캐릭터(클라드 부유 방패, 제로 링 파편, 홀로그램 발밑 노드)는 조각 수를 따로 적는다
+PARTS = {'claude': 3, 'zero': 18, 'holo': 3}
 stray, seam, jump, flip = [], [], [], []
 for n in acts:
     sheet = load(n + '_actions')
     rows = sheet.shape[0] // CELL
+    cols = sheet.shape[1] // CELL
+    last_c = cols - 1
     cell = lambda r, c: sheet[r * CELL:(r + 1) * CELL, c * CELL:(c + 1) * CELL]
-    rest = [cell(r, 5) for r in range(rows) if r != 2]      # 2행 = 사망(대기로 돌아오지 않는다)
-    for r, a in zip([r for r in range(rows) if r != 2], rest):
+    # 0행=공격, 1행=피격, 3행=스킬은 마지막 칸에서 대기 포즈로 복귀한다(2행=사망, 4행=연속 대기 루프)
+    act_rows = [r for r in range(rows) if r in (0, 1, 3)]
+    rest = [cell(r, last_c) for r in act_rows]
+    for r, a in zip(act_rows, rest):
         c = comps(a[..., 3] > 20)
         small = [x for x in c[PARTS.get(n, 1):] if x > 6]
         if small:
-            stray.append(f'{n} r{r}f5 조각 {small[:3]}')
-    for r, a in zip([r for r in range(rows) if r != 2][1:], rest[1:]):
+            stray.append(f'{n} r{r}f{last_c} 조각 {small[:3]}')
+    for r, a in zip(act_rows[1:], rest[1:]):
         d = int((np.abs(a.astype(int) - rest[0].astype(int)).sum(axis=2) > 60).sum())
         if d > 400:
-            seam.append(f'{n} r{r}f5 대기 포즈와 {d}px 다름')
+            seam.append(f'{n} r{r}f{last_c} 대기 포즈와 {d}px 다름')
 
     def body(a):
         m = a[..., 3] > 20
@@ -124,7 +130,7 @@ for n in acts:
     idle_side = red_side(rest[0])
     for r in range(rows):
         prev = None
-        for c in range(6):
+        for c in range(cols):
             a = cell(r, c)
             cur = body(a)
             if prev and cur[2] and prev[2]:
@@ -135,8 +141,15 @@ for n in acts:
                     jump.append(f'{n} r{r}f{c} 이동 {dist:.0f}px 넓이 ×{grow:.2f}')
             prev = cur
             # 타격 연출(붉은 광선·불꽃)이 섞이는 칸은 빼고, 연출 없는 처음과 끝 칸에서만 본다
-            if r != 2 and c in (0, 5) and idle_side and red_side(a) == -idle_side:
+            if r in (0, 1, 3) and c in (0, last_c) and idle_side and red_side(a) == -idle_side:
                 flip.append(f'{n} r{r}f{c}')
+        # 4행(대기 루프)은 마지막 칸에서 첫 칸으로 감길 때도 튀지 않아야 한다
+        if r == 4:
+            b0, b9 = body(cell(r, 0)), body(cell(r, last_c))
+            if b0[2] and b9[2]:
+                loop_dist = ((b0[0] - b9[0]) ** 2 + (b0[1] - b9[1]) ** 2) ** .5
+                if loop_dist > 24:
+                    seam.append(f'{n} idle 루프 이음매 이동 {loop_dist:.1f}px')
 ok('떠 있는 조각: 대기 프레임에 몸에서 떨어진 조각이 없다', not stray, ' / '.join(stray[:6]))
 ok('이음매: 공격·피격·스킬이 같은 대기 포즈로 끝난다', not seam, ' / '.join(seam[:6]))
 ok('연속성: 이웃한 프레임 사이에 그림이 튀지 않는다', not jump, ' / '.join(jump[:6]))
@@ -145,7 +158,7 @@ ok('좌우: 비대칭 표식이 대기 포즈와 같은 쪽에 있다', not flip
 # ── 7. 팔레트 ───────────────────────────────────────────────────────────────────────────
 off = []
 for n in sorted(have):
-    if not n.startswith(('orb_', 'relic_', 'brick_', 'coin', 'rubble', 'spark', 'campfire', 'merchant')):
+    if not n.startswith(('orb_', 'res_', 'relic_', 'brick_', 'coin', 'rubble', 'spark', 'campfire', 'merchant')):
         continue
     a = load(n)
     px = a[a[..., 3] > 20][:, :3].astype(int)

@@ -129,9 +129,9 @@ const loadSlots = inRun => inRun ? deckMax() : baseSlots();
 function showGarage(back, inRun){
   const g = META.g, slots = loadSlots(inRun);
   const cards = g.orbs.map((o, i) => {
-    const lv = garageLv(i), next = ORB_XP[lv + 1];
-    return { name:orbName(withLv(o, lv)), orb:o, tag:(g.load.includes(i) ? '장전됨' : '보관') + (next ? ` · 경험치 ${g.oxp[i] || 0}/${next}` : ' · 최고 레벨'),
-      desc:orbDesc(withLv(o, lv)), onPick:() => showOrbEdit(i, back, inRun) };
+    const lv = garageLv(i), next = ORB_XP[lv + 1], full = withLv(o, lv);
+    return { name:orbName(full), orb:full, tag:(g.load.includes(i) ? '장전됨' : '보관') + (next ? ` · 경험치 ${g.oxp[i] || 0}/${next}` : ' · 최고 레벨'),
+      desc:orbDesc(full), onPick:() => showOrbEdit(i, back, inRun) };
   });
   const pairs = Object.keys(g.circs).filter(k => !k.endsWith('+') && g.circs[k] >= 2).length;
   showChoice({ mode:'garage', title:'차고',

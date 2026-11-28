@@ -15,7 +15,7 @@ function newBattle(node){
     heart:false, callus:false, disarm:0, stunUsed:false, timeUsed:0, mirror:0, toxic:false,
     // 기체 특성(작업 08 2단계): traitOff = 약점을 찔려 이번 전투 동안 꺼졌나, harden = 경화로 빨라진 조준선 비율
     traitOff:false, harden:0,
-    bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], queue:[],
+    bricks:[], balls:[], projs:[], pops:[], parts:[], cf:[], vfx:[], queue:[],
     lx:W / 2, nextLx:null, aim:-Math.PI / 2, aimDir:1, aimT:0, fireT:0, fireEl:0, shake:0,
     // 장갑 슬롯(작업 08): sel = 고른 슬롯, heat = 슬롯별 남은 과열 턴. orb = 지금 쏠 구슬
     sel:0, heat:[], orb:'basic',
@@ -181,10 +181,11 @@ function hurtPlayer(v, icon, fromMonster){
     if (rel('thorns')) strike(PX + 6, 60, 1);
     if (G.mirror) strike(PX + 14, 70, Math.ceil(v * G.mirror));
   }
-  if (hit){ G.lost = true; artPose(p, 'hit'); p.recoil = 0.001; p.flash = 0.18; G.shake = Math.max(G.shake, 5); burst(PX, 66, C.accent, 10); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
+  if (hit){ G.lost = true; artPose(p, 'hit'); p.recoil = 0.001; p.flash = 0.18; G.shake = Math.max(G.shake, 5); spawnVfx({ kind:'enemySlash', x:PX, y:62, t:0.24, dur:0.24 }); burst(PX, 66, C.accent, 12); pop(PX, ab ? 28 : 30, '-' + hit, C.accent, icon); sfx('hurt'); }
   else { p.recoil = 0.001; p.skillFx = { t:0.3, dur:0.3, col:C.ink2, kind:'guard' }; burst(PX, 66, C.ink3, 6); sfx('block'); }
 }
 
+function spawnVfx(o){ if (G && G.vfx) G.vfx.push(o); }
 function pop(x, y, txt, col, icon){ G.pops.push({ x, y, txt, col, icon, t:0.9 }); }
 function burst(x, y, col, n){
   for (let k = 0; k < n; k++){
@@ -236,8 +237,10 @@ function onBreak(b){
 function ballBreak(b, br){
   if (b.f.guard !== undefined){ const v = defGain(b.f.guard ? 2 : 1); G.p.def += v; pop(PX + 12, 88, '+' + v, C.ink2, 'shield'); }
   if (b.kind === 'bomb' && !b.bombed){
-    b.bombed = true; G.shake = Math.max(G.shake, 3); sfx('boom');
-    burst(OX + br.c * CW + CW / 2, br.y + BRH / 2, C.ink, 16);
+    b.bombed = true; G.shake = Math.max(G.shake, 4); sfx('boom');
+    const ex = OX + br.c * CW + CW / 2, ey = br.y + BRH / 2;
+    spawnVfx({ kind:'emp', x:ex, y:ey, t:0.30, dur:0.30 });
+    burst(ex, ey, C.ink, 18);
     for (const o of G.bricks){
       if (o.dead || o === br || Math.abs(o.r - br.r) > 1 || Math.abs(o.c - br.c) > 1) continue;
       o.hp -= b.up ? 2 : 1; o.flash = 0.1;
@@ -249,7 +252,9 @@ function arrive(pr){
   const g = G;
   if (pr.kind === 'dmg'){
     if (g.m.dead) return;
-    const [ab, hit] = hurt(g.m, pr.v); g.m.flash = 0.1; g.m.recoil = 0.001; artPose(g.m, 'hit');
+    const [ab, hit] = hurt(g.m, pr.v); g.m.flash = 0.12; g.m.recoil = 0.001; artPose(g.m, 'hit');
+    spawnVfx({ kind:'impact', x:MX, y:60, ang:(Math.random() - 0.5) * 1.1, big:hit >= 3, venom:!!pr.venom, t:0.24, dur:0.24 });
+    burst(MX, 60, pr.venom ? C.accent : C.ink, hit >= 3 ? 12 : 7);
     if (tree('a4')) renderOrbBar();   // 처형 배율은 몬스터 체력 절반에서 켜지므로 HUD 식도 그때 바꾼다
     const jx = MX + (Math.random() * 16 - 8);
     if (ab) pop(jx, 44, '-' + ab, C.ink2, 'shield');
@@ -347,7 +352,7 @@ function hitBricks(b){
 function moveBall(b, dt){
   // 잔상은 실제 이동 위치만 기록하여 반사 지점에서 벽을 뚫어 보이지 않게 한다.
   b.trail = b.trail || []; b.trail.push({ x:b.x, y:b.y });
-  if (b.trail.length > 5) b.trail.shift();
+  if (b.trail.length > 9) b.trail.shift();
   b.impact = Math.max(0, (b.impact || 0) - dt);
   const n = Math.max(1, Math.ceil(BALL_SPEED * dt / 1.5));
   for (let i = 0; i < n; i++){
@@ -379,7 +384,8 @@ function moveBall(b, dt){
         if (b.hits === 3 && rel('leech')) heal(1);
         orbCeil(b);
         G.cf.push({ x:b.x, t:0.25 });
-        burst(b.x, BT + 1, C.ink, 6);
+        spawnVfx({ kind:'bolt', x0:b.x, y0:BT, x1:MX, y1:58, venom:b.f.venom !== undefined, t:0.22, dur:0.22 });
+        burst(b.x, BT + 1, C.ink, 9);
       }
     }
     if (Math.abs(b.vy) < BALL_SPEED * 0.12) b.vy = (b.vy < 0 ? -1 : 1) * BALL_SPEED * 0.12;
@@ -440,6 +446,8 @@ function fire(){
   artPose(g.p, isSkillOrb ? 'skill' : 'attack');
   g.p.lunge = 0.001;
   if (isSkillOrb) g.p.skillFx = { t:0.42, dur:0.42, col:C.ink, kind:'cast' };
+  spawnVfx({ kind:'launch', x:g.lx, y:FLOOR - 5, aim:g.aim, skill:isSkillOrb, t:0.26, dur:0.26 });
+  spawnVfx({ kind:'aura', x:PX + 8, y:62, skill:isSkillOrb, t:0.28, dur:0.28 });
   g.phase = 'fire'; g.fireT = 1; g.fireEl = 0; g.nextLx = null;
   g.shot = { full:g.m.hp === g.m.max, landed:0, broke:0 };
   const spread = { 1:[0], 3:[-0.16, 0, 0.16], 5:[-0.32, -0.16, 0, 0.16, 0.32] }[splitN(g.orb)];
@@ -498,6 +506,7 @@ function update(dt){
   g.parts = g.parts.filter(p => p.t > 0);
   for (const f of g.cf) f.t -= dt;
   g.cf = g.cf.filter(f => f.t > 0);
+  if (g.vfx){ for (const v of g.vfx) v.t -= dt; g.vfx = g.vfx.filter(v => v.t > 0); }
 
   // 몬스터는 구슬 말고도 반격·독 같은 간접 피해로 몬스터 턴 중에 쓰러질 수 있다.
   // 그대로 두면 몬스터 턴이 끝까지 돌고 조준까지 넘어가 구슬을 한 번 더 쏴야 승리가 났다. 어느 경로든 여기서 바로 끝낸다.
