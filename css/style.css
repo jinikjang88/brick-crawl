@@ -153,7 +153,8 @@ img.bIc{object-fit:contain;image-rendering:auto}
 .orbCurrent,.orbNext{display:flex;align-items:center;gap:6px}
 .orbCurrent small{display:block;font-size:11px;letter-spacing:.1em;color:var(--ink2)}
 /* 발사!: 반전 칩으로 눈에 띄게. 붉은색은 위험 전용이라 쓰지 않는다 */
-.orbCurrent small.fired{display:inline-block;background:var(--ink);color:var(--bg);font-weight:800;padding:0 5px;letter-spacing:.05em}
+/* inline-block이면 부모 글꼴의 줄 높이를 타 "조준"일 때보다 키가 커지고, 구슬 줄이 커지면 전투판이 쏠 때마다 줄었다 커진다. table은 블록처럼 제 높이를 지키면서 폭만 글자에 맞춘다 */
+.orbCurrent small.fired{display:table;background:var(--ink);color:var(--bg);font-weight:800;padding:0 5px;letter-spacing:.05em}
 .orbCurrent b{display:block;font-size:16px}
 /* 장갑 슬롯(작업 08): 고르지 않은 구슬. 누르면 그 구슬로 바꾼다. 과열 중이면 흐리게 + 남은 턴 숫자 */
 .slots{display:flex;gap:6px;flex:none}
